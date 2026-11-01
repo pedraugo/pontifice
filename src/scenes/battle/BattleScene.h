@@ -12,6 +12,8 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 #include "scripts/torch/Torch.h"
+#include "scripts/cards/Cards.h"
+#include "scripts/deck/Deck.h"
 
 // Cena de batalha. Por enquanto: arena, mão de cartas 3D com hover e HUD (docs/hud.md).
 // Esc volta ao menu. Teclas de depuração até existir a lógica de jogo: F alterna uma carta de
@@ -34,6 +36,8 @@ class BattleScene : public Scene {
   SDL_Texture* UploadHudSprite(SDL_Renderer* renderer, const Image& image);
   void ToggleSampleFieldCard();
   void DrawCard();
+  // Compõe a frente (moldura + textos) e sobe para a GPU; nulo se a carta não existe.
+  SDL_GPUTexture* MakeCardFace(const std::string& code);
   void UpdateIntro(float dt_seconds);  // arena emergindo da névoa e câmera aproximando
 
   bool preloaded_ = false;
@@ -45,7 +49,10 @@ class BattleScene : public Scene {
   math::Mat4 torch_world_[2];  // tochas fincadas à esquerda e à direita da arena
   std::vector<SDL_GPUTexture*> textures_;
   SDL_GPUTexture* back_ = nullptr;       // verso das cartas
-  std::vector<SDL_GPUTexture*> fronts_;  // frentes: Good, Evil, Field (compra de exemplo)
+  Image frames_[3];                      // molduras Good, Evil, Field reduzidas (cardface)
+  std::vector<CardInfo> cards_;          // todas as cartas (assets/Cards*.json)
+  deck::Deck deck_;                      // monte do jogador, já embaralhado
+  std::vector<SDL_GPUTexture*> initial_hand_;  // frentes das 5 primeiras, compostas no Preload
   Hand hand_;
   Hud hud_;
   SDL_Texture* field_front_2d_ = nullptr;  // frente da carta de campo no HUD

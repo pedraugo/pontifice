@@ -1,5 +1,6 @@
 #include "scripts/text/Text.h"
 
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -247,6 +248,73 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
     if (i + 1 < cps.size()) {
       pen_x += kern_scale * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
                                                           static_cast<int>(cps[i + 1]));
+    }
+  }
+}
+
+float ImageWidth(const char* str, float px) {
+  const Font& f = G();
+  if (!f.ready) return 0.0f;
+  const float k = stbtt_ScaleForPixelHeight(&f.info, px);
+  const std::vector<Uint32> cps = Codepoints(str, f.info);
+  float w = 0.0f;
+  for (size_t i = 0; i < cps.size(); ++i) {
+    int advance = 0, lsb = 0;
+    stbtt_GetCodepointHMetrics(&f.info, static_cast<int>(cps[i]), &advance, &lsb);
+    w += advance * k;
+    if (i + 1 < cps.size()) {
+      w += k * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
+                                             static_cast<int>(cps[i + 1]));
+    }
+  }
+  return w;
+}
+
+void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Color color) {
+  const Font& f = G();
+  if (!f.ready || !img.Valid()) return;
+  const float k = stbtt_ScaleForPixelHeight(&f.info, px);
+  int ascent = 0, descent = 0, line_gap = 0;
+  stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
+  const float baseline = y + ascent * k;
+  const std::vector<Uint32> cps = Codepoints(str, f.info);
+  std::vector<unsigned char> glyph;
+  float pen = x;
+  for (size_t i = 0; i < cps.size(); ++i) {
+    const int cp = static_cast<int>(cps[i]);
+    int advance = 0, lsb = 0;
+    stbtt_GetCodepointHMetrics(&f.info, cp, &advance, &lsb);
+    // Subpixel em x: a posição fracionária da pena entra no raster do glifo.
+    const float pen_floor = std::floor(pen);
+    const float shift_x = pen - pen_floor;
+    int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    stbtt_GetCodepointBitmapBoxSubpixel(&f.info, cp, k, k, shift_x, 0.0f, &x0, &y0, &x1, &y1);
+    const int gw = x1 - x0, gh = y1 - y0;
+    if (gw > 0 && gh > 0) {
+      glyph.assign(static_cast<size_t>(gw) * gh, 0);
+      stbtt_MakeCodepointBitmapSubpixel(&f.info, glyph.data(), gw, gh, gw, k, k, shift_x, 0.0f,
+                                        cp);
+      const int ox = static_cast<int>(pen_floor) + x0;
+      const int oy = static_cast<int>(std::floor(baseline)) + y0;
+      for (int gy = 0; gy < gh; ++gy) {
+        const int py = oy + gy;
+        if (py < 0 || py >= img.height) continue;
+        for (int gx = 0; gx < gw; ++gx) {
+          const int pxl = ox + gx;
+          if (pxl < 0 || pxl >= img.width) continue;
+          const float a = glyph[static_cast<size_t>(gy) * gw + gx] / 255.0f * (color.a / 255.0f);
+          if (a <= 0.0f) continue;
+          uint8_t* d = &img.rgba[(static_cast<size_t>(py) * img.width + pxl) * 4];
+          d[0] = static_cast<uint8_t>(d[0] + (color.r - d[0]) * a);
+          d[1] = static_cast<uint8_t>(d[1] + (color.g - d[1]) * a);
+          d[2] = static_cast<uint8_t>(d[2] + (color.b - d[2]) * a);
+          d[3] = static_cast<uint8_t>(SDL_max(d[3], static_cast<int>(a * 255.0f)));
+        }
+      }
+    }
+    pen += advance * k;
+    if (i + 1 < cps.size()) {
+      pen += k * stbtt_GetCodepointKernAdvance(&f.info, cp, static_cast<int>(cps[i + 1]));
     }
   }
 }

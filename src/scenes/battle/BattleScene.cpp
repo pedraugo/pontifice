@@ -4,6 +4,9 @@
 #include <string>
 #include <utility>
 
+#include <random>
+
+#include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 #include "scripts/text/Text.h"
@@ -103,9 +106,23 @@ void BattleScene::Preload(const PreloadInfo& info) {
     return;
   }
   back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
-  fronts_ = {UploadSprite(Image::LoadFile(base + "sprites/CardFrontGood.png")),
-             UploadSprite(Image::LoadFile(base + "sprites/CardFrontEvil.png")),
-             UploadSprite(Image::LoadFile(base + "sprites/CardFrontField.png"))};
+  // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
+  // composta a partir delas com os textos (cardface).
+  frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
+  frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.png").Downscaled(2);
+  frames_[2] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
+
+  // Monte: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) ANTES de qualquer carta
+  // aparecer; as 5 da mão inicial são compradas e compostas já aqui.
+  cards_ = cards::LoadAll(base);
+  std::mt19937 rng{std::random_device{}()};
+  deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng));
+  deck_.Shuffle();
+  for (int i = 0; i < 5; ++i) {
+    const std::optional<std::string> code = deck_.Draw();
+    if (!code) break;
+    if (SDL_GPUTexture* face = MakeCardFace(*code)) initial_hand_.push_back(face);
+  }
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
     SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
@@ -155,10 +172,20 @@ void BattleScene::ToggleSampleFieldCard() {
   hud_.SetFieldCard(card);
 }
 
+SDL_GPUTexture* BattleScene::MakeCardFace(const std::string& code) {
+  const CardInfo* card = cards::Find(cards_, code);
+  if (card == nullptr || gpu_ == nullptr) return nullptr;
+  const Image& frame = card->category == 'G' ? frames_[0]
+                       : card->category == 'E' ? frames_[1]
+                                               : frames_[2];
+  return UploadSprite(cardface::Compose(frame, *card));
+}
+
 void BattleScene::DrawCard() {
-  if (hud_.DeckRemaining() <= 0 || fronts_.empty()) return;
-  hud_.SetDeck(hud_.DeckUsed() + 1, hud_.DeckRemaining() - 1);
-  hand_.Add(fronts_[hud_.DeckUsed() % fronts_.size()]);
+  const std::optional<std::string> code = deck_.Draw();
+  if (!code) return;
+  hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
+  if (SDL_GPUTexture* face = MakeCardFace(*code)) hand_.Add(face);
 }
 
 void BattleScene::OnEnter(SceneContext& ctx) {
@@ -186,18 +213,12 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   hand_.SetModel(card_model_.get());
   hand_.SetBack(back_);
-  // Mão inicial de 5 cartas (ver docs/batalha.md). Conteúdo real virá do monte. As cartas
-  // entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
+  // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
+  // Entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
   hand_.DelayDeal(0.8f);
-  SDL_GPUTexture* good = fronts_[0];
-  SDL_GPUTexture* evil = fronts_[1];
-  SDL_GPUTexture* field = fronts_[2];
-  hand_.Add(good);
-  hand_.Add(evil);
-  hand_.Add(good);
-  hand_.Add(field);
-  hand_.Add(evil);
-  hud_.SetDeck(static_cast<int>(hand_.Size()), Hud::kDeckSize - static_cast<int>(hand_.Size()));
+  for (SDL_GPUTexture* face : initial_hand_) hand_.Add(face);
+  initial_hand_.clear();
+  hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   arena_world_ = math::Mat4::Scale(kArenaScale);
 
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;

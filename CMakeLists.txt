@@ -89,6 +89,9 @@ add_executable(pontifice
   src/scripts/colors/Colors.cpp
   src/scripts/clouds/Clouds.cpp
   src/scripts/torch/Torch.cpp
+  src/scripts/deck/Deck.cpp
+  src/scripts/cards/Cards.cpp
+  src/scripts/cardface/CardFace.cpp
   src/scripts/music/Music.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
@@ -104,6 +107,13 @@ target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SO
 target_link_libraries(pontifice PRIVATE SDL3::SDL3)
 target_compile_options(pontifice PRIVATE -Wall -Wextra)
 
+# Testes (ctest --test-dir build): componentes sem SDL, como o monte de cartas.
+enable_testing()
+add_executable(deck_test tests/deck_test.cpp src/scripts/deck/Deck.cpp)
+target_include_directories(deck_test PRIVATE src)
+target_compile_options(deck_test PRIVATE -Wall -Wextra)
+add_test(NAME deck_test COMMAND deck_test)
+
 # macOS: alguns Command Line Tools deixam um diretório libc++ antigo e incompleto em
 # /Library/Developer/CommandLineTools/usr/include/c++/v1, que esconde o libc++ do SDK.
 # Se for o caso, aponta o compilador direto para o libc++ do SDK.
@@ -113,9 +123,11 @@ if(APPLE)
     execute_process(COMMAND xcrun --show-sdk-path
                     OUTPUT_VARIABLE _sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "libc++ incompleto em ${_stale_libcxx}; usando ${_sdk_path}/usr/include/c++/v1")
-    target_compile_options(pontifice PRIVATE
-      $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>
-      $<$<COMPILE_LANGUAGE:CXX>:-isystem${_sdk_path}/usr/include/c++/v1>)
+    foreach(_target pontifice deck_test)
+      target_compile_options(${_target} PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>
+        $<$<COMPILE_LANGUAGE:CXX>:-isystem${_sdk_path}/usr/include/c++/v1>)
+    endforeach()
   endif()
 endif()
 

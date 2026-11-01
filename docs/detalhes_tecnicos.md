@@ -56,6 +56,12 @@ src/
       Clouds.*        nuvens e névoa 2D em camadas (ruído gerado na CPU): 4 atrás e 3 na frente do texto do menu
     torch/
       Torch.*         tocha 3D: corpo iluminado, chama emissiva tremulando; FlamePosition dá onde pôr a luz
+    deck/
+      Deck.*          monte de cartas: embaralhar (Fisher-Yates, semente opcional), comprar do topo; sem SDL
+    cards/
+      Cards.*         dados das cartas (assets/Cards*.json) e montagem do monte por peso `odds`
+    cardface/
+      CardFace.*      frente da carta: moldura da categoria + nome, ATK/DEF e descrição desenhados (CPU)
     music/
       Music.*         trilha sonora: lê assets/ost.json, decodifica MP3 (dr_mp3), toca em loop com fade e intervalo
   shaders/
@@ -101,7 +107,8 @@ tools/
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
-tests/                testes automatizados
+tests/                testes automatizados (ctest --test-dir build)
+  deck_test.cpp       monte: embaralhar preserva cartas, é determinístico por semente, compra tira do topo
 ```
 
 ## Dados das cartas
@@ -164,7 +171,8 @@ Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/
 
 As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
-- Cada carta é uma instância de `models/Card.glb`. A frente recebe o sprite da categoria (`CardFrontGood.png`, `CardFrontEvil.png`, `CardFrontField.png`) e o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- Cada carta é uma instância de `models/Card.glb`. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o monte de 40 é montado por peso `odds` (no máximo 2 cópias por carta, 1 das de hierarquia 1) e **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
 - **Entrada**: cada carta adicionada à mão (`Hand::Add`) desliza de fora da tela, pela esquerda, até o seu lugar, a velocidade constante (13 unidades/s, suavizado nas pontas), então quem vai mais longe demora mais e não ultrapassa a anterior; cartas adicionadas em sequência entram uma a uma, com 0,12 s entre elas. `Hand::DelayDeal` adia a próxima entrada (a batalha espera o fade in).
@@ -219,6 +227,18 @@ Ordem de um quadro na cena de batalha:
 O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
 
 Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad) e `kFlameGlow` (a mesma chama como halo oval difuso).
+
+## Frente da carta
+
+`cardface::Compose` recebe a moldura da categoria reduzida 2x (800x1115; `CardFrontGood`, `CardFrontEvil` ou `CardFrontField`, esta também para neutras) e desenha os textos com a fonte do jogo na CPU (`text::DrawOnImage`), antes de a imagem virar textura. Áreas, em px da imagem de 800x1115:
+
+| Área | Posição | Conteúdo |
+|---|---|---|
+| Faixa do topo | y 58–114 | `name`, centralizado, claro com sombra (56 px) |
+| Faixa abaixo da imagem | y 630–690 | `attributes.attack` à esquerda (`ATK 2800`) e `attributes.defense` à direita (`DEF 2900`), 48 px; carta de campo mostra `BUFF +n` e `NERF -n` |
+| Área branca de baixo | y 712–1031, x 70–730 | `description`, escura, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
+
+A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
 
 ## Tochas e iluminação
 
