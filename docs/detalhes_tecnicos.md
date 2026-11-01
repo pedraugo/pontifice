@@ -5,7 +5,7 @@
 - **Linguagem**: C++20.
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
-- **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG) e dr_mp3 (decodificação de MP3). Todas baixadas via `FetchContent`; cgltf, stb e dr_libs são header-only.
+- **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG), stb_truetype (fonte TTF/OTF) e dr_mp3 (decodificação de MP3). Todas baixadas via `FetchContent`; cgltf, stb e dr_libs são header-only.
 - **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop, em todas as cenas, com ganho do próprio stream (padrão 30%). Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
@@ -31,7 +31,7 @@ src/
       BattleScene.*   batalha: render 3D e mão de cartas
   scripts/            componentes reutilizáveis, uma pasta por componente
     text/
-      Text.*          texto com a fonte de depuração do SDL
+      Text.*          texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: atlas 16/32/64 px, ASCII e Latin-1; sem a fonte, cai na de depuração do SDL
     button/
       Button.*        botão base (hover, foco, clique)
       ButtonPlay.*    botão Jogar
@@ -64,6 +64,7 @@ src/
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
     ost.json          trilha sonora: volume (0 a 1) e lista de MP3 em sounds/, tocados em sequência
+    PirataOne.ttf     fonte do jogo (tem acentos Latin-1)
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
     CardsEvil.json

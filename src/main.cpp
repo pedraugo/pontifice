@@ -12,6 +12,7 @@
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 #include "scripts/music/Music.h"
+#include "scripts/text/Text.h"
 
 namespace {
 
@@ -117,6 +118,8 @@ int main(int /*argc*/, char** /*argv*/) {
       std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
     }
   }
+  // Fonte do jogo (atlas de glifos no renderer); sem ela o texto usa a fonte de depuração.
+  text::Init(app.renderer, base + "assets/PirataOne.ttf");
 
   SceneContext ctx;
   ctx.renderer = app.renderer;
@@ -198,6 +201,7 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   }  // cenas destruídas aqui
 
+  text::Shutdown();  // textura da fonte antes de destruir o renderer
   Shutdown(app);
   return 0;
 }
