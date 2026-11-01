@@ -5,7 +5,8 @@
 - **Linguagem**: C++20.
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
-- **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB) e stb_image (PNG/JPEG). Todas baixadas via `FetchContent`; cgltf e stb são header-only.
+- **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG) e dr_mp3 (decodificação de MP3). Todas baixadas via `FetchContent`; cgltf, stb e dr_libs são header-only.
+- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop, em todas as cenas, com ganho do próprio stream (padrão 30%). Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução.
@@ -50,16 +51,20 @@ src/
       Colors.*        paleta lida de assets/colors.json; cores pedidas por papel ("panel.fill")
     clouds/
       Clouds.*        nuvens e névoa 2D em camadas (ruído gerado na CPU): 4 atrás e 3 na frente do texto do menu
+    music/
+      Music.*         trilha sonora: lê assets/ost.json, decodifica MP3 (dr_mp3), toca em loop com fade e intervalo
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
+    ost.json          trilha sonora: volume (0 a 1) e lista de MP3 em sounds/, tocados em sequência
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
     CardsEvil.json
     CardsNeutral.json
     CardsField.json
+  sounds/             músicas de fundo (MP3) listadas em assets/ost.json
   sprites/            texturas das cartas (PNG) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta

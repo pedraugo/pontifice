@@ -1,0 +1,9 @@
+{
+  "volume": 0.3,
+  "tracks": [
+    "sounds/HowlsOfTheNight.mp3",
+    "sounds/RuinsOfYore.mp3",
+    "sounds/DecayTemples.mp3",
+    "sounds/ForgottenDungeons.mp3"
+  ]
+}

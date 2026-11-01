@@ -10,6 +10,7 @@
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
+#include "scripts/music/Music.h"
 
 namespace {
 
@@ -54,7 +55,7 @@ void SetWindowIcon(SDL_Window* window) {
 }
 
 bool Init(App& app) {
-  if (!SDL_Init(SDL_INIT_VIDEO)) {
+  if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
     std::fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
     return false;
   }
@@ -103,10 +104,12 @@ int main(int /*argc*/, char** /*argv*/) {
     return 1;
   }
 
+  const char* base_path = SDL_GetBasePath();
+  const std::string base = base_path != nullptr ? base_path : "./";
+
   // Paleta (assets/colors.json) antes da primeira cena: menu e HUD pedem cores por papel.
   {
-    const char* base = SDL_GetBasePath();
-    const std::string palette = std::string(base != nullptr ? base : "./") + "assets/colors.json";
+    const std::string palette = base + "assets/colors.json";
     if (!colors::Load(palette)) {
       std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
     }
@@ -120,6 +123,9 @@ int main(int /*argc*/, char** /*argv*/) {
   // Bloco próprio: as cenas (e seus recursos de GPU) precisam ser destruídas antes de
   // Shutdown(), que destrói o renderer, o device e encerra o SDL.
   {
+  // Trilha sonora (assets/ost.json) toca em loop durante todo o jogo, em qualquer cena.
+  Music music;
+  music.Init(base);
   SceneManager scenes(ctx);
 
   // Depuração: PONTIFICE_SCENE=battle abre direto na batalha; PONTIFICE_MOUSE=x,y injeta um

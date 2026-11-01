@@ -21,7 +21,7 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-# Bibliotecas header-only: cgltf (glTF) e stb_image (PNG/JPEG).
+# Bibliotecas header-only: cgltf (glTF), stb_image (PNG/JPEG) e dr_libs (dr_mp3, trilha sonora).
 include(FetchContent)
 FetchContent_Declare(cgltf
   GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
@@ -33,7 +33,12 @@ FetchContent_Declare(stb
   GIT_TAG master
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR cmake-none)
-FetchContent_MakeAvailable(cgltf stb)
+FetchContent_Declare(dr_libs
+  GIT_REPOSITORY https://github.com/mackron/dr_libs.git
+  GIT_TAG master
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR cmake-none)
+FetchContent_MakeAvailable(cgltf stb dr_libs)
 
 # Shader Metal embutido no binário como array de bytes.
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
@@ -82,6 +87,7 @@ add_executable(pontifice
   src/scripts/json/Json.cpp
   src/scripts/colors/Colors.cpp
   src/scripts/clouds/Clouds.cpp
+  src/scripts/music/Music.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
@@ -91,7 +97,8 @@ if(WIN32)
   target_sources(pontifice PRIVATE src/icons/pontifice.rc)
 endif()
 target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
-target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR})
+target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR}
+                           ${dr_libs_SOURCE_DIR})
 target_link_libraries(pontifice PRIVATE SDL3::SDL3)
 target_compile_options(pontifice PRIVATE -Wall -Wextra)
 
@@ -110,7 +117,7 @@ if(APPLE)
   endif()
 endif()
 
-# Copia assets, sprites e modelos para junto do binário em toda build, mesmo sem mudança no
+# Copia assets, sprites, modelos e sons para junto do binário em toda build, mesmo sem mudança no
 # código (POST_BUILD só rodaria quando o executável fosse religado).
 add_custom_target(copy_assets ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -119,5 +126,7 @@ add_custom_target(copy_assets ALL
           ${CMAKE_SOURCE_DIR}/src/sprites $<TARGET_FILE_DIR:pontifice>/sprites
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/models $<TARGET_FILE_DIR:pontifice>/models
-  COMMENT "Copiando assets, sprites e models")
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${CMAKE_SOURCE_DIR}/src/sounds $<TARGET_FILE_DIR:pontifice>/sounds
+  COMMENT "Copiando assets, sprites, models e sounds")
 add_dependencies(copy_assets pontifice)
