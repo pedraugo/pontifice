@@ -1,0 +1,138 @@
+[
+  {
+    "code": "FE01",
+    "name": "Dilúvio",
+    "description": "Águas que cobriram a terra e apagaram toda carne",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFE01",
+    "imageFile": "CardFE01.png",
+    "imageUrl": "sprites/CardFE01.png",
+    "attributes": {
+      "odds": 5,
+      "category": "evil",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FE02",
+    "name": "Chuva de Fogo",
+    "description": "Fogo e enxofre que consumiram Sodoma e Gomorra",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFE02",
+    "imageFile": "CardFE02.png",
+    "imageUrl": "sprites/CardFE02.png",
+    "attributes": {
+      "odds": 5,
+      "category": "evil",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FE03",
+    "name": "Dez Pragas",
+    "description": "Flagelos lançados sobre o Egito pela dureza do Faraó",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFE03",
+    "imageFile": "CardFE03.png",
+    "imageUrl": "sprites/CardFE03.png",
+    "attributes": {
+      "odds": 5,
+      "category": "evil",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FE04",
+    "name": "Juízo Final",
+    "description": "Julgamento derradeiro de vivos e mortos no fim dos tempos",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFE04",
+    "imageFile": "CardFE04.png",
+    "imageUrl": "sprites/CardFE04.png",
+    "attributes": {
+      "odds": 5,
+      "category": "evil",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FG01",
+    "name": "Estrela de Belém",
+    "description": "Luz que guiou os magos até o Menino Jesus",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFG01",
+    "imageFile": "CardFG01.png",
+    "imageUrl": "sprites/CardFG01.png",
+    "attributes": {
+      "odds": 5,
+      "category": "good",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FG02",
+    "name": "Abertura do Mar Vermelho",
+    "description": "Passagem aberta por Moisés para libertar os hebreus",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFG02",
+    "imageFile": "CardFG02.png",
+    "imageUrl": "sprites/CardFG02.png",
+    "attributes": {
+      "odds": 5,
+      "category": "good",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FG03",
+    "name": "Sol Parado",
+    "description": "Josué fez o sol parar até vencer a batalha",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFG03",
+    "imageFile": "CardFG03.png",
+    "imageUrl": "sprites/CardFG03.png",
+    "attributes": {
+      "odds": 5,
+      "category": "good",
+      "buff": 300,
+      "nerf": 300
+    }
+  },
+  {
+    "code": "FG04",
+    "name": "Retorno de Cristo",
+    "description": "Segunda vinda do Salvador em glória",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "CardFG04",
+    "imageFile": "CardFG04.png",
+    "imageUrl": "sprites/CardFG04.png",
+    "attributes": {
+      "odds": 5,
+      "category": "good",
+      "buff": 300,
+      "nerf": 300
+    }
+  }
+]

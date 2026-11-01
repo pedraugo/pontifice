@@ -1,0 +1,384 @@
+[
+  {
+    "code": "G101",
+    "name": "Deus",
+    "description": "Criador dos céus, da terra e de toda existência",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 1,
+    "hierarchyName": "Divindades",
+    "image": "CardG101",
+    "imageFile": "CardG101.png",
+    "imageUrl": "sprites/CardG101.png",
+    "attributes": {
+      "attack": 2800,
+      "defense": 2900,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G102",
+    "name": "Cristo",
+    "description": "Filho de Deus e Salvador da humanidade",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 1,
+    "hierarchyName": "Divindades",
+    "image": "CardG102",
+    "imageFile": "CardG102.png",
+    "imageUrl": "sprites/CardG102.png",
+    "attributes": {
+      "attack": 2700,
+      "defense": 2800,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G103",
+    "name": "Espírito Santo",
+    "description": "Consolador divino que ilumina e fortalece a fé",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 1,
+    "hierarchyName": "Divindades",
+    "image": "CardG103",
+    "imageFile": "CardG103.png",
+    "imageUrl": "sprites/CardG103.png",
+    "attributes": {
+      "attack": 2400,
+      "defense": 2700,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+
+
+  {
+    "code": "G201",
+    "name": "São Miguel",
+    "description": "O guerreiro celestial, defensor contra o mal",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 2,
+    "hierarchyName": "Arcanjos",
+    "image": "CardG201",
+    "imageFile": "CardG201.png",
+    "imageUrl": "sprites/CardG201.png",
+    "attributes": {
+      "attack": 1800,
+      "defense": 1900,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G202",
+    "name": "São Gabriel",
+    "description": "O mensageiro de Deus, responsável pela Anunciação",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 2,
+    "hierarchyName": "Arcanjos",
+    "image": "CardG202",
+    "imageFile": "CardG202.png",
+    "imageUrl": "sprites/CardG202.png",
+    "attributes": {
+      "attack": 1600,
+      "defense": 1800,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G203",
+    "name": "São Rafael",
+    "description": "Associado à cura, proteção e orientação",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 2,
+    "hierarchyName": "Arcanjos",
+    "image": "CardG203",
+    "imageFile": "CardG203.png",
+    "imageUrl": "sprites/CardG203.png",
+    "attributes": {
+      "attack": 1300,
+      "defense": 1700,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "G301",
+    "name": "Querubim",
+    "description": "Guardião do Éden",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Anjos",
+    "image": "CardG301",
+    "imageFile": "CardG301.png",
+    "imageUrl": "sprites/CardG301.png",
+    "attributes": {
+      "attack": 800,
+      "defense": 1000,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G302",
+    "name": "Serafim",
+    "description": "Adoração diante do trono de Deus",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Anjos",
+    "image": "CardG302",
+    "imageFile": "CardG302.png",
+    "imageUrl": "sprites/CardG302.png",
+    "attributes": {
+      "attack": 700,
+      "defense": 900,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G303",
+    "name": "Anjo Azul",
+    "description": "Executor do juízo divino",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Anjos",
+    "image": "CardG303",
+    "imageFile": "CardG303.png",
+    "imageUrl": "sprites/CardG303.png",
+    "attributes": {
+      "attack": 600,
+      "defense": 900,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G304",
+    "name": "Anjo do Senhor",
+    "description": "Representante divino",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Anjos",
+    "image": "CardG304",
+    "imageFile": "CardG304.png",
+    "imageUrl": "sprites/CardG304.png",
+    "attributes": {
+      "attack": 600,
+      "defense": 800,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G305",
+    "name": "Anjo da Guarda",
+    "description": "Protetor dos fiéis",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Anjos",
+    "image": "CardG305",
+    "imageFile": "CardG305.png",
+    "imageUrl": "sprites/CardG305.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 700,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "G401",
+    "name": "São Pedro",
+    "description": "Primeiro Papa e apóstolo de Jesus",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG401",
+    "imageFile": "CardG401.png",
+    "imageUrl": "sprites/CardG401.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G402",
+    "name": "São Paulo",
+    "description": "Apóstolo e grande evangelizador",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG402",
+    "imageFile": "CardG402.png",
+    "imageUrl": "sprites/CardG402.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G403",
+    "name": "São Francisco de Assis",
+    "description": "Pobreza, humildade e amor à natureza",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG403",
+    "imageFile": "CardG403.png",
+    "imageUrl": "sprites/CardG403.png",
+    "attributes": {
+      "attack": 400,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G404",
+    "name": "São Jorge",
+    "description": "Guerreiro e mártir",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG404",
+    "imageFile": "CardG404.png",
+    "imageUrl": "sprites/CardG404.png",
+    "attributes": {
+      "attack": 300,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G405",
+    "name": "São Bento",
+    "description": "Fundador da Ordem Beneditina",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG405",
+    "imageFile": "CardG405.png",
+    "imageUrl": "sprites/CardG405.png",
+    "attributes": {
+      "attack": 300,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G406",
+    "name": "Santo Antônio de Pádua",
+    "description": "Pregador e doutor da Igreja",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG406",
+    "imageFile": "CardG406.png",
+    "imageUrl": "sprites/CardG406.png",
+    "attributes": {
+      "attack": 300,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G407",
+    "name": "Santa Teresa de Ávila",
+    "description": "Mística e doutora da Igreja",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG407",
+    "imageFile": "CardG407.png",
+    "imageUrl": "sprites/CardG407.png",
+    "attributes": {
+      "attack": 200,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G408",
+    "name": "Santa Joana d'Arc",
+    "description": "Guerreira e mártir",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG408",
+    "imageFile": "CardG408.png",
+    "imageUrl": "sprites/CardG408.png",
+    "attributes": {
+      "attack": 200,
+      "defense": 300,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G409",
+    "name": "Santa Rita de Cássia",
+    "description": "Conhecida como santa das causas impossíveis",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG409",
+    "imageFile": "CardG409.png",
+    "imageUrl": "sprites/CardG409.png",
+    "attributes": {
+      "attack": 200,
+      "defense": 300,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G410",
+    "name": "Santa Sofia",
+    "description": "Símbolo da sabedoria divina e da fé cristã",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Santos",
+    "image": "CardG410",
+    "imageFile": "CardG410.png",
+    "imageUrl": "sprites/CardG410.png",
+    "attributes": {
+      "attack": 100,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  }
+]

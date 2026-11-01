@@ -1,0 +1,384 @@
+[
+  {
+    "code": "E101",
+    "name": "Satanás",
+    "description": "O adversário de Deus",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Soberanos",
+    "image": "CardE101",
+    "imageFile": "CardE101.png",
+    "imageUrl": "sprites/CardE101.png",
+    "attributes": {
+      "attack": 2950,
+      "defense": 2100,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E102",
+    "name": "Lúcifer",
+    "description": "O mal portador da luz",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Soberanos",
+    "image": "CardE102",
+    "imageFile": "CardE102.png",
+    "imageUrl": "sprites/CardE102.png",
+    "attributes": {
+      "attack": 2850,
+      "defense": 2100,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E103",
+    "name": "Anjo Caído",
+    "description": "O renegado",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Soberanos",
+    "image": "CardE103",
+    "imageFile": "CardE103.png",
+    "imageUrl": "sprites/CardE103.png",
+    "attributes": {
+      "attack": 2750,
+      "defense": 2000,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "E201",
+    "name": "Belial",
+    "description": "Personificação da maldade",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Bestas",
+    "image": "CardE201",
+    "imageFile": "CardE201.png",
+    "imageUrl": "sprites/CardE201.png",
+    "attributes": {
+      "attack": 1950,
+      "defense": 1500,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E202",
+    "name": "Belzebu",
+    "description": "Príncipe dos demônios",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Bestas",
+    "image": "CardE202",
+    "imageFile": "CardE202.png",
+    "imageUrl": "sprites/CardE202.png",
+    "attributes": {
+      "attack": 1850,
+      "defense": 1400,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E203",
+    "name": "Baal",
+    "description": "Falso deus adorado, símbolo da idolatria",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Bestas",
+    "image": "CardE203",
+    "imageFile": "CardE203.png",
+    "imageUrl": "sprites/CardE203.png",
+    "attributes": {
+      "attack": 1750,
+      "defense": 1300,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+
+
+  {
+    "code": "E301",
+    "name": "Mephisto",
+    "description": "Astuto que corrompe almas e pactos",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Criaturas",
+    "image": "CardE301",
+    "imageFile": "CardE301.png",
+    "imageUrl": "sprites/CardE301.png",
+    "attributes": {
+      "attack": 950,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E302",
+    "name": "Asmodeus",
+    "description": "Associado à luxúria e destruição",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Criaturas",
+    "image": "CardE302",
+    "imageFile": "CardE302.png",
+    "imageUrl": "sprites/CardE302.png",
+    "attributes": {
+      "attack": 850,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E303",
+    "name": "Abaddon",
+    "description": "Anjo do abismo, senhor da destruição",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Criaturas",
+    "image": "CardE303",
+    "imageFile": "CardE303.png",
+    "imageUrl": "sprites/CardE303.png",
+    "attributes": {
+      "attack": 750,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E304",
+    "name": "Leviatã",
+    "description": "Monstro marinho colossal que personifica o caos",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Criaturas",
+    "image": "CardE304",
+    "imageFile": "CardE304.png",
+    "imageUrl": "sprites/CardE304.png",
+    "attributes": {
+      "attack": 650,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E305",
+    "name": "Lilith",
+    "description": "Espírito noturno associado à sedução e às trevas",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Criaturas",
+    "image": "CardE305",
+    "imageFile": "CardE305.png",
+    "imageUrl": "sprites/CardE305.png",
+    "attributes": {
+      "attack": 550,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "E401",
+    "name": "Diabo",
+    "description": "Espírito maligno que se opõe ao divino",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE401",
+    "imageFile": "CardE401.png",
+    "imageUrl": "sprites/CardE401.png",
+    "attributes": {
+      "attack": 450,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E402",
+    "name": "Demônio",
+    "description": "Espírito impuro que corrompe os homens",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE402",
+    "imageFile": "CardE402.png",
+    "imageUrl": "sprites/CardE402.png",
+    "attributes": {
+      "attack": 450,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E403",
+    "name": "Morte",
+    "description": "Ceifadora de vidas e símbolo do fim",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE403",
+    "imageFile": "CardE403.png",
+    "imageUrl": "sprites/CardE403.png",
+    "attributes": {
+      "attack": 450,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E404",
+    "name": "Caim",
+    "description": "Primeiro assassino, marcado pela inveja e violência",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE404",
+    "imageFile": "CardE404.png",
+    "imageUrl": "sprites/CardE404.png",
+    "attributes": {
+      "attack": 450,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E405",
+    "name": "Judas Iscariotes",
+    "description": "Discípulo que traiu Jesus por dinheiro",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE405",
+    "imageFile": "CardE405.png",
+    "imageUrl": "sprites/CardE405.png",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E406",
+    "name": "Herodes",
+    "description": "Rei cruel que ordenou a morte dos inocentes",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE406",
+    "imageFile": "CardE406.png",
+    "imageUrl": "sprites/CardE406.png",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E407",
+    "name": "Golias",
+    "description": "Gigante que desafiou Israel e zombou de Deus",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE407",
+    "imageFile": "CardE407.png",
+    "imageUrl": "sprites/CardE407.png",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E408",
+    "name": "Serpente",
+    "description": "Símbolo da traição e da corrupção humana",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE408",
+    "imageFile": "CardE408.png",
+    "imageUrl": "sprites/CardE408.png",
+    "attributes": {
+      "attack": 250,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E409",
+    "name": "Falso Profeta",
+    "description": "Enganador que conduz os homens à idolatria",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE409",
+    "imageFile": "CardE409.png",
+    "imageUrl": "sprites/CardE409.png",
+    "attributes": {
+      "attack": 250,
+      "defense": 50,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E410",
+    "name": "Caveira",
+    "description": "Símbolo da morte e da decadência",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Impuros",
+    "image": "CardE410",
+    "imageFile": "CardE410.png",
+    "imageUrl": "sprites/CardE410.png",
+    "attributes": {
+      "attack": 250,
+      "defense": 50,
+      "odds": 71,
+      "combinable": false
+    }
+  }
+]

@@ -1,0 +1,273 @@
+[
+  {
+    "code": "N301",
+    "name": "Rei Davi",
+    "description": "Rei de Israel que venceu Golias",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Líderes",
+    "image": "CardN301",
+    "imageFile": "CardN301.png",
+    "imageUrl": "sprites/CardN301.png",
+    "attributes": {
+      "attack": 700,
+      "defense": 700,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N302",
+    "name": "Moisés",
+    "description": "Profeta que libertou os hebreus do Egito",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Líderes",
+    "image": "CardN302",
+    "imageFile": "CardN302.png",
+    "imageUrl": "sprites/CardN302.png",
+    "attributes": {
+      "attack": 600,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N303",
+    "name": "Rei Salomão",
+    "description": "Rei de Israel célebre pela sabedoria",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Líderes",
+    "image": "CardN303",
+    "imageFile": "CardN303.png",
+    "imageUrl": "sprites/CardN303.png",
+    "attributes": {
+      "attack": 600,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N304",
+    "name": "Noé",
+    "description": "Construiu a arca e sobreviveu ao Dilúvio",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Líderes",
+    "image": "CardN304",
+    "imageFile": "CardN304.png",
+    "imageUrl": "sprites/CardN304.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N305",
+    "name": "Rei Constantino",
+    "description": "Imperador romano que legalizou o cristianismo",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Líderes",
+    "image": "CardN305",
+    "imageFile": "CardN305.png",
+    "imageUrl": "sprites/CardN305.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "N401",
+    "name": "Templário",
+    "description": "Monge guerreiro, protetor dos peregrinos",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN401",
+    "imageFile": "CardN401.png",
+    "imageUrl": "sprites/CardN401.png",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N402",
+    "name": "Duque",
+    "description": "Nobre de mais alto título, vassalo do rei",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN402",
+    "imageFile": "CardN402.png",
+    "imageUrl": "sprites/CardN402.png",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N403",
+    "name": "Conde",
+    "description": "Nobre que governa um condado",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN403",
+    "imageFile": "CardN403.png",
+    "imageUrl": "sprites/CardN403.png",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N404",
+    "name": "Visconde",
+    "description": "Nobre delegado do conde",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN404",
+    "imageFile": "CardN404.png",
+    "imageUrl": "sprites/CardN404.png",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N405",
+    "name": "Barão",
+    "description": "Nobre de menor título, senhor de um feudo",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN405",
+    "imageFile": "CardN405.png",
+    "imageUrl": "sprites/CardN405.png",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N406",
+    "name": "Cavaleiro",
+    "description": "Guerreiro montado a serviço de um senhor",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN406",
+    "imageFile": "CardN406.png",
+    "imageUrl": "sprites/CardN406.png",
+    "attributes": {
+      "attack": 300,
+      "defense": 300,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N407",
+    "name": "Servo",
+    "description": "Trabalhador preso à terra do senhor feudal",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN407",
+    "imageFile": "CardN407.png",
+    "imageUrl": "sprites/CardN407.png",
+    "attributes": {
+      "attack": 200,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N408",
+    "name": "Camponesa",
+    "description": "Mulher do campo que cultiva a terra",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN408",
+    "imageFile": "CardN408.png",
+    "imageUrl": "sprites/CardN408.png",
+    "attributes": {
+      "attack": 200,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N409",
+    "name": "Burguesa",
+    "description": "Mulher da cidade dedicada ao comércio",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN409",
+    "imageFile": "CardN409.png",
+    "imageUrl": "sprites/CardN409.png",
+    "attributes": {
+      "attack": 100,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N410",
+    "name": "Artesã",
+    "description": "Mulher que produz bens com as próprias mãos",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortais",
+    "image": "CardN410",
+    "imageFile": "CardN410.png",
+    "imageUrl": "sprites/CardN410.png",
+    "attributes": {
+      "attack": 100,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  }
+]
