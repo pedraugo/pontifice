@@ -81,6 +81,7 @@ add_executable(pontifice
   src/scripts/hud/Hud.cpp
   src/scripts/json/Json.cpp
   src/scripts/colors/Colors.cpp
+  src/scripts/clouds/Clouds.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )

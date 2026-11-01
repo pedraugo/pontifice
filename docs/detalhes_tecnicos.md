@@ -48,6 +48,8 @@ src/
       Json.*          leitor JSON mínimo (objetos, arrays, strings, números)
     colors/
       Colors.*        paleta lida de assets/colors.json; cores pedidas por papel ("panel.fill")
+    clouds/
+      Clouds.*        nuvens e névoa 2D em camadas (ruído gerado na CPU): 4 atrás e 3 na frente do texto do menu
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)

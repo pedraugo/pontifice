@@ -5,6 +5,7 @@
 
 #include "scenes/Scene.h"
 #include "scripts/button/Button.h"
+#include "scripts/clouds/Clouds.h"
 
 // Primeira cena do jogo. Layout descrito em docs/menu.md.
 class MenuScene : public Scene {
@@ -13,6 +14,7 @@ class MenuScene : public Scene {
 
   void OnEnter(SceneContext& ctx) override;
   void HandleEvent(SceneContext& ctx, const SDL_Event& event) override;
+  void Update(SceneContext& ctx, float dt_seconds) override;
   void Render(SceneContext& ctx) override;
 
  private:
@@ -21,5 +23,7 @@ class MenuScene : public Scene {
   void ActivateFocused(SceneContext& ctx);
 
   std::vector<std::unique_ptr<Button>> buttons_;
+  Clouds clouds_;  // nuvens atrás do texto e névoa na frente
+  bool clouds_ready_ = false;
   int focused_ = 0;
 };

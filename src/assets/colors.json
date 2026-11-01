@@ -66,6 +66,14 @@
       "counterValue": "#e1e9f4",
       "deckEmpty": "#d9655a"
     },
+    "menu": {
+      "cloudFar": "#151c26",
+      "cloudBack": "#1e2835",
+      "cloudMid": "#3c4859",
+      "cloudNear": "#5a6880",
+      "cloudFront": "#8c99af",
+      "cloudPuff": "#aab5c8"
+    },
     "status": {
       "buff": "#8fcf86",
       "nerf": "#d9655a",

@@ -22,6 +22,7 @@ MenuScene::MenuScene() {
 
 void MenuScene::OnEnter(SceneContext& ctx) {
   LayoutButtons(ctx);
+  clouds_ready_ = clouds_.Init(ctx.renderer, ctx.logical_width, ctx.logical_height);
   focused_ = 0;
   for (size_t i = 0; i < buttons_.size(); ++i) buttons_[i]->SetFocused(i == 0);
 }
@@ -75,11 +76,16 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 }
 
+void MenuScene::Update(SceneContext& /*ctx*/, float dt_seconds) {
+  if (clouds_ready_) clouds_.Update(dt_seconds);
+}
+
 void MenuScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
   const SDL_Color background = colors::Get("background.menu");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
+  if (clouds_ready_) clouds_.RenderBack(r);
 
   const float center_x = ctx.logical_width / 2.0f;
   text::DrawCentered(r, "PONTIFICE", center_x, ctx.logical_height * 0.22f, kTitleScale,
@@ -89,4 +95,5 @@ void MenuScene::Render(SceneContext& ctx) {
 
   text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - 48.0f,
                      kFooterScale, colors::Get("text.secondary"));
+  if (clouds_ready_) clouds_.RenderFront(r);  // névoa rala por cima do texto
 }
