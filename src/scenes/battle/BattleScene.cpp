@@ -1,5 +1,6 @@
 #include "scenes/battle/BattleScene.h"
 
+#include <cmath>
 #include <string>
 #include <utility>
 
@@ -33,6 +34,27 @@ struct MistLayer {
 constexpr MistLayer kMistLayers[] = {{kArenaBaseY + 0.05f, 0.8f},
                                      {kArenaBaseY + 0.45f, 0.5f}};
 constexpr float kMistHalfSize = 40.0f;
+
+// Abertura da batalha: a arena sobe de dentro de uma névoa densa enquanto a câmera se
+// aproxima. A névoa extra fica em alturas fixas do mundo, por isso a arena "fura" camada por
+// camada ao subir, e vai rareando até restarem só as camadas da base.
+constexpr float kIntroSeconds = 1.6f;
+constexpr float kIntroDrop = 3.2f;                     // quanto a arena começa abaixo do lugar
+constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};  // câmera longe e alta
+constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
+struct IntroMistLayer {
+  float y;
+  float alpha;
+};
+constexpr IntroMistLayer kIntroMistLayers[] = {
+    {kArenaBaseY + 0.9f, 0.9f}, {kArenaBaseY + 1.3f, 0.8f}, {kArenaTopY - 0.3f, 0.7f},
+    {kArenaTopY + 0.2f, 0.6f},  {kArenaTopY + 0.8f, 0.45f},
+};
+
+float SmoothStep(float t) {
+  t = math::Clamp(t, 0.0f, 1.0f);
+  return t * t * (3.0f - 2.0f * t);
+}
 
 }  // namespace
 
@@ -146,7 +168,9 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   hand_.SetModel(card_model_.get());
   hand_.SetBack(back_);
-  // Mão inicial de 5 cartas (ver docs/batalha.md). Conteúdo real virá do monte.
+  // Mão inicial de 5 cartas (ver docs/batalha.md). Conteúdo real virá do monte. As cartas
+  // entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
+  hand_.DelayDeal(0.8f);
   SDL_GPUTexture* good = fronts_[0];
   SDL_GPUTexture* evil = fronts_[1];
   SDL_GPUTexture* field = fronts_[2];
@@ -159,14 +183,15 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_world_ = math::Mat4::Scale(kArenaScale);
 
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
-  const math::Mat4 proj = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);
-  hand_view_proj_ = proj * math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
+  proj_ = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);
+  hand_view_proj_ = proj_ * math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
   // Vista do jogador: acima e à frente do seu lado da arena, olhando para o centro.
   math::Vec3 eye{0, 10.5f, 12.2f};
   if (const char* env = SDL_getenv("PONTIFICE_ARENA_EYE")) {  // depuração: "x,y,z"
     SDL_sscanf(env, "%f,%f,%f", &eye.x, &eye.y, &eye.z);
   }
-  arena_view_proj_ = proj * math::Mat4::LookAt(eye, {0, -0.1f, -0.3f}, {0, 1, 0});
+  eye_final_ = eye;
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
 
   // Clima medieval: ambiente frio e azulado, luz principal quente de tocha vinda de cima e
   // de lado, luz pontual quente sobre o centro da arena, névoa na base e vinheta.
@@ -195,6 +220,20 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.point_intensity = 1.0f;
   hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
+  UpdateIntro(0.0f);  // primeiro quadro já com a arena afundada e a câmera longe
+}
+
+void BattleScene::UpdateIntro(float dt_seconds) {
+  if (intro_ >= 1.0f) return;
+  intro_time_ += dt_seconds;
+  intro_ = SmoothStep(intro_time_ / kIntroSeconds);
+  // Depuração: PONTIFICE_ARENA_EYE fixa a câmera, então pula a abertura.
+  if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = 1.0f;
+  const float drop = kIntroDrop * (1.0f - intro_);
+  arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(kArenaScale);
+  const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
+  arena_atmosphere_.camera_pos = eye;
 }
 
 void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
@@ -232,6 +271,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (!ready_) return;
+  UpdateIntro(dt_seconds);
   hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
 }
 
@@ -251,6 +291,22 @@ void BattleScene::Render(SceneContext& ctx) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
                  SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b, layer.alpha},
                  Gpu::DrawMode::kMist);
+    }
+    // Abertura: névoa densa acima da base, que se dissipa conforme a arena emerge.
+    if (intro_ < 1.0f) {
+      const float remain = 1.0f - intro_;
+      Atmosphere dense = arena_atmosphere_;
+      dense.mist_density = 0.3f * remain;      // manto fechado no início, fiapos no fim
+      dense.mist_fade_start = 10.0f;
+      dense.mist_fade_end = 30.0f;
+      gpu_->SetAtmosphere(dense);
+      for (const IntroMistLayer& layer : kIntroMistLayers) {
+        gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}),
+                   arena_view_proj_,
+                   SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b,
+                              layer.alpha * std::sqrt(remain)},
+                   Gpu::DrawMode::kMist);
+      }
     }
     gpu_->NewLayer();  // a mão fica sempre por cima da arena
     gpu_->SetAtmosphere(hand_atmosphere_);

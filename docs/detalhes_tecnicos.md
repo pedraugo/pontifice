@@ -159,11 +159,12 @@ As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementad
 - Cada carta é uma instância de `models/Card.glb`. A frente recebe o sprite da categoria (`CardFrontGood.png`, `CardFrontEvil.png`, `CardFrontField.png`) e o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
+- **Entrada**: cada carta adicionada à mão (`Hand::Add`) desliza de fora da tela, pela esquerda, até o seu lugar, a velocidade constante (13 unidades/s, suavizado nas pontas), então quem vai mais longe demora mais e não ultrapassa a anterior; cartas adicionadas em sequência entram uma a uma, com 0,12 s entre elas. `Hand::DelayDeal` adia a próxima entrada (a batalha espera o fade in).
 - A carta destacada é desenhada por último, por cima das demais.
 - **Detecção**: os quatro cantos da carta são projetados para a tela com a matriz do quadro anterior e testados contra o cursor (ponto em quadrilátero convexo). Entre cartas sobrepostas vence a de centro mais próximo do cursor.
 - Parâmetros (altura, espaçamento, arco, escala, elevação, velocidade) ficam em `Hand::Layout`.
 
-Pendente: arrastar carta para um slot, animação ao comprar e descartar, mão do oponente com verso para a câmera.
+Pendente: arrastar carta para um slot, animação ao descartar, mão do oponente com verso para a câmera.
 
 ## Virada de campo no turno do computador
 
@@ -184,6 +185,16 @@ O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop princip
 - `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_in_seconds` faz a nova cena entrar do preto.
 - `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização. Desenha o véu do fade in por cima da cena nova. `Create` é a fábrica de cenas.
 - Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto o portão abre e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu.
+
+## Abertura da batalha
+
+Ao entrar na batalha (depois do fade in da tela de loading), por 1,6 s a arena **emerge de uma névoa densa** enquanto a **câmera se aproxima**, com a mesma curva suave (smoothstep) para as duas coisas:
+
+- A arena começa 3,2 unidades abaixo da posição final e sobe. A névoa de altura (`fog_full_y` na base) já a esconde enquanto está embaixo.
+- Cinco camadas extras de névoa (`kIntroMistLayers`) ficam em alturas fixas do mundo, da base ao topo da arena, com `mist_density` alto no início (manto fechado) e caindo a zero; a opacidade cai com a raiz do tempo restante. A arena atravessa camada por camada ao subir; no fim restam só as duas camadas normais da base.
+- A câmera parte de `(0, 16, 22)` e chega à posição do jogador `(0, 10,5, 12,2)`, sempre olhando o centro da arena.
+- Enquanto isso, as 5 cartas da mão inicial entram pela esquerda da tela, uma a uma, a partir de 0,8 s.
+- `PONTIFICE_ARENA_EYE` (depuração) fixa a câmera e pula a abertura.
 
 ## Passe 3D e composição
 
@@ -208,6 +219,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
 | `PONTIFICE_SCREENSHOT_FRAME=n` | Número do quadro salvo por `PONTIFICE_SCREENSHOT` |
+| `PONTIFICE_SCREENSHOT_TIME=s` | Em vez do quadro, salva o primeiro quadro depois de `s` segundos (sem vsync a taxa de quadros varia; use isto para animações) |
 | `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (porta num ponto fixo da abertura) |
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 

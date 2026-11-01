@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <vector>
 
 #include "scripts/math/Math.h"
@@ -21,6 +22,8 @@ class Hand {
     float shift = 0.0f;  // deslocamento lateral causado pela carta destacada (animado)
     float tilt_x = 0.0f; // inclinação em X (rad) conforme o mouse sobe/desce na carta (animado)
     float tilt_y = 0.0f; // inclinação em Y (rad) conforme o mouse vai à esquerda/direita
+    float enter = 0.0f;  // entrada: 0 = fora da tela à esquerda, 1 = no lugar (animado)
+    float enter_delay = 0.0f;  // segundos até começar a entrar (cartas entram uma a uma)
     math::Mat4 world;    // matriz do último quadro, com inclinação (render)
     math::Mat4 pick;     // idem sem inclinação: o teste de hover não oscila nas quinas
   };
@@ -43,13 +46,21 @@ class Hand {
     float tilt_speed = 12.0f;     // velocidade da inclinação
     float hidden_drop = 1.0f;     // quanto a mão inteira desce quando o mouse está longe
     float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
+    float deal_from_x = -8.5f;    // x de onde a carta entra (fora da tela, à esquerda)
+    float deal_speed = 13.0f;     // velocidade da entrada (unidades/s): quem vai mais longe
+                                  // demora mais e nunca ultrapassa a carta anterior
+    float deal_stagger = 0.12f;   // intervalo entre a entrada de uma carta e a da próxima
   };
 
   void SetModel(const Model* model) { model_ = model; }
   void SetBack(SDL_GPUTexture* back) { back_ = back; }
   Layout& GetLayout() { return layout_; }
 
+  // A carta entra deslizando da esquerda da tela até o seu lugar; cartas adicionadas em
+  // sequência entram uma depois da outra (deal_stagger).
   void Add(SDL_GPUTexture* front);
+  // Atrasa a entrada das próximas cartas em pelo menos `seconds` (ex.: esperar o fade in).
+  void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
   void Clear() { cards_.clear(); }
   size_t Size() const { return cards_.size(); }
 
@@ -64,6 +75,7 @@ class Hand {
   int PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const;
   // true se o mouse está sobre uma carta ou abaixo do topo da mão levantada.
   bool MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const;
+  float CenterOffset(int index) const;  // x de repouso da carta em relação ao centro da mão
   math::Mat4 CardMatrix(const Card& card, int index, bool with_tilt) const;
   // Posição do mouse relativa ao centro da carta, em [-1, 1] nos dois eixos (x direita,
   // y cima). Usa a matriz sem inclinação projetada na tela.
@@ -77,4 +89,5 @@ class Hand {
   int hovered_ = -1;
   bool raised_ = false;  // alvo: mão levantada (mouse sobre ela) ou recolhida
   float raise_ = 0.0f;   // 0 = recolhida, 1 = levantada (animado)
+  float pending_delay_ = 0.0f;  // atraso que a próxima carta adicionada vai receber
 };

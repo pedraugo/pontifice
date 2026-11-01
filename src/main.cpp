@@ -133,19 +133,23 @@ int main(int /*argc*/, char** /*argv*/) {
   // Depuração: PONTIFICE_SCENE=battle abre direto na batalha e =loading na tela de loading
   // (que segue para a batalha); PONTIFICE_MOUSE=x,y injeta um
   // movimento de mouse em coordenadas lógicas; PONTIFICE_SCREENSHOT=arquivo.bmp salva o
-  // quadro PONTIFICE_SCREENSHOT_FRAME (padrão 60) e encerra.
+  // quadro PONTIFICE_SCREENSHOT_FRAME (padrão 60), ou o primeiro quadro depois de
+  // PONTIFICE_SCREENSHOT_TIME segundos, e encerra.
   const char* env_scene = std::getenv("PONTIFICE_SCENE");
   const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
   const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
   const char* env_shot_frame = std::getenv("PONTIFICE_SCREENSHOT_FRAME");
+  const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
   const int shot_frame = env_shot_frame != nullptr ? std::atoi(env_shot_frame) : 60;
+  const double shot_time = env_shot_time != nullptr ? std::atof(env_shot_time) : -1.0;
   SceneId first = SceneId::kMenu;
   if (env_scene != nullptr && std::strcmp(env_scene, "battle") == 0) first = SceneId::kBattle;
   if (env_scene != nullptr && std::strcmp(env_scene, "loading") == 0) first = SceneId::kLoading;
   scenes.SwitchTo(first);
   int frame = 0;
 
-  Uint64 last = SDL_GetTicksNS();
+  const Uint64 start = SDL_GetTicksNS();  // depois da primeira cena carregar
+  Uint64 last = start;
   while (!scenes.ShouldQuit()) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -172,7 +176,10 @@ int main(int /*argc*/, char** /*argv*/) {
     scenes.Update(dt);
     scenes.Render();
 
-    if (env_shot != nullptr && ++frame == shot_frame) {
+    ++frame;
+    const double elapsed = static_cast<double>(now - start) / 1e9;
+    const bool shot_now = shot_time >= 0.0 ? elapsed >= shot_time : frame == shot_frame;
+    if (env_shot != nullptr && shot_now) {
       SDL_Surface* shot = SDL_RenderReadPixels(app.renderer, nullptr);
       if (shot != nullptr) {
         SDL_SaveBMP(shot, env_shot);

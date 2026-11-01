@@ -33,6 +33,7 @@ class BattleScene : public Scene {
   SDL_Texture* UploadHudSprite(SDL_Renderer* renderer, const Image& image);
   void ToggleSampleFieldCard();
   void DrawCard();
+  void UpdateIntro(float dt_seconds);  // arena emergindo da névoa e câmera aproximando
 
   bool preloaded_ = false;
   Image hud_field_;  // frente da carta de campo decodificada para o HUD (renderer 2D)
@@ -48,6 +49,10 @@ class BattleScene : public Scene {
   math::Mat4 hand_view_proj_;   // câmera fixa da mão (dock)
   math::Mat4 arena_view_proj_;  // câmera da arena, vista do jogador
   math::Mat4 arena_world_;
+  math::Mat4 proj_;             // projeção das câmeras 3D
+  math::Vec3 eye_final_;        // posição final da câmera da arena
+  float intro_time_ = 0.0f;     // segundos desde a entrada (animação de abertura)
+  float intro_ = 0.0f;          // progresso suavizado da abertura, 0..1
   GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa
   Atmosphere arena_atmosphere_;
   SDL_FColor fog_color_{};      // background.fog: fundo e névoa (colors.json)

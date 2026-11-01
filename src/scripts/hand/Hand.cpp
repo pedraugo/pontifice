@@ -1,5 +1,7 @@
 #include "scripts/hand/Hand.h"
 
+#include <algorithm>
+
 #include <cmath>
 #include <cstdlib>
 
@@ -35,16 +37,23 @@ bool PointInConvexQuad(math::Vec2 p, const math::Vec2 q[4]) {
 void Hand::Add(SDL_GPUTexture* front) {
   Card card;
   card.front = front;
+  card.enter_delay = pending_delay_;
+  pending_delay_ += layout_.deal_stagger;
   cards_.push_back(card);
 }
 
-math::Mat4 Hand::CardMatrix(const Card& card, int index, bool with_tilt) const {
+float Hand::CenterOffset(int index) const {
   const int n = static_cast<int>(cards_.size());
   float spacing = layout_.spacing;
   if (n > 1) spacing = std::min(spacing, layout_.max_width / static_cast<float>(n - 1));
+  return (static_cast<float>(index) - (n - 1) / 2.0f) * spacing;
+}
 
-  const float center_offset = (static_cast<float>(index) - (n - 1) / 2.0f) * spacing;
-  const float x = center_offset + card.shift;
+math::Mat4 Hand::CardMatrix(const Card& card, int index, bool with_tilt) const {
+  const float center_offset = CenterOffset(index);
+  // Entrada: desliza de fora da tela (esquerda) até o lugar, com suavização nas pontas.
+  const float e = card.enter * card.enter * (3.0f - 2.0f * card.enter);
+  const float x = math::Lerp(layout_.deal_from_x, center_offset + card.shift, e);
   const float rest_y = layout_.base_y - layout_.arc * center_offset * center_offset;
   const float y = rest_y + layout_.hover_lift * card.hover -
                   layout_.hidden_drop * (1.0f - raise_);
@@ -143,9 +152,17 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
   hovered_ = PickCard(mouse, view_proj, width, height);
   raised_ = MouseOverHand(mouse, view_proj, height);
   raise_ = Approach(raise_, raised_ ? 1.0f : 0.0f, layout_.raise_speed, dt);
+  pending_delay_ = std::max(0.0f, pending_delay_ - dt);
 
   for (size_t i = 0; i < cards_.size(); ++i) {
     Card& card = cards_[i];
+    if (card.enter_delay > 0.0f) {
+      card.enter_delay -= dt;
+    } else if (card.enter < 1.0f) {
+      const float distance =
+          std::max(1.0f, CenterOffset(static_cast<int>(i)) - layout_.deal_from_x);
+      card.enter = std::min(1.0f, card.enter + dt * layout_.deal_speed / distance);
+    }
     const float hover_target = static_cast<int>(i) == hovered_ ? 1.0f : 0.0f;
 
     float shift_target = 0.0f;
