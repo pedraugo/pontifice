@@ -5,8 +5,9 @@
 - **Linguagem**: C++20.
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
-- **Biblioteca**: SDL3 (`release-3.4.18`), baixada via `FetchContent` e ligada como estática. Janela, input, áudio e GPU.
-- **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O campo 3D usará o device diretamente, com shaders próprios.
+- **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB) e stb_image (PNG/JPEG). Todas baixadas via `FetchContent`; cgltf e stb são header-only.
+- **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
+- **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
@@ -17,16 +18,33 @@ CMakeLists.txt        alvo pontifice, FetchContent do SDL3
 build.sh / run.sh     compilar / compilar e executar
 src/
   main.cpp            janela, renderer, loop principal
-  scenes/             uma classe por cena
+  scenes/             uma pasta por cena
     Scene.h           interface Scene e SceneContext
     SceneManager.*    cena ativa e troca de cena
-    MenuScene.*       menu (docs/menu.md), primeira cena
-    BattleScene.*     batalha (marcador por enquanto)
-  scripts/            componentes reutilizáveis
-    Text.*            texto com a fonte de depuração do SDL
-    Button.*          botão base (hover, foco, clique)
-    ButtonPlay.*      botão Jogar
-    ButtonExit.*      botão Sair
+    menu/
+      MenuScene.*     menu (docs/menu.md), primeira cena
+    battle/
+      BattleScene.*   batalha: render 3D e mão de cartas
+  scripts/            componentes reutilizáveis, uma pasta por componente
+    text/
+      Text.*          texto com a fonte de depuração do SDL
+    button/
+      Button.*        botão base (hover, foco, clique)
+      ButtonPlay.*    botão Jogar
+      ButtonExit.*    botão Sair
+    math/
+      Math.h          Vec2/3/4, Mat4 (perspectiva, lookAt, rotação, escala)
+    image/
+      Image.*         decodifica PNG/JPEG para RGBA8 (stb_image)
+    gpu/
+      Gpu.*           pipeline SDL_GPU: malhas, texturas, passe com profundidade
+    model/
+      Model.*         carrega .glb (cgltf), separa frente, verso e borda
+    hand/
+      Hand.*          mão em dock: layout em arco, hover, animação
+  shaders/
+    card.metal        shader Metal (macOS), embutido no binário
+    card.*.glsl       shader GLSL para SPIR-V (Vulkan)
   assets/             dados das cartas em JSON
     CardsGood.json
     CardsEvil.json
@@ -35,7 +53,10 @@ src/
   sprites/            texturas das cartas (PNG) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
-  models/             malhas 3D (campo, slots, mesa)
+  models/
+    Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
+cmake/
+  embed.cmake         converte arquivo texto em array de bytes C
 tests/                testes automatizados
 ```
 
@@ -74,14 +95,16 @@ O campo é um **elemento 3D**, não uma imagem plana.
 
 ## Mão em 3D (dock)
 
-As cartas na mão também são **elementos 3D**, dispostos como um **dock**:
+As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
-- Ficam na parte inferior da tela, em arco, levemente inclinadas em direção à câmera, próximas o suficiente para serem lidas.
-- Ao passar o cursor sobre uma carta, ela **sobe e aumenta de escala**, e as vizinhas se afastam para abrir espaço (efeito de magnificação, como no dock do macOS).
-- A carta sob o cursor é renderizada **por cima** das demais.
-- Ao clicar e arrastar, a carta sai do dock e segue o cursor em 3D. Soltar sobre um slot válido a invoca; soltar fora devolve ao dock com animação.
-- O dock se **reorganiza com animação** ao ganhar ou perder cartas, mantendo o arco centralizado.
-- A mão do oponente é renderizada do lado oposto, sempre com o verso para a câmera.
+- Cada carta é uma instância de `models/Card.glb`. A frente recebe o sprite da categoria (`CardFrontGood.png`, `CardFrontEvil.png`, `CardFrontField.png`) e o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
+- **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
+- A carta destacada é desenhada por último, por cima das demais.
+- **Detecção**: os quatro cantos da carta são projetados para a tela com a matriz do quadro anterior e testados contra o cursor (ponto em quadrilátero convexo). Entre cartas sobrepostas vence a de centro mais próximo do cursor.
+- Parâmetros (altura, espaçamento, arco, escala, elevação, velocidade) ficam em `Hand::Layout`.
+
+Pendente: arrastar carta para um slot, animação ao comprar e descartar, mão do oponente com verso para a câmera.
 
 ## Virada de campo no turno do computador
 
@@ -102,6 +125,30 @@ O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop princip
 - `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`.
 - `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização.
 - Ordem: `MenuScene` (inicial) e `BattleScene`. O botão Jogar troca para a batalha, `Esc` na batalha volta ao menu.
+
+## Passe 3D e composição
+
+Ordem de um quadro na cena de batalha:
+
+1. `SDL_FlushRenderer` envia o que o renderer 2D já enfileirou.
+2. `Gpu::BeginFrame` abre um passe de render na textura alvo (1280x720, RGBA8) com buffer de profundidade (D24 ou D32), limpa ambos.
+3. Cada `Gpu::Draw` envia uniforms (MVP e modelo no vértice; cor e flag de textura no fragmento), liga textura e sampler, e desenha a malha indexada.
+4. `Gpu::EndFrame` fecha o passe e submete o command buffer.
+5. A cena desenha a textura alvo com `SDL_RenderTexture` e o HUD por cima com o renderer 2D.
+
+O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
+
+## Depuração
+
+Variáveis de ambiente lidas em `main.cpp`:
+
+| Variável | Efeito |
+|---|---|
+| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha |
+| `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
+| `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva o quadro 60 em BMP e encerra |
+
+Exemplo: `PONTIFICE_SCENE=battle PONTIFICE_MOUSE=640,560 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`
 
 ## HUD
 

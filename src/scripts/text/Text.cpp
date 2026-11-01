@@ -1,4 +1,4 @@
-#include "scripts/Text.h"
+#include "scripts/text/Text.h"
 
 #include <cstring>
 

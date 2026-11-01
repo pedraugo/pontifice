@@ -17,6 +17,7 @@ class SceneManager {
   void Render();
 
   bool ShouldQuit() const { return ctx_.quit; }
+  void RequestQuit() { ctx_.quit = true; }
 
  private:
   void ApplyPendingSwitch();

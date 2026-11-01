@@ -1,7 +1,7 @@
 #include "scenes/SceneManager.h"
 
-#include "scenes/BattleScene.h"
-#include "scenes/MenuScene.h"
+#include "scenes/battle/BattleScene.h"
+#include "scenes/menu/MenuScene.h"
 
 SceneManager::SceneManager(SceneContext ctx) : ctx_(ctx) {}
 

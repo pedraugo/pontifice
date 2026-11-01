@@ -1,4 +1,4 @@
-#include "scripts/ButtonPlay.h"
+#include "scripts/button/ButtonPlay.h"
 
 #include "scenes/Scene.h"
 

@@ -1,6 +1,6 @@
-#include "scripts/Button.h"
+#include "scripts/button/Button.h"
 
-#include "scripts/Text.h"
+#include "scripts/text/Text.h"
 
 namespace {
 

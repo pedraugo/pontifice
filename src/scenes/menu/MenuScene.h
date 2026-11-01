@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "scenes/Scene.h"
-#include "scripts/Button.h"
+#include "scripts/button/Button.h"
 
 // Primeira cena do jogo. Layout descrito em docs/menu.md.
 class MenuScene : public Scene {

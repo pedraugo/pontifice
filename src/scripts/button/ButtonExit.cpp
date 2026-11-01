@@ -1,4 +1,4 @@
-#include "scripts/ButtonExit.h"
+#include "scripts/button/ButtonExit.h"
 
 #include "scenes/Scene.h"
 

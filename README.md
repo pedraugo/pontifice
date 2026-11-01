@@ -4,7 +4,7 @@ PONTIFICE é um jogo eletrônico brasileiro de cartas lançado exclusivamente pa
 
 ## Configurações
 
-O projeto usa **C++20**, **CMake**, **Ninja** e **SDL3**. O SDL3 é baixado e compilado automaticamente pelo CMake na primeira build, então não precisa instalar nada além do toolchain.
+O projeto usa **C++20**, **CMake**, **Ninja** e **SDL3**, mais as bibliotecas header-only **cgltf** (modelos glTF) e **stb_image** (PNG). Todas são baixadas automaticamente pelo CMake na primeira build, então não precisa instalar nada além do toolchain.
 
 ### 1. Pré-requisitos
 
@@ -52,7 +52,9 @@ O binário fica em `build/pontifice`, com `assets/` e `sprites/` copiados para o
 ./build/pontifice     # só abre, sem recompilar
 ```
 
-O jogo abre no menu (`docs/menu.md`). `Esc` sai.
+O jogo abre no menu (`docs/menu.md`). `Esc` sai. "Jogar" abre a batalha com a mão de cartas em 3D.
+
+**Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
 
 ### 5. Usar um SDL3 já instalado (opcional)
 
@@ -85,7 +87,9 @@ endif()
 target_link_libraries(pontifice PRIVATE SDL3::SDL3)
 ```
 
-No código, inclua `#include <SDL3/SDL.h>`. O `main.cpp` cria a janela, um renderer 2D sobre o SDL_GPU (`SDL_CreateGPURenderer`) e roda o loop de cenas. Para atualizar o SDL3, troque a tag em `GIT_TAG` e apague `build/`.
+No código, inclua `#include <SDL3/SDL.h>`. O `main.cpp` cria a janela, um renderer 2D sobre o SDL_GPU (`SDL_CreateGPURenderer`) e roda o loop de cenas. O 3D usa o mesmo device via `SDL_GetGPURendererDevice`. Para atualizar o SDL3, troque a tag em `GIT_TAG` e apague `build/`.
+
+cgltf e stb são declarados da mesma forma logo abaixo, com `SOURCE_SUBDIR cmake-none` para só expor os headers.
 
 ### 7. Problemas comuns
 

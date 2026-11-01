@@ -1,0 +1,144 @@
+#include "scripts/model/Model.h"
+
+#include <algorithm>
+#include <cctype>
+#include <cfloat>
+
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
+
+#include "scripts/image/Image.h"
+
+namespace {
+
+std::string Lower(std::string s) {
+  for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  return s;
+}
+
+Model::Role RoleFromName(const std::string& name) {
+  const std::string n = Lower(name);
+  if (n.find("front") != std::string::npos || n.find("frente") != std::string::npos) {
+    return Model::Role::kFront;
+  }
+  if (n.find("back") != std::string::npos || n.find("verso") != std::string::npos) {
+    return Model::Role::kBack;
+  }
+  return Model::Role::kEdge;
+}
+
+SDL_GPUTexture* LoadEmbeddedTexture(Gpu& gpu, const cgltf_material* material) {
+  if (material == nullptr || !material->has_pbr_metallic_roughness) return nullptr;
+  const cgltf_texture* texture = material->pbr_metallic_roughness.base_color_texture.texture;
+  if (texture == nullptr || texture->image == nullptr) return nullptr;
+  const cgltf_image* image = texture->image;
+  if (image->buffer_view == nullptr) return nullptr;
+  const cgltf_buffer_view* view = image->buffer_view;
+  const auto* bytes = static_cast<const uint8_t*>(view->buffer->data) + view->offset;
+  return gpu.CreateTexture(Image::LoadMemory(bytes, view->size));
+}
+
+}  // namespace
+
+Model::~Model() {
+  if (gpu_ == nullptr) return;
+  for (Part& part : parts_) {
+    gpu_->DestroyMesh(part.mesh);
+    gpu_->DestroyTexture(part.texture);
+  }
+}
+
+bool Model::LoadGlb(Gpu& gpu, const std::string& path) {
+  gpu_ = &gpu;
+
+  cgltf_options options{};
+  cgltf_data* data = nullptr;
+  if (cgltf_parse_file(&options, path.c_str(), &data) != cgltf_result_success) {
+    SDL_Log("cgltf_parse_file falhou: %s", path.c_str());
+    return false;
+  }
+  if (cgltf_load_buffers(&options, data, path.c_str()) != cgltf_result_success) {
+    SDL_Log("cgltf_load_buffers falhou: %s", path.c_str());
+    cgltf_free(data);
+    return false;
+  }
+
+  min_ = {FLT_MAX, FLT_MAX, FLT_MAX};
+  max_ = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+  for (cgltf_size n = 0; n < data->nodes_count; ++n) {
+    const cgltf_node& node = data->nodes[n];
+    if (node.mesh == nullptr) continue;
+
+    float world[16];
+    cgltf_node_transform_world(&node, world);
+    math::Mat4 xf;
+    for (int c = 0; c < 4; ++c) {
+      for (int l = 0; l < 4; ++l) xf.m[c][l] = world[c * 4 + l];
+    }
+
+    for (cgltf_size p = 0; p < node.mesh->primitives_count; ++p) {
+      const cgltf_primitive& prim = node.mesh->primitives[p];
+      if (prim.type != cgltf_primitive_type_triangles || prim.indices == nullptr) continue;
+
+      const cgltf_accessor* positions = nullptr;
+      const cgltf_accessor* uvs = nullptr;
+      for (cgltf_size a = 0; a < prim.attributes_count; ++a) {
+        const cgltf_attribute& attr = prim.attributes[a];
+        if (attr.type == cgltf_attribute_type_position) positions = attr.data;
+        if (attr.type == cgltf_attribute_type_texcoord && attr.index == 0) uvs = attr.data;
+      }
+      if (positions == nullptr) continue;
+
+      std::vector<Vertex> vertices(positions->count);
+      for (cgltf_size i = 0; i < positions->count; ++i) {
+        float pos[3] = {0, 0, 0};
+        cgltf_accessor_read_float(positions, i, pos, 3);
+        const math::Vec3 wp = xf.TransformPoint({pos[0], pos[1], pos[2]});
+        float uv[2] = {0, 0};
+        if (uvs != nullptr) cgltf_accessor_read_float(uvs, i, uv, 2);
+        vertices[i] = Vertex{wp.x, wp.y, wp.z, uv[0], uv[1]};
+        min_ = {std::min(min_.x, wp.x), std::min(min_.y, wp.y), std::min(min_.z, wp.z)};
+        max_ = {std::max(max_.x, wp.x), std::max(max_.y, wp.y), std::max(max_.z, wp.z)};
+      }
+
+      std::vector<Uint32> indices(prim.indices->count);
+      for (cgltf_size i = 0; i < prim.indices->count; ++i) {
+        indices[i] = static_cast<Uint32>(cgltf_accessor_read_index(prim.indices, i));
+      }
+
+      Part part;
+      part.name = node.name != nullptr ? node.name : "";
+      part.role = RoleFromName(part.name);
+      part.mesh = gpu.CreateMesh(vertices, indices);
+      part.texture = LoadEmbeddedTexture(gpu, prim.material);
+      if (prim.material != nullptr && prim.material->has_pbr_metallic_roughness) {
+        const float* f = prim.material->pbr_metallic_roughness.base_color_factor;
+        part.color = SDL_FColor{f[0], f[1], f[2], f[3]};
+      }
+      parts_.push_back(part);
+    }
+  }
+
+  cgltf_free(data);
+  SDL_Log("Modelo %s: %zu partes, bounds x[%.2f %.2f] y[%.2f %.2f] z[%.3f %.3f]", path.c_str(),
+          parts_.size(), min_.x, max_.x, min_.y, max_.y, min_.z, max_.z);
+  return !parts_.empty();
+}
+
+void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
+                 SDL_GPUTexture* front, SDL_GPUTexture* back) const {
+  for (const Part& part : parts_) {
+    SDL_GPUTexture* texture = part.texture;
+    if (part.role == Role::kFront && front != nullptr) texture = front;
+    if (part.role == Role::kBack && back != nullptr) texture = back;
+
+    SDL_FColor color = part.color;
+    if (texture != nullptr) color = SDL_FColor{1, 1, 1, 1};
+    color.r *= tint.r;
+    color.g *= tint.g;
+    color.b *= tint.b;
+    color.a *= tint.a;
+    gpu.Draw(part.mesh, texture, model, view_proj, color);
+  }
+}

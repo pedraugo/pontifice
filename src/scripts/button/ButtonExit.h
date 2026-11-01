@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scripts/Button.h"
+#include "scripts/button/Button.h"
 
 // Botão "Sair": encerra o jogo.
 class ButtonExit : public Button {

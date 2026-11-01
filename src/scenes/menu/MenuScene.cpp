@@ -1,8 +1,8 @@
-#include "scenes/MenuScene.h"
+#include "scenes/menu/MenuScene.h"
 
-#include "scripts/ButtonExit.h"
-#include "scripts/ButtonPlay.h"
-#include "scripts/Text.h"
+#include "scripts/button/ButtonExit.h"
+#include "scripts/button/ButtonPlay.h"
+#include "scripts/text/Text.h"
 
 namespace {
 

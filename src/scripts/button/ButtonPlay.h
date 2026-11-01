@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scripts/Button.h"
+#include "scripts/button/Button.h"
 
 // Botão "Jogar": leva à cena de batalha.
 class ButtonPlay : public Button {

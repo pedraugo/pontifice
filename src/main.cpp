@@ -2,6 +2,8 @@
 #include <SDL3/SDL_main.h>
 
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
@@ -70,20 +72,39 @@ int main(int /*argc*/, char** /*argv*/) {
   ctx.logical_width = kLogicalWidth;
   ctx.logical_height = kLogicalHeight;
 
+  // Bloco próprio: as cenas (e seus recursos de GPU) precisam ser destruídas antes de
+  // Shutdown(), que destrói o renderer, o device e encerra o SDL.
+  {
   SceneManager scenes(ctx);
-  scenes.SwitchTo(SceneId::kMenu);
+
+  // Depuração: PONTIFICE_SCENE=battle abre direto na batalha; PONTIFICE_MOUSE=x,y injeta um
+  // movimento de mouse em coordenadas lógicas; PONTIFICE_SCREENSHOT=arquivo.bmp salva o
+  // quadro 60 e encerra.
+  const char* env_scene = std::getenv("PONTIFICE_SCENE");
+  const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
+  const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
+  scenes.SwitchTo(env_scene != nullptr && std::strcmp(env_scene, "battle") == 0 ? SceneId::kBattle
+                                                                                : SceneId::kMenu);
+  int frame = 0;
 
   Uint64 last = SDL_GetTicksNS();
   while (!scenes.ShouldQuit()) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_EVENT_QUIT) {
-        Shutdown(app);
-        return 0;
+        scenes.RequestQuit();
+        break;
       }
       // Converte coordenadas de mouse da janela para a resolução lógica.
       SDL_ConvertEventToRenderCoordinates(app.renderer, &event);
       scenes.HandleEvent(event);
+    }
+
+    if (env_mouse != nullptr) {
+      SDL_Event fake{};
+      fake.type = SDL_EVENT_MOUSE_MOTION;
+      std::sscanf(env_mouse, "%f,%f", &fake.motion.x, &fake.motion.y);
+      scenes.HandleEvent(fake);
     }
 
     const Uint64 now = SDL_GetTicksNS();
@@ -92,8 +113,23 @@ int main(int /*argc*/, char** /*argv*/) {
 
     scenes.Update(dt);
     scenes.Render();
+
+    if (env_shot != nullptr && ++frame == 60) {
+      SDL_Surface* shot = SDL_RenderReadPixels(app.renderer, nullptr);
+      if (shot != nullptr) {
+        SDL_SaveBMP(shot, env_shot);
+        SDL_DestroySurface(shot);
+        std::printf("Screenshot salvo em %s\n", env_shot);
+      } else {
+        std::fprintf(stderr, "SDL_RenderReadPixels: %s\n", SDL_GetError());
+      }
+      SDL_RenderPresent(app.renderer);
+      break;
+    }
+
     SDL_RenderPresent(app.renderer);
   }
+  }  // cenas destruídas aqui
 
   Shutdown(app);
   return 0;
