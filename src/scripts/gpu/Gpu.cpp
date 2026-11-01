@@ -1,6 +1,7 @@
 #include "scripts/gpu/Gpu.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iterator>
@@ -319,6 +320,8 @@ bool Gpu::BeginFrame(SDL_FColor clear) {
     SDL_Log("SDL_AcquireGPUCommandBuffer: %s", SDL_GetError());
     return false;
   }
+  // Módulo de uma hora: mantém precisão de float para o ruído animado do shader.
+  time_ = static_cast<float>(std::fmod(static_cast<double>(SDL_GetTicksNS()) * 1e-9, 3600.0));
 
   return BeginPass(SDL_GPU_LOADOP_CLEAR, clear);
 }
@@ -355,7 +358,7 @@ bool Gpu::BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear) {
 }
 
 void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
-               const math::Mat4& view_proj, SDL_FColor tint) {
+               const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode) {
   if (pass_ == nullptr || mesh.index_count == 0) return;
 
   struct VertexUniforms {
@@ -364,10 +367,31 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
   } vu{view_proj * model, model};
   SDL_PushGPUVertexUniformData(cmd_, 0, &vu, sizeof(vu));
 
+  // Mesma ordem de FragmentUniforms em card.metal / card.frag.glsl.
+  const Atmosphere& a = atmosphere_;
+  const math::Vec3 l = math::Normalize(a.light_dir);
   struct FragmentUniforms {
     float color[4];
     float params[4];
-  } fu{{tint.r, tint.g, tint.b, tint.a}, {texture != nullptr ? 1.0f : 0.0f, 0, 0, 0}};
+    float light_dir[4];
+    float light_color[4];
+    float ambient[4];
+    float point_light[4];
+    float fog_color[4];
+    float fog_height[4];
+    float camera[4];
+    float resolution[4];
+  } fu{{tint.r, tint.g, tint.b, tint.a},
+       {texture != nullptr ? 1.0f : 0.0f, mode == DrawMode::kMist ? 1.0f : 0.0f, time_,
+        a.vignette},
+       {l.x, l.y, l.z, a.light_intensity},
+       {a.light_color.r, a.light_color.g, a.light_color.b, 1.0f},
+       {a.ambient.r, a.ambient.g, a.ambient.b, 1.0f},
+       {a.point_pos.x, a.point_pos.y, a.point_pos.z, a.point_intensity},
+       {a.fog_color.r, a.fog_color.g, a.fog_color.b, a.fog_density},
+       {a.fog_full_y, a.fog_clear_y, a.fog_height_strength, a.fog_start},
+       {a.camera_pos.x, a.camera_pos.y, a.camera_pos.z, 0.0f},
+       {static_cast<float>(width_), static_cast<float>(height_), 0.0f, 0.0f}};
   SDL_PushGPUFragmentUniformData(cmd_, 0, &fu, sizeof(fu));
 
   SDL_GPUTextureSamplerBinding tex_binding{texture != nullptr ? texture : white_, sampler_};

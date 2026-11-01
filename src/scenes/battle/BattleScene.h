@@ -32,6 +32,9 @@ class BattleScene : public Scene {
   math::Mat4 hand_view_proj_;   // câmera fixa da mão (dock)
   math::Mat4 arena_view_proj_;  // câmera da arena, vista do jogador
   math::Mat4 arena_world_;
+  GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa
+  Atmosphere arena_atmosphere_;
+  Atmosphere hand_atmosphere_;
   math::Vec2 mouse_{-1, -1};
   bool ready_ = false;
 };

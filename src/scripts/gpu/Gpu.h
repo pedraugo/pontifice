@@ -21,6 +21,25 @@ struct GpuMesh {
   Uint32 index_count = 0;
 };
 
+// Luz e atmosfera de um passe: luz principal direcional, luz pontual, névoa e vinheta.
+// Valores padrão = iluminação neutra sem névoa (usado pela mão).
+struct Atmosphere {
+  math::Vec3 light_dir{0.25f, 0.5f, 1.0f};  // direção PARA a luz; normalizada no envio
+  float light_intensity = 0.4f;
+  SDL_FColor light_color{1.0f, 1.0f, 1.0f, 1.0f};
+  SDL_FColor ambient{0.6f, 0.6f, 0.6f, 1.0f};
+  math::Vec3 point_pos{0, 0, 0};
+  float point_intensity = 0.0f;  // 0 desliga
+  SDL_FColor fog_color{0, 0, 0, 1};
+  float fog_density = 0.0f;         // névoa por distância (0 desliga)
+  float fog_start = 0.0f;           // distância da câmera onde a névoa por distância começa
+  float fog_full_y = 0.0f;          // abaixo desta altura a névoa de altura é máxima
+  float fog_clear_y = 1.0f;         // acima desta altura não há névoa de altura
+  float fog_height_strength = 0.0f; // força máxima da névoa de altura (0 desliga)
+  math::Vec3 camera_pos{0, 0, 0};
+  float vignette = 0.0f;  // 0 desliga
+};
+
 // Camada fina sobre o SDL_GPU: desenha malhas texturizadas com profundidade em uma textura
 // alvo que depois é apresentada pelo SDL_Renderer como uma SDL_Texture comum.
 class Gpu {
@@ -43,9 +62,14 @@ class Gpu {
   // Fecha o passe atual e abre outro mantendo a cor e limpando só a profundidade.
   // Permite desenhar camadas com câmeras diferentes (ex.: arena e depois a mão por cima).
   void NewLayer();
+  // kMist: quad horizontal de névoa; a cor vem do tint e o alpha de ruído animado no shader.
+  enum class DrawMode { kMesh, kMist };
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
-            const math::Mat4& view_proj, SDL_FColor tint);
+            const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode = DrawMode::kMesh);
   void EndFrame();
+
+  // Vale para os Draws seguintes (pode trocar entre camadas).
+  void SetAtmosphere(const Atmosphere& atmosphere) { atmosphere_ = atmosphere; }
 
   SDL_Texture* Target() const { return target_; }
   int Width() const { return width_; }
@@ -65,6 +89,8 @@ class Gpu {
   SDL_GPUTexture* white_ = nullptr;  // textura 1x1 para malhas sem textura
   int width_ = 0;
   int height_ = 0;
+  Atmosphere atmosphere_;
+  float time_ = 0.0f;  // segundos desde o início, atualizado em BeginFrame
 
   bool BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear);
 

@@ -16,12 +16,28 @@ std::string BasePath() {
 
 namespace {
 
-constexpr SDL_Color kBackground{0x44, 0x44, 0x44, 255};
-constexpr SDL_FColor kBackgroundF{0x44 / 255.0f, 0x44 / 255.0f, 0x44 / 255.0f, 1.0f};
+// Fundo = cor da névoa: o que some na distância se funde com ele.
+constexpr SDL_FColor kFogColor{0.15f, 0.14f, 0.18f, 1.0f};
+constexpr SDL_Color kBackground{static_cast<Uint8>(kFogColor.r * 255),
+                                static_cast<Uint8>(kFogColor.g * 255),
+                                static_cast<Uint8>(kFogColor.b * 255), 255};
+constexpr SDL_FColor kBackgroundF = kFogColor;
 
 // A arena é um prisma trapezoidal: topo 1,9 x 1,9 (tabuleiro), base 2,5 x 2,5, altura 0,36 unidades no
 // modelo (um ladrilho); escalada para caber na câmera.
 constexpr float kArenaScale = 4.2f;
+// Alturas da arena no mundo (bounds do glb y[-0.061, 0.3] vezes a escala).
+constexpr float kArenaBaseY = -0.061f * kArenaScale;
+constexpr float kArenaTopY = 0.3f * kArenaScale;
+
+// Camadas de névoa na base da arena: altura e opacidade de cada uma.
+struct MistLayer {
+  float y;
+  float alpha;
+};
+constexpr MistLayer kMistLayers[] = {{kArenaBaseY + 0.05f, 0.8f},
+                                     {kArenaBaseY + 0.45f, 0.5f}};
+constexpr float kMistHalfSize = 40.0f;
 
 }  // namespace
 
@@ -30,6 +46,7 @@ BattleScene::~BattleScene() {
   hand_.Clear();
   card_model_.reset();
   arena_model_.reset();
+  gpu_->DestroyMesh(mist_quad_);
   for (SDL_GPUTexture* t : textures_) gpu_->DestroyTexture(t);
   textures_.clear();
 }
@@ -77,6 +94,12 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   }
   arena_world_ = math::Mat4::Scale(kArenaScale);
 
+  // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
+  const float h = kMistHalfSize;
+  mist_quad_ = gpu_->CreateMesh(
+      {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
+      {0, 1, 2, 0, 2, 3});
+
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
   const math::Mat4 proj = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);
   hand_view_proj_ = proj * math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
@@ -86,6 +109,30 @@ void BattleScene::OnEnter(SceneContext& ctx) {
     SDL_sscanf(env, "%f,%f,%f", &eye.x, &eye.y, &eye.z);
   }
   arena_view_proj_ = proj * math::Mat4::LookAt(eye, {0, -1.0f, -0.3f}, {0, 1, 0});
+
+  // Clima medieval: ambiente frio e azulado, luz principal quente de tocha vinda de cima e
+  // de lado, luz pontual quente sobre o centro da arena, névoa na base e vinheta.
+  arena_atmosphere_.light_dir = {-0.35f, 1.0f, 0.45f};
+  arena_atmosphere_.light_intensity = 0.5f;
+  arena_atmosphere_.light_color = {1.0f, 0.74f, 0.46f, 1.0f};
+  arena_atmosphere_.ambient = {0.15f, 0.17f, 0.27f, 1.0f};
+  arena_atmosphere_.point_pos = {0.0f, kArenaTopY + 4.5f, 0.0f};
+  arena_atmosphere_.point_intensity = 1.7f;
+  arena_atmosphere_.fog_color = kFogColor;
+  arena_atmosphere_.fog_density = 0.05f;
+  arena_atmosphere_.fog_start = 15.0f;
+  arena_atmosphere_.fog_full_y = kArenaBaseY;
+  arena_atmosphere_.fog_clear_y = kArenaTopY - 0.2f;
+  arena_atmosphere_.fog_height_strength = 0.9f;
+  arena_atmosphere_.camera_pos = eye;
+  arena_atmosphere_.vignette = 0.55f;
+
+  // Mão: mesma luz quente, mas sem névoa nem vinheta para as cartas ficarem legíveis.
+  hand_atmosphere_.light_dir = {0.25f, 0.5f, 1.0f};
+  hand_atmosphere_.light_intensity = 0.42f;
+  hand_atmosphere_.light_color = {1.0f, 0.92f, 0.8f, 1.0f};
+  hand_atmosphere_.ambient = {0.6f, 0.58f, 0.58f, 1.0f};
+  hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
 }
 
@@ -113,10 +160,17 @@ void BattleScene::Render(SceneContext& ctx) {
   const float cx = ctx.logical_width / 2.0f;
 
   if (ready_ && gpu_->BeginFrame(kBackgroundF)) {
+    gpu_->SetAtmosphere(arena_atmosphere_);
     if (arena_model_ != nullptr) {
       arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_, SDL_FColor{1, 1, 1, 1});
     }
+    // Névoa depois da arena (transparente): de baixo para cima.
+    for (const MistLayer& layer : kMistLayers) {
+      gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
+                 SDL_FColor{0.78f, 0.74f, 0.8f, layer.alpha}, Gpu::DrawMode::kMist);
+    }
     gpu_->NewLayer();  // a mão fica sempre por cima da arena
+    gpu_->SetAtmosphere(hand_atmosphere_);
     hand_.Render(*gpu_, hand_view_proj_);
     gpu_->EndFrame();
 
