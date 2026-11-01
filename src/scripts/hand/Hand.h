@@ -10,7 +10,9 @@ class Gpu;
 class Model;
 
 // Mão de cartas em 3D, disposta como um dock na parte de baixo da tela.
-// Passar o mouse sobre uma carta a levanta, aproxima da câmera e afasta as vizinhas.
+// Em repouso a mão fica recolhida (parcialmente fora da tela) para não esconder a arena;
+// quando o mouse chega até ela, a mão inteira sobe. Passar o mouse sobre uma carta a
+// levanta, aproxima da câmera e afasta as vizinhas.
 class Hand {
  public:
   struct Card {
@@ -34,6 +36,8 @@ class Hand {
     float hover_forward = 0.9f;   // quanto se aproxima da câmera
     float neighbor_push = 0.38f;  // quanto as vizinhas se afastam
     float anim_speed = 14.0f;     // velocidade da animação (maior = mais rápida)
+    float hidden_drop = 1.0f;     // quanto a mão inteira desce quando o mouse está longe
+    float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
   };
 
   void SetModel(const Model* model) { model_ = model; }
@@ -49,9 +53,12 @@ class Hand {
   void Render(Gpu& gpu, const math::Mat4& view_proj) const;
 
   int Hovered() const { return hovered_; }
+  bool Raised() const { return raised_; }
 
  private:
   int PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const;
+  // true se o mouse está sobre uma carta ou abaixo do topo da mão levantada.
+  bool MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const;
   math::Mat4 CardMatrix(const Card& card, int index) const;
 
   const Model* model_ = nullptr;
@@ -59,4 +66,6 @@ class Hand {
   Layout layout_;
   std::vector<Card> cards_;
   int hovered_ = -1;
+  bool raised_ = false;  // alvo: mão levantada (mouse sobre ela) ou recolhida
+  float raise_ = 0.0f;   // 0 = recolhida, 1 = levantada (animado)
 };

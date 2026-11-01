@@ -46,7 +46,8 @@ math::Mat4 Hand::CardMatrix(const Card& card, int index) const {
   const float center_offset = (static_cast<float>(index) - (n - 1) / 2.0f) * spacing;
   const float x = center_offset + card.shift;
   const float rest_y = layout_.base_y - layout_.arc * center_offset * center_offset;
-  const float y = rest_y + layout_.hover_lift * card.hover;
+  const float y = rest_y + layout_.hover_lift * card.hover -
+                  layout_.hidden_drop * (1.0f - raise_);
   // Profundidade crescente com o índice: cartas vizinhas se sobrepõem em X e, no mesmo Z,
   // o teste de profundidade empata e pisca. A carta destacada vai além de todas.
   const float z = layout_.base_z + layout_.depth_step * static_cast<float>(index) +
@@ -94,9 +95,24 @@ int Hand::PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int
   return best;
 }
 
+bool Hand::MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const {
+  if (model_ == nullptr || cards_.empty() || mouse.x < 0 || mouse.y < 0) return false;
+  if (hovered_ >= 0) return true;
+  // Linha do topo da mão já levantada (carta central, em repouso). Abaixo dela o mouse
+  // "pertence" à mão: usar a posição levantada, e não a atual, evita que a mão suba, saia
+  // de baixo do cursor e volte a descer em loop.
+  const float top_y = layout_.base_y + model_->BoundsMax().y * layout_.scale;
+  const math::Vec4 clip = view_proj * math::Vec4{0.0f, top_y, layout_.base_z, 1.0f};
+  if (clip.w <= 0.0f) return false;
+  const float screen_y = (1.0f - (clip.y / clip.w * 0.5f + 0.5f)) * height;
+  return mouse.y >= screen_y;
+}
+
 void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int width,
                   int height) {
   hovered_ = PickCard(mouse, view_proj, width, height);
+  raised_ = MouseOverHand(mouse, view_proj, height);
+  raise_ = Approach(raise_, raised_ ? 1.0f : 0.0f, layout_.raise_speed, dt);
 
   for (size_t i = 0; i < cards_.size(); ++i) {
     Card& card = cards_[i];
