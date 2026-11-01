@@ -38,7 +38,7 @@ void Hand::Add(SDL_GPUTexture* front) {
   cards_.push_back(card);
 }
 
-math::Mat4 Hand::CardMatrix(const Card& card, int index) const {
+math::Mat4 Hand::CardMatrix(const Card& card, int index, bool with_tilt) const {
   const int n = static_cast<int>(cards_.size());
   float spacing = layout_.spacing;
   if (n > 1) spacing = std::min(spacing, layout_.max_width / static_cast<float>(n - 1));
@@ -55,8 +55,38 @@ math::Mat4 Hand::CardMatrix(const Card& card, int index) const {
   const float tilt = -center_offset * layout_.tilt_per_unit * (1.0f - card.hover);
   const float scale = math::Lerp(layout_.scale, layout_.hover_scale, card.hover);
 
-  return math::Mat4::Translate({x, y, z}) * math::Mat4::RotateZ(tilt) *
-         math::Mat4::Scale(scale);
+  math::Mat4 m = math::Mat4::Translate({x, y, z}) * math::Mat4::RotateZ(tilt);
+  if (with_tilt) m = m * math::Mat4::RotateX(card.tilt_x) * math::Mat4::RotateY(card.tilt_y);
+  return m * math::Mat4::Scale(scale);
+}
+
+math::Vec2 Hand::MouseOnCard(const Card& card, math::Vec2 mouse, const math::Mat4& view_proj,
+                             int width, int height) const {
+  const math::Vec3 mn = model_->BoundsMin();
+  const math::Vec3 mx = model_->BoundsMax();
+  const math::Vec3 center{(mn.x + mx.x) * 0.5f, (mn.y + mx.y) * 0.5f, 0.0f};
+  const math::Vec3 right{mx.x, center.y, 0.0f};
+  const math::Vec3 top{center.x, mx.y, 0.0f};
+
+  const math::Mat4 mvp = view_proj * card.pick;
+  auto to_screen = [&](const math::Vec3& p) {
+    const math::Vec4 clip = mvp * math::Vec4{p.x, p.y, p.z, 1.0f};
+    const float w = clip.w > 1e-6f ? clip.w : 1e-6f;
+    return math::Vec2{(clip.x / w * 0.5f + 0.5f) * width,
+                      (1.0f - (clip.y / w * 0.5f + 0.5f)) * height};
+  };
+  const math::Vec2 c = to_screen(center);
+  const math::Vec2 r = to_screen(right);
+  const math::Vec2 t = to_screen(top);
+  // Projeta (mouse - centro) nos eixos da carta em tela (aproximação afim, boa para a mão).
+  const math::Vec2 d{mouse.x - c.x, mouse.y - c.y};
+  const math::Vec2 ax{r.x - c.x, r.y - c.y};
+  const math::Vec2 ay{t.x - c.x, t.y - c.y};
+  const float lx = ax.x * ax.x + ax.y * ax.y;
+  const float ly = ay.x * ay.x + ay.y * ay.y;
+  const float u = lx > 1e-6f ? (d.x * ax.x + d.y * ax.y) / lx : 0.0f;
+  const float v = ly > 1e-6f ? (d.x * ay.x + d.y * ay.y) / ly : 0.0f;
+  return {math::Clamp(u, -1.0f, 1.0f), math::Clamp(v, -1.0f, 1.0f)};
 }
 
 int Hand::PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const {
@@ -70,7 +100,7 @@ int Hand::PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int
   int best = -1;
   float best_dist = 1e9f;
   for (size_t i = 0; i < cards_.size(); ++i) {
-    const math::Mat4 mvp = view_proj * cards_[i].world;
+    const math::Mat4 mvp = view_proj * cards_[i].pick;
     math::Vec2 screen[4];
     float cx = 0.0f;
     bool behind = false;
@@ -125,9 +155,22 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
       shift_target = (d > 0 ? 1.0f : -1.0f) * layout_.neighbor_push * falloff;
     }
 
+    // Inclinação: a quina sob o mouse afunda (quinas de cima inclinam para trás, de baixo
+    // para a frente; esquerda/direita idem). Fora do hover volta a zero.
+    float tilt_x_target = 0.0f;
+    float tilt_y_target = 0.0f;
+    if (static_cast<int>(i) == hovered_) {
+      const math::Vec2 rel = MouseOnCard(card, mouse, view_proj, width, height);
+      tilt_x_target = -rel.y * layout_.tilt_max;
+      tilt_y_target = rel.x * layout_.tilt_max;
+    }
+
     card.hover = Approach(card.hover, hover_target, layout_.anim_speed, dt);
     card.shift = Approach(card.shift, shift_target, layout_.anim_speed, dt);
-    card.world = CardMatrix(card, static_cast<int>(i));
+    card.tilt_x = Approach(card.tilt_x, tilt_x_target, layout_.tilt_speed, dt);
+    card.tilt_y = Approach(card.tilt_y, tilt_y_target, layout_.tilt_speed, dt);
+    card.pick = CardMatrix(card, static_cast<int>(i), false);
+    card.world = CardMatrix(card, static_cast<int>(i), true);
   }
 }
 

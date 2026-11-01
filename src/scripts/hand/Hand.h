@@ -19,7 +19,10 @@ class Hand {
     SDL_GPUTexture* front = nullptr;
     float hover = 0.0f;  // 0 = em repouso, 1 = totalmente destacada (animado)
     float shift = 0.0f;  // deslocamento lateral causado pela carta destacada (animado)
-    math::Mat4 world;    // matriz do último quadro, usada no teste de hover
+    float tilt_x = 0.0f; // inclinação em X (rad) conforme o mouse sobe/desce na carta (animado)
+    float tilt_y = 0.0f; // inclinação em Y (rad) conforme o mouse vai à esquerda/direita
+    math::Mat4 world;    // matriz do último quadro, com inclinação (render)
+    math::Mat4 pick;     // idem sem inclinação: o teste de hover não oscila nas quinas
   };
 
   struct Layout {
@@ -36,6 +39,8 @@ class Hand {
     float hover_forward = 0.9f;   // quanto se aproxima da câmera
     float neighbor_push = 0.38f;  // quanto as vizinhas se afastam
     float anim_speed = 14.0f;     // velocidade da animação (maior = mais rápida)
+    float tilt_max = 0.3f;        // inclinação máxima (rad) com o mouse na quina da carta
+    float tilt_speed = 12.0f;     // velocidade da inclinação
     float hidden_drop = 1.0f;     // quanto a mão inteira desce quando o mouse está longe
     float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
   };
@@ -59,7 +64,11 @@ class Hand {
   int PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const;
   // true se o mouse está sobre uma carta ou abaixo do topo da mão levantada.
   bool MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const;
-  math::Mat4 CardMatrix(const Card& card, int index) const;
+  math::Mat4 CardMatrix(const Card& card, int index, bool with_tilt) const;
+  // Posição do mouse relativa ao centro da carta, em [-1, 1] nos dois eixos (x direita,
+  // y cima). Usa a matriz sem inclinação projetada na tela.
+  math::Vec2 MouseOnCard(const Card& card, math::Vec2 mouse, const math::Mat4& view_proj,
+                         int width, int height) const;
 
   const Model* model_ = nullptr;
   SDL_GPUTexture* back_ = nullptr;
