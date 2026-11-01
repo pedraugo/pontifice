@@ -118,10 +118,29 @@ void BattleScene::Preload(const PreloadInfo& info) {
   std::mt19937 rng{std::random_device{}()};
   deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng));
   deck_.Shuffle();
+  // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial (o monte continua
+  // embaralhado; essas cartas não saem dele).
+  std::vector<std::string> forced;
+  if (const char* env = SDL_getenv("PONTIFICE_HAND")) {
+    std::string spec = env;
+    size_t pos = 0;
+    while (pos <= spec.size()) {
+      size_t end = spec.find(',', pos);
+      if (end == std::string::npos) end = spec.size();
+      if (end > pos) forced.push_back(spec.substr(pos, end - pos));
+      pos = end + 1;
+    }
+  }
   for (int i = 0; i < 5; ++i) {
-    const std::optional<std::string> code = deck_.Draw();
+    std::optional<std::string> code;
+    if (!forced.empty()) {
+      if (i < static_cast<int>(forced.size())) code = forced[i];
+    } else {
+      code = deck_.Draw();
+    }
     if (!code) break;
-    if (SDL_GPUTexture* face = MakeCardFace(*code)) initial_hand_.push_back(face);
+    const Face face = MakeCardFace(*code);
+    if (face.texture != nullptr) initial_hand_.push_back(face);
   }
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
@@ -172,20 +191,22 @@ void BattleScene::ToggleSampleFieldCard() {
   hud_.SetFieldCard(card);
 }
 
-SDL_GPUTexture* BattleScene::MakeCardFace(const std::string& code) {
+BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
   const CardInfo* card = cards::Find(cards_, code);
-  if (card == nullptr || gpu_ == nullptr) return nullptr;
+  if (card == nullptr || gpu_ == nullptr) return {};
   const Image& frame = card->category == 'G' ? frames_[0]
                        : card->category == 'E' ? frames_[1]
                                                : frames_[2];
-  return UploadSprite(cardface::Compose(frame, *card));
+  // Hierarquia 1 (Divindades, Soberanos): carta foil.
+  return {UploadSprite(cardface::Compose(frame, *card)), card->hierarchy == 1};
 }
 
 void BattleScene::DrawCard() {
   const std::optional<std::string> code = deck_.Draw();
   if (!code) return;
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
-  if (SDL_GPUTexture* face = MakeCardFace(*code)) hand_.Add(face);
+  const Face face = MakeCardFace(*code);
+  if (face.texture != nullptr) hand_.Add(face.texture, face.foil);
 }
 
 void BattleScene::OnEnter(SceneContext& ctx) {
@@ -216,7 +237,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
   // Entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
   hand_.DelayDeal(0.8f);
-  for (SDL_GPUTexture* face : initial_hand_) hand_.Add(face);
+  for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil);
   initial_hand_.clear();
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   arena_world_ = math::Mat4::Scale(kArenaScale);
@@ -291,7 +312,14 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_ESCAPE:
+        if (hand_.Inspecting()) {  // primeiro sai da inspeção; só depois volta ao menu
+          hand_.StopInspect();
+          return;
+        }
         ctx.next_scene = SceneId::kMenu;
+        return;
+      case SDLK_SPACE:  // vira a carta inspecionada
+        hand_.Flip();
         return;
       case SDLK_F:  // depuração: carta de campo de exemplo
         ToggleSampleFieldCard();
@@ -314,6 +342,15 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if (event.type == SDL_EVENT_MOUSE_MOTION) {
     mouse_ = {event.motion.x, event.motion.y};
+  }
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+    hand_.MouseDown({event.button.x, event.button.y}, event.button.button == SDL_BUTTON_LEFT);
+  }
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT) {
+    hand_.MouseUp({event.button.x, event.button.y});
+  }
+  if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+    hand_.Wheel(event.wheel.y);
   }
   if (event.type == SDL_EVENT_WINDOW_MOUSE_LEAVE) {
     mouse_ = {-1, -1};

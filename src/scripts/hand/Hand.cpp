@@ -34,9 +34,10 @@ bool PointInConvexQuad(math::Vec2 p, const math::Vec2 q[4]) {
 
 }  // namespace
 
-void Hand::Add(SDL_GPUTexture* front) {
+void Hand::Add(SDL_GPUTexture* front, bool foil) {
   Card card;
   card.front = front;
+  card.foil = foil;
   card.enter_delay = pending_delay_;
   pending_delay_ += layout_.deal_stagger;
   cards_.push_back(card);
@@ -55,12 +56,13 @@ math::Mat4 Hand::CardMatrix(const Card& card, int index, bool with_tilt) const {
   const float e = card.enter * card.enter * (3.0f - 2.0f * card.enter);
   const float x = math::Lerp(layout_.deal_from_x, center_offset + card.shift, e);
   const float rest_y = layout_.base_y - layout_.arc * center_offset * center_offset;
-  const float y = rest_y + layout_.hover_lift * card.hover -
-                  layout_.hidden_drop * (1.0f - raise_);
+  // Selecionada: erguida mesmo com a mão recolhida (a descida da mão não a leva junto).
+  const float y = rest_y + layout_.hover_lift * card.hover + layout_.select_lift * card.select -
+                  layout_.hidden_drop * (1.0f - raise_) * (1.0f - card.select);
   // Profundidade crescente com o índice: cartas vizinhas se sobrepõem em X e, no mesmo Z,
   // o teste de profundidade empata e pisca. A carta destacada vai além de todas.
   const float z = layout_.base_z + layout_.depth_step * static_cast<float>(index) +
-                  layout_.hover_forward * card.hover;
+                  layout_.hover_forward * card.hover + layout_.select_forward * card.select;
   const float tilt = -center_offset * layout_.tilt_per_unit * (1.0f - card.hover);
   const float scale = math::Lerp(layout_.scale, layout_.hover_scale, card.hover);
 
@@ -147,10 +149,105 @@ bool Hand::MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int heig
   return mouse.y >= screen_y;
 }
 
+void Hand::MouseDown(math::Vec2 mouse, bool left) {
+  if (!left) {
+    StopInspect();
+    return;
+  }
+  press_pos_ = mouse;
+  press_consumed_ = false;
+  if (Inspecting()) {
+    rotating_ = true;  // arrastar gira a carta; soltar sem arrastar encerra
+    press_card_ = -1;
+    return;
+  }
+  press_card_ = PickCard(mouse, last_view_proj_, last_width_, last_height_);
+}
+
+void Hand::MouseUp(math::Vec2 mouse) {
+  if (rotating_) {
+    rotating_ = false;
+    const float moved = std::fabs(mouse.x - press_pos_.x) + std::fabs(mouse.y - press_pos_.y);
+    if (moved < 6.0f) {
+      // Clique simples: na carta vira; fora dela sai da inspeção.
+      if (PickCard(mouse, last_view_proj_, last_width_, last_height_) == inspecting_) {
+        Flip();
+      } else {
+        StopInspect();
+      }
+    } else {
+      yaw_target_ = inspect_yaw_;  // solta onde parou, sem voltar
+    }
+  }
+  press_card_ = -1;
+  press_consumed_ = false;
+}
+
+void Hand::Wheel(float dy) {
+  if (!Inspecting()) return;
+  zoom_ = math::Clamp(zoom_ + dy * layout_.zoom_step, layout_.zoom_min, layout_.zoom_max);
+}
+
+void Hand::Flip() {
+  if (!Inspecting()) return;
+  // Meia-volta a partir do lado mais próximo (frente ou verso) em que a carta está.
+  const float half = math::kPi;
+  const float snapped = std::round(yaw_target_ / half) * half;
+  yaw_target_ = snapped + half;
+}
+
+std::vector<size_t> Hand::Selected() const {
+  std::vector<size_t> out;
+  for (size_t i = 0; i < cards_.size(); ++i) {
+    if (cards_[i].selected) out.push_back(i);
+  }
+  return out;
+}
+
 void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int width,
                   int height) {
-  hovered_ = PickCard(mouse, view_proj, width, height);
-  raised_ = MouseOverHand(mouse, view_proj, height);
+  last_view_proj_ = view_proj;
+  last_width_ = width;
+  last_height_ = height;
+
+  // Gestos de arrasto sobre uma carta pressionada: para cima seleciona, para baixo inspeciona.
+  if (press_card_ >= 0 && press_card_ < static_cast<int>(cards_.size()) && !press_consumed_ &&
+      mouse.x >= 0) {
+    const float dy = mouse.y - press_pos_.y;  // y da tela cresce para baixo
+    if (dy <= -layout_.drag_threshold) {
+      cards_[press_card_].selected = !cards_[press_card_].selected;
+      press_consumed_ = true;
+    } else if (dy >= layout_.drag_threshold) {
+      inspecting_ = press_card_;
+      inspect_card_ = press_card_;
+      inspect_yaw_ = 0.0f;
+      inspect_pitch_ = 0.0f;
+      yaw_target_ = 0.0f;
+      zoom_ = zoom_shown_ = layout_.zoom_start;
+      press_consumed_ = true;
+    }
+  }
+  // Arrastar a carta inspecionada: horizontal gira em Y (360°, mostra o verso); vertical
+  // inclina um pouco em X. Sem arrasto, Y vai animado ao alvo (Flip) e X endireita.
+  if (rotating_ && Inspecting() && mouse.x >= 0 && last_mouse_.x >= 0) {
+    inspect_yaw_ += (mouse.x - last_mouse_.x) * layout_.rotate_speed;
+    inspect_pitch_ = math::Clamp(inspect_pitch_ + (mouse.y - last_mouse_.y) * layout_.rotate_speed,
+                                 -layout_.tilt_limit, layout_.tilt_limit);
+    yaw_target_ = inspect_yaw_;
+  } else if (Inspecting()) {
+    inspect_yaw_ = Approach(inspect_yaw_, yaw_target_, layout_.flip_speed, dt);
+    inspect_pitch_ = Approach(inspect_pitch_, 0.0f, layout_.flip_speed * 0.5f, dt);
+  }
+  last_mouse_ = mouse;
+  // Ida e volta da inspeção; a carta que estava sendo inspecionada volta ao lugar.
+  inspect_t_ = Approach(inspect_t_, Inspecting() ? 1.0f : 0.0f, layout_.inspect_speed, dt);
+  zoom_shown_ = Approach(zoom_shown_, zoom_, layout_.inspect_speed, dt);
+  if (!Inspecting() && inspect_t_ < 0.01f) inspect_card_ = -1;
+
+  // Com uma carta inspecionada a mão não reage ao mouse.
+  const bool interactive = !Inspecting();
+  hovered_ = interactive ? PickCard(mouse, view_proj, width, height) : -1;
+  raised_ = interactive ? MouseOverHand(mouse, view_proj, height) : false;
   raise_ = Approach(raise_, raised_ ? 1.0f : 0.0f, layout_.raise_speed, dt);
   pending_delay_ = std::max(0.0f, pending_delay_ - dt);
 
@@ -184,12 +281,38 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
 
     card.hover = Approach(card.hover, hover_target, layout_.anim_speed, dt);
     card.shift = Approach(card.shift, shift_target, layout_.anim_speed, dt);
+    card.select = Approach(card.select, card.selected ? 1.0f : 0.0f, layout_.anim_speed, dt);
     card.tilt_x = Approach(card.tilt_x, tilt_x_target, layout_.tilt_speed, dt);
     card.tilt_y = Approach(card.tilt_y, tilt_y_target, layout_.tilt_speed, dt);
     card.pick = CardMatrix(card, static_cast<int>(i), false);
     card.world = CardMatrix(card, static_cast<int>(i), true);
+    // Carta inspecionada: interpola da posição na mão para o centro da tela, ampliada, e
+    // aplica a rotação do mouse (proporcional ao progresso, para não girar ainda no dock).
+    if (static_cast<int>(i) == inspect_card_ && inspect_t_ > 0.0f) {
+      const float t = inspect_t_ * inspect_t_ * (3.0f - 2.0f * inspect_t_);
+      const math::Mat4& rest = card.pick;
+      const math::Vec3 from{rest.m[3][0], rest.m[3][1], rest.m[3][2]};
+      const math::Vec3 to{0.0f, layout_.inspect_y, layout_.inspect_z};
+      const math::Vec3 pos = from + (to - from) * t;
+      const float rest_scale = math::Lerp(layout_.scale, layout_.hover_scale, card.hover);
+      // Escala para a carta ocupar zoom_shown_ da altura visível na profundidade inspect_z.
+      const float visible_h = 2.0f * (layout_.camera_z - layout_.inspect_z) *
+                              std::tan(layout_.fov_y * 0.5f);
+      const float card_h = model_->BoundsMax().y - model_->BoundsMin().y;
+      const float inspect_scale = zoom_shown_ * visible_h / std::max(card_h, 1e-3f);
+      const float scale = math::Lerp(rest_scale, inspect_scale, t);
+      card.world = math::Mat4::Translate(pos) * math::Mat4::RotateY(inspect_yaw_ * t) *
+                   math::Mat4::RotateX(inspect_pitch_ * t) * math::Mat4::Scale(scale);
+      card.pick = card.world;
+    }
   }
 }
+
+namespace {
+Gpu::DrawMode FrontMode(const Hand::Card& card) {
+  return card.foil ? Gpu::DrawMode::kFoil : Gpu::DrawMode::kMesh;
+}
+}  // namespace
 
 void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (model_ == nullptr) return;
@@ -197,10 +320,16 @@ void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   // Ordem de trás para frente (índice crescente = mais perto da câmera) e a carta destacada
   // por último. Com blend ligado, desenhar na ordem da profundidade evita bordas erradas.
   for (size_t i = 0; i < cards_.size(); ++i) {
-    if (static_cast<int>(i) == hovered_) continue;
-    model_->Draw(gpu, cards_[i].world, view_proj, white, cards_[i].front, back_);
+    if (static_cast<int>(i) == hovered_ || static_cast<int>(i) == inspect_card_) continue;
+    model_->Draw(gpu, cards_[i].world, view_proj, white, cards_[i].front, back_, FrontMode(cards_[i]));
   }
-  if (hovered_ >= 0 && hovered_ < static_cast<int>(cards_.size())) {
-    model_->Draw(gpu, cards_[hovered_].world, view_proj, white, cards_[hovered_].front, back_);
+  if (hovered_ >= 0 && hovered_ < static_cast<int>(cards_.size()) && hovered_ != inspect_card_) {
+    model_->Draw(gpu, cards_[hovered_].world, view_proj, white, cards_[hovered_].front, back_,
+                 FrontMode(cards_[hovered_]));
+  }
+  // A carta inspecionada (ou voltando) por último: fica na frente de tudo.
+  if (inspect_card_ >= 0 && inspect_card_ < static_cast<int>(cards_.size())) {
+    model_->Draw(gpu, cards_[inspect_card_].world, view_proj, white, cards_[inspect_card_].front,
+                 back_, FrontMode(cards_[inspect_card_]));
   }
 }

@@ -81,7 +81,8 @@ class Gpu {
   // kEmissive: sem iluminação nem névoa: a cor da textura sai como está.
   // kFlame: chama procedural animada no shader a partir do UV (u largura, v 0 topo .. 1 base).
   // kFlameGlow: a mesma chama como halo difuso (oval, base esmaecida), para um quad maior atrás.
-  enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow };
+  // kFoil: como kMesh, mais um brilho iridescente que muda com o ângulo de visão (cartas raras).
+  enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow, kFoil };
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
             const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode = DrawMode::kMesh);
   void EndFrame();

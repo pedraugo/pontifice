@@ -147,7 +147,7 @@ bool Model::Upload(Gpu& gpu, Data&& data) {
 }
 
 void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
-                 SDL_GPUTexture* front, SDL_GPUTexture* back) const {
+                 SDL_GPUTexture* front, SDL_GPUTexture* back, Gpu::DrawMode front_mode) const {
   for (const Part& part : parts_) {
     SDL_GPUTexture* texture = part.texture;
     if (part.role == Role::kFront && front != nullptr) texture = front;
@@ -159,6 +159,7 @@ void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj,
     color.g *= tint.g;
     color.b *= tint.b;
     color.a *= tint.a;
-    gpu.Draw(part.mesh, texture, model, view_proj, color);
+    gpu.Draw(part.mesh, texture, model, view_proj, color,
+             part.role == Role::kFront ? front_mode : Gpu::DrawMode::kMesh);
   }
 }

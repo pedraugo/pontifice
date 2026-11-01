@@ -51,9 +51,11 @@ class Model {
   // Parse + Upload na thread principal.
   bool LoadGlb(Gpu& gpu, const std::string& path) { return Upload(gpu, Parse(path)); }
 
-  // Desenha todas as partes. front/back substituem as texturas embutidas quando não nulos.
+  // Desenha todas as partes. front/back substituem as texturas embutidas quando não nulos;
+  // front_mode é o modo de desenho da parte da frente (ex.: Gpu::DrawMode::kFoil).
   void Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
-            SDL_GPUTexture* front = nullptr, SDL_GPUTexture* back = nullptr) const;
+            SDL_GPUTexture* front = nullptr, SDL_GPUTexture* back = nullptr,
+            Gpu::DrawMode front_mode = Gpu::DrawMode::kMesh) const;
 
   const std::vector<Part>& Parts() const { return parts_; }
   math::Vec3 BoundsMin() const { return min_; }

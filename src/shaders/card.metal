@@ -20,8 +20,8 @@ struct VertexUniforms {
 // Mesma ordem e tamanho de Gpu::FragmentUniforms (só float4, sem padding).
 struct FragmentUniforms {
   float4 color;        // tint; multiplica a textura ou é a cor sólida
-  float4 params;       // x = 1 usa textura; y = modo (0 malha, 1 névoa, 2 emissivo, 3 chama);
-                       // z = tempo; w = vinheta
+  float4 params;       // x = 1 usa textura; y = modo (0 malha, 1 névoa, 2 emissivo, 3 chama,
+                       // 4 halo da chama, 5 malha com foil); z = tempo; w = vinheta
   float4 light_dir;    // xyz direção para a luz principal (normalizada), w = intensidade
   float4 light_color;  // rgb cor da luz principal (quente, tocha)
   float4 ambient;      // rgb luz ambiente (fria)
@@ -110,14 +110,15 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
 
   float3 rgb;
   float alpha;
-  if (u.params.y > 2.5) return Flame(in.uv, in.world_pos, t, u.params.y > 3.5) * u.color;
-  if (u.params.y > 1.5) {
+  const bool foil = u.params.y > 4.5;
+  if (!foil && u.params.y > 2.5) return Flame(in.uv, in.world_pos, t, u.params.y > 3.5) * u.color;
+  if (!foil && u.params.y > 1.5) {
     // Emissivo: cor da textura direto, sem luz, névoa nem vinheta.
     float4 base = u.color;
     if (u.params.x > 0.5) base = tex.sample(smp, in.uv) * u.color;
     return base;
   }
-  if (u.params.y > 0.5) {
+  if (!foil && u.params.y > 0.5) {
     // Névoa: quad horizontal na base da arena. Alpha vem de ruído animado, com camadas em
     // alturas diferentes deslocadas (world_pos.y) para não repetirem o padrão.
     const float2 p = (in.world_pos.xz + in.world_pos.y * 7.0) * u.mist.z;
@@ -153,6 +154,16 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
     }
     rgb = base.rgb * light;
     alpha = base.a;
+    if (foil) {
+      // Foil: faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes
+      // de raspão) e com o tempo, com um granulado fino de brilhos.
+      const float3 v = normalize(u.camera.xyz - in.world_pos);
+      const float fres = pow(1.0 - abs(dot(n, v)), 1.5);
+      const float band = dot(in.uv, float2(2.5, 4.0)) + fres * 3.0 + t * 0.12;
+      const float3 rainbow = 0.5 + 0.5 * cos(6.2831853 * (band + float3(0.0, 0.33, 0.67)));
+      const float sparkle = 0.55 + 0.45 * Noise(in.uv * 60.0 + float2(t * 0.3, -t * 0.2));
+      rgb += rainbow * (0.06 + 0.38 * fres) * sparkle;
+    }
   }
 
   // Névoa de altura (base da arena) combinada com névoa por distância (fundo).

@@ -15,8 +15,9 @@
 #include "scripts/cards/Cards.h"
 #include "scripts/deck/Deck.h"
 
-// Cena de batalha. Por enquanto: arena, mão de cartas 3D com hover e HUD (docs/hud.md).
-// Esc volta ao menu. Teclas de depuração até existir a lógica de jogo: F alterna uma carta de
+// Cena de batalha. Por enquanto: arena, mão de cartas 3D com hover, seleção (arrastar para
+// cima) e inspeção (arrastar para baixo) e HUD (docs/hud.md). Esc sai da inspeção ou volta
+// ao menu. Teclas de depuração até existir a lógica de jogo: F alterna uma carta de
 // campo de exemplo; 1 e 2 tiram 700 pontos de vida do oponente e de você; D compra uma carta
 // do monte; G manda uma carta para o cemitério.
 class BattleScene : public Scene {
@@ -37,7 +38,12 @@ class BattleScene : public Scene {
   void ToggleSampleFieldCard();
   void DrawCard();
   // Compõe a frente (moldura + textos) e sobe para a GPU; nulo se a carta não existe.
-  SDL_GPUTexture* MakeCardFace(const std::string& code);
+  // Frente pronta para a mão: textura composta e se é foil (hierarquia 1).
+  struct Face {
+    SDL_GPUTexture* texture = nullptr;
+    bool foil = false;
+  };
+  Face MakeCardFace(const std::string& code);
   void UpdateIntro(float dt_seconds);  // arena emergindo da névoa e câmera aproximando
 
   bool preloaded_ = false;
@@ -52,7 +58,7 @@ class BattleScene : public Scene {
   Image frames_[3];                      // molduras Good, Evil, Field reduzidas (cardface)
   std::vector<CardInfo> cards_;          // todas as cartas (assets/Cards*.json)
   deck::Deck deck_;                      // monte do jogador, já embaralhado
-  std::vector<SDL_GPUTexture*> initial_hand_;  // frentes das 5 primeiras, compostas no Preload
+  std::vector<Face> initial_hand_;  // frentes das 5 primeiras, compostas no Preload
   Hand hand_;
   Hud hud_;
   SDL_Texture* field_front_2d_ = nullptr;  // frente da carta de campo no HUD

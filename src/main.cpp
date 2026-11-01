@@ -6,6 +6,7 @@
 #include <cstring>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
@@ -142,6 +143,33 @@ int main(int /*argc*/, char** /*argv*/) {
   // PONTIFICE_SCREENSHOT_TIME segundos, e encerra.
   const char* env_scene = std::getenv("PONTIFICE_SCENE");
   const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
+  // PONTIFICE_DRAG: sequência de gestos separados por ';'. "x0,y0,x1,y1,t" = arrasto do botão
+  // esquerdo de (x0,y0) a (x1,y1) começando em t s (pressiona, move em 0,3 s, solta em 0,6 s;
+  // x0=x1,y0=y1 vira clique); "w,dy,t" = roda do mouse dy em t s.
+  struct Gesture {
+    bool wheel = false;
+    float x0 = 0, y0 = 0, x1 = 0, y1 = 0, t = 2.0f, dy = 0;
+    int stage = 0;  // 0 nada, 1 pressionado, 2 movido, 3 feito
+  };
+  std::vector<Gesture> gestures;
+  if (const char* env_drag = std::getenv("PONTIFICE_DRAG")) {
+    std::string spec = env_drag;
+    size_t pos = 0;
+    while (pos <= spec.size()) {
+      size_t end = spec.find(';', pos);
+      if (end == std::string::npos) end = spec.size();
+      const std::string item = spec.substr(pos, end - pos);
+      Gesture g;
+      if (item.rfind("w,", 0) == 0) {
+        g.wheel = true;
+        std::sscanf(item.c_str(), "w,%f,%f", &g.dy, &g.t);
+      } else {
+        std::sscanf(item.c_str(), "%f,%f,%f,%f,%f", &g.x0, &g.y0, &g.x1, &g.y1, &g.t);
+      }
+      if (!item.empty()) gestures.push_back(g);
+      pos = end + 1;
+    }
+  }
   const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
   const char* env_shot_frame = std::getenv("PONTIFICE_SCREENSHOT_FRAME");
   const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
@@ -172,6 +200,44 @@ int main(int /*argc*/, char** /*argv*/) {
       fake.type = SDL_EVENT_MOUSE_MOTION;
       std::sscanf(env_mouse, "%f,%f", &fake.motion.x, &fake.motion.y);
       scenes.HandleEvent(fake);
+    }
+    for (Gesture& g : gestures) {
+      const double t = static_cast<double>(SDL_GetTicksNS() - start) / 1e9;
+      SDL_Event fake{};
+      if (g.wheel) {
+        if (g.stage == 0 && t >= g.t) {
+          fake.type = SDL_EVENT_MOUSE_WHEEL;
+          fake.wheel.y = g.dy;
+          scenes.HandleEvent(fake);
+          g.stage = 3;
+        }
+        continue;
+      }
+      if (g.stage == 0 && t >= g.t) {
+        fake.type = SDL_EVENT_MOUSE_MOTION;
+        fake.motion.x = g.x0;
+        fake.motion.y = g.y0;
+        scenes.HandleEvent(fake);
+        fake.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+        fake.button.button = SDL_BUTTON_LEFT;
+        fake.button.x = g.x0;
+        fake.button.y = g.y0;
+        scenes.HandleEvent(fake);
+        g.stage = 1;
+      } else if (g.stage == 1 && t >= g.t + 0.3) {
+        fake.type = SDL_EVENT_MOUSE_MOTION;
+        fake.motion.x = g.x1;
+        fake.motion.y = g.y1;
+        scenes.HandleEvent(fake);
+        g.stage = 2;
+      } else if (g.stage == 2 && t >= g.t + 0.6) {
+        fake.type = SDL_EVENT_MOUSE_BUTTON_UP;
+        fake.button.button = SDL_BUTTON_LEFT;
+        fake.button.x = g.x1;
+        fake.button.y = g.y1;
+        scenes.HandleEvent(fake);
+        g.stage = 3;
+      }
     }
 
     const Uint64 now = SDL_GetTicksNS();

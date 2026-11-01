@@ -77,17 +77,18 @@ void main() {
 
   vec3 rgb;
   float alpha;
-  if (u.params.y > 2.5) {
+  bool foil = u.params.y > 4.5;
+  if (!foil && u.params.y > 2.5) {
     out_color = Flame(v_uv, v_world_pos, t, u.params.y > 3.5) * u.color;
     return;
   }
-  if (u.params.y > 1.5) {
+  if (!foil && u.params.y > 1.5) {
     vec4 base = u.color;
     if (u.params.x > 0.5) base = texture(tex, v_uv) * u.color;
     out_color = base;
     return;
   }
-  if (u.params.y > 0.5) {
+  if (!foil && u.params.y > 0.5) {
     vec2 p = (v_world_pos.xz + v_world_pos.y * 7.0) * u.mist.z;
     float n1 = Fbm(p * 0.35 + vec2(t * 0.06, t * 0.025));
     float n2 = Fbm(p * 0.7 - vec2(t * 0.04, -t * 0.05) + 31.0);
@@ -117,6 +118,14 @@ void main() {
     }
     rgb = base.rgb * light;
     alpha = base.a;
+    if (foil) {
+      vec3 v = normalize(u.camera.xyz - v_world_pos);
+      float fres = pow(1.0 - abs(dot(n, v)), 1.5);
+      float band = dot(v_uv, vec2(2.5, 4.0)) + fres * 3.0 + t * 0.12;
+      vec3 rainbow = 0.5 + 0.5 * cos(6.2831853 * (band + vec3(0.0, 0.33, 0.67)));
+      float sparkle = 0.55 + 0.45 * Noise(v_uv * 60.0 + vec2(t * 0.3, -t * 0.2));
+      rgb += rainbow * (0.06 + 0.38 * fres) * sparkle;
+    }
   }
 
   float dist = length(v_world_pos - u.camera.xyz);

@@ -176,11 +176,12 @@ As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementad
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
 - **Entrada**: cada carta adicionada à mão (`Hand::Add`) desliza de fora da tela, pela esquerda, até o seu lugar, a velocidade constante (13 unidades/s, suavizado nas pontas), então quem vai mais longe demora mais e não ultrapassa a anterior; cartas adicionadas em sequência entram uma a uma, com 0,12 s entre elas. `Hand::DelayDeal` adia a próxima entrada (a batalha espera o fade in).
-- A carta destacada é desenhada por último, por cima das demais.
+- **Gestos** (clicar numa carta e arrastar 24 px na vertical): para **cima** seleciona ou desseleciona a carta (várias podem ficar selecionadas; ficam erguidas e aproximadas, e não descem com a mão recolhida; `Hand::Selected()` lista os índices). Para **baixo** inspeciona (uma por vez): a carta vai animada para o centro da tela, ampliada (a z = 4,2, câmera em z = 10), e responde ao arrasto do mouse: horizontal **gira em Y** (360°, mostra o verso; fica onde parou) e vertical **inclina um pouco em X** (±0,35 rad, volta sozinha ao soltar); a **roda do mouse** dá zoom entre 75% e 100% da altura da tela (começa em 80%, passos de 5%); enquanto isso a mão não reage ao mouse. **Clique na carta** (ou Espaço) a **vira** com meia-volta animada, mostrando o verso (`CardBack.png`); clique fora dela, botão direito ou Esc encerram a inspeção e a carta volta animada para a mão.
+- A carta destacada é desenhada por último, por cima das demais; a inspecionada, depois dela.
 - **Detecção**: os quatro cantos da carta são projetados para a tela com a matriz do quadro anterior e testados contra o cursor (ponto em quadrilátero convexo). Entre cartas sobrepostas vence a de centro mais próximo do cursor.
 - Parâmetros (altura, espaçamento, arco, escala, elevação, velocidade) ficam em `Hand::Layout`.
 
-Pendente: arrastar carta para um slot, animação ao descartar, mão do oponente com verso para a câmera.
+Pendente: arrastar carta para um slot (a seleção é o primeiro passo), animação ao descartar, mão do oponente com verso para a câmera.
 
 ## Virada de campo no turno do computador
 
@@ -226,7 +227,7 @@ Ordem de um quadro na cena de batalha:
 
 O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
 
-Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad) e `kFlameGlow` (a mesma chama como halo oval difuso).
+Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad), `kFlameGlow` (a mesma chama como halo oval difuso) e `kFoil` (como `kMesh`, mais brilho iridescente dependente do ângulo de visão).
 
 ## Frente da carta
 
@@ -234,11 +235,11 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 
 | Área | Posição | Conteúdo |
 |---|---|---|
-| Faixa do topo | y 58–114 | `name`, centralizado, claro com sombra (56 px) |
+| Faixa do topo | y 58–114 | `name` à esquerda e `hierarchy` (1 a 4) à direita (56 px); carta de campo não tem hierarquia |
 | Faixa abaixo da imagem | y 630–690 | `attributes.attack` à esquerda (`ATK 2800`) e `attributes.defense` à direita (`DEF 2900`), 48 px; carta de campo mostra `BUFF +n` e `NERF -n` |
-| Área branca de baixo | y 712–1031, x 70–730 | `description`, escura, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
+| Área branca de baixo | y 712–1031, x 70–730 | `description`, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
 
-A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
+Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMode::kFoil`, que soma faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes de raspão, pela fresnel) e com o tempo, com granulado fino; o efeito aparece ao inclinar a carta no hover ou girá-la na inspeção. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
 
 ## Tochas e iluminação
 
@@ -256,6 +257,8 @@ Variáveis de ambiente lidas em `main.cpp`:
 |---|---|
 | `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha) |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
+| `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |
+| `PONTIFICE_DRAG=...` | Sequência de gestos separados por `;`: `x0,y0,x1,y1,t` arrasta o botão esquerdo de (x0,y0) a (x1,y1) a partir de `t` s (mesmo ponto = clique); `w,dy,t` gira a roda. Testa seleção, inspeção, virar e zoom |
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
 | `PONTIFICE_SCREENSHOT_FRAME=n` | Número do quadro salvo por `PONTIFICE_SCREENSHOT` |
 | `PONTIFICE_SCREENSHOT_TIME=s` | Em vez do quadro, salva o primeiro quadro depois de `s` segundos (sem vsync a taxa de quadros varia; use isto para animações) |

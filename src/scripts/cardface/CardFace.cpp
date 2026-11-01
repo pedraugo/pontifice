@@ -19,16 +19,29 @@ constexpr float kStatsPx = 48.0f;
 constexpr float kDescPx = 40.0f;
 constexpr float kDescLine = 50.0f;
 
-constexpr SDL_Color kLight{241, 247, 253, 255};
-constexpr SDL_Color kShadow{10, 12, 18, 200};
-constexpr SDL_Color kDark{27, 27, 30, 255};
+// Nome, hierarquia e ATK/DEF: brancos com contorno escuro e sombra (ficam sobre faixas
+// coloridas). Descrição: preta lisa, sobre a área branca.
+constexpr SDL_Color kWhite{255, 255, 255, 255};
+constexpr SDL_Color kOutline{12, 12, 16, 255};
+constexpr SDL_Color kShadow{0, 0, 0, 150};
+constexpr SDL_Color kInk{20, 20, 24, 255};
 
 // Centraliza na caixa vertical [top, bottom] com `px` de em.
 float CenteredTop(float top, float bottom, float px) { return (top + bottom) / 2.0f - px / 2.0f; }
 
-void Shadowed(Image& img, const std::string& s, float x, float y, float px) {
-  text::DrawOnImage(img, s.c_str(), x + 2.0f, y + 2.0f, px, kShadow);
-  text::DrawOnImage(img, s.c_str(), x, y, px, kLight);
+void Label(Image& img, const std::string& s, float x, float y, float px) {
+  const char* str = s.c_str();
+  const float t = SDL_max(1.5f, px * 0.055f);   // espessura do contorno
+  const float shadow = SDL_max(2.0f, px * 0.08f);
+  text::DrawOnImage(img, str, x + shadow, y + shadow, px, kShadow);
+  // Contorno: o texto em escuro nas 8 direções em volta.
+  for (int dy = -1; dy <= 1; ++dy) {
+    for (int dx = -1; dx <= 1; ++dx) {
+      if (dx == 0 && dy == 0) continue;
+      text::DrawOnImage(img, str, x + dx * t, y + dy * t, px, kOutline);
+    }
+  }
+  text::DrawOnImage(img, str, x, y, px, kWhite);
 }
 
 // Quebra em linhas que cabem em `max_width` (por palavras; palavra maior que a linha fica só).
@@ -73,11 +86,16 @@ Image Compose(const Image& frame, const CardInfo& card) {
   const float sy = static_cast<float>(img.height) / kHeight;
   const float cx = img.width / 2.0f;
 
-  // Nome, centralizado na faixa do topo, claro com sombra (a faixa é colorida).
+  // Faixa do topo: nome alinhado à esquerda e número da hierarquia à direita (cartas de
+  // campo não têm hierarquia).
   {
     const float px = kNamePx * sy;
-    const float w = text::ImageWidth(card.name.c_str(), px);
-    Shadowed(img, card.name, cx - w / 2.0f, CenteredTop(kNameTop * sy, kNameBottom * sy, px), px);
+    const float y = CenteredTop(kNameTop * sy, kNameBottom * sy, px);
+    Label(img, card.name, kLeft * sx, y, px);
+    if (card.hierarchy > 0) {
+      const std::string tier = std::to_string(card.hierarchy);
+      Label(img, tier, kRight * sx - text::ImageWidth(tier.c_str(), px), y, px);
+    }
   }
 
   // Abaixo da imagem: ataque à esquerda e defesa à direita; carta de campo mostra buff/nerf.
@@ -92,8 +110,8 @@ Image Compose(const Image& frame, const CardInfo& card) {
       left = "ATK " + std::to_string(card.attack);
       right = "DEF " + std::to_string(card.defense);
     }
-    Shadowed(img, left, kLeft * sx, y, px);
-    Shadowed(img, right, kRight * sx - text::ImageWidth(right.c_str(), px), y, px);
+    Label(img, left, kLeft * sx, y, px);
+    Label(img, right, kRight * sx - text::ImageWidth(right.c_str(), px), y, px);
   }
 
   // Descrição na área branca de baixo, com quebra de linha e centralizada.
@@ -109,7 +127,7 @@ Image Compose(const Image& frame, const CardInfo& card) {
     float y = CenteredTop(kDescTop * sy, kDescBottom * sy, block_h);
     for (const std::string& line : lines) {
       const float w = text::ImageWidth(line.c_str(), px);
-      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, kDark);
+      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, kInk);
       y += line_h;
     }
   }

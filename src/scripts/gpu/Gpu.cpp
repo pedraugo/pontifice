@@ -384,7 +384,8 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
   if (pass_ == nullptr || mesh.index_count == 0) return;
 
   // Transparentes não escrevem profundidade (ver pipeline_transparent_).
-  SDL_GPUGraphicsPipeline* wanted = mode == DrawMode::kMesh ? pipeline_ : pipeline_transparent_;
+  const bool opaque = mode == DrawMode::kMesh || mode == DrawMode::kFoil;
+  SDL_GPUGraphicsPipeline* wanted = opaque ? pipeline_ : pipeline_transparent_;
   if (wanted != bound_pipeline_) {
     SDL_BindGPUGraphicsPipeline(pass_, wanted);
     bound_pipeline_ = wanted;
