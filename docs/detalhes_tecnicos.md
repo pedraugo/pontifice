@@ -201,6 +201,7 @@ Ao entrar na batalha (depois do fade in da tela de loading), por 1,6 s a arena *
 - A arena começa 3,2 unidades abaixo da posição final e sobe. A névoa de altura (`fog_full_y` na base) já a esconde enquanto está embaixo.
 - Cinco camadas extras de névoa (`kIntroMistLayers`) ficam em alturas fixas do mundo, da base ao topo da arena, com `mist_density` alto no início (manto fechado) e caindo a zero; a opacidade cai com a raiz do tempo restante. A arena atravessa camada por camada ao subir; no fim restam só as duas camadas normais da base.
 - A câmera parte de `(0, 16, 22)` e chega à posição do jogador `(0, 10,5, 12,2)`, sempre olhando o centro da arena.
+- As tochas emergem **depois** da arena: começam a subir do chão (4,5 unidades abaixo) em 1,1 s e levam 1,2 s, apagadas. Em 2,3 s o fogo acende (0,6 s: a chama cresce da base e ganha opacidade) e a luz das tochas vem junto com ele.
 - Enquanto isso, as 5 cartas da mão inicial entram pela esquerda da tela, uma a uma, a partir de 0,8 s.
 - `PONTIFICE_ARENA_EYE` (depuração) fixa a câmera e pula a abertura.
 
@@ -224,7 +225,7 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 A luz das cenas 3D vem das **tochas** (`models/Torch.glb`, `src/scripts/torch/Torch.*`): cada chama é uma luz pontual (`Atmosphere::point_pos` e `point2_pos`, posição de `Torch::FlamePosition`), de cor quente e com o tremular do shader. A luz direcional fica em zero e o ambiente baixo e frio.
 
 - **Loading**: duas tochas presas nos pilares do portão (x = ±1,72, altura 1,75, inclinadas 0,22 rad para fora), intensidade 0,9 cada.
-- **Batalha**: duas tochas fincadas no chão à esquerda e à direita da arena (x = ±6,4, z = −1, escala 2,6), intensidade 2,6 cada; sobem junto com a arena na abertura. A mão continua com a iluminação própria, para as cartas ficarem legíveis.
+- **Batalha**: duas tochas fincadas no chão à esquerda e à direita da arena (x = ±6,4, z = −1, escala 2,6), intensidade 2,6 cada; na abertura emergem do chão depois da arena. A mão continua com a iluminação própria, para as cartas ficarem legíveis.
 - A chama (nó `Flame`) é um quad sempre na vertical e virado para a câmera, desenhado em `kFlame` (chama procedural no shader: gota deformada por três camadas de ruído que sobem, línguas no topo, núcleo claro na base, fase por posição) mais um halo maior e translúcido um pouco atrás. Corpo da tocha é desenhado antes das camadas de névoa e a chama depois delas.
 
 ## Depuração

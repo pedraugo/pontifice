@@ -25,8 +25,9 @@ class Torch {
   // de névoa e a chama depois delas, senão o quad da chama, que escreve profundidade, abre um
   // buraco retangular na névoa atrás dele. camera_pos orienta o quad (billboard em torno de y).
   void DrawBody(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj) const;
+  // ignite: 0 = apagada, 1 = chama inteira (cresce a partir da base, como ao acender).
   void DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj,
-                 const math::Vec3& camera_pos) const;
+                 const math::Vec3& camera_pos, float ignite = 1.0f) const;
 
   // Centro da chama no mundo: a chama sobe na vertical a partir da base, mesmo com a tocha
   // inclinada, então o centro fica acima da base e não ao longo do cabo.

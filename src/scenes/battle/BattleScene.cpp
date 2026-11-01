@@ -47,6 +47,11 @@ constexpr float kTorchLight = 2.6f;   // intensidade de cada chama
 // camada ao subir, e vai rareando até restarem só as camadas da base.
 constexpr float kIntroSeconds = 1.6f;
 constexpr float kIntroDrop = 3.2f;                     // quanto a arena começa abaixo do lugar
+// Tochas emergem depois da arena: começam a subir quando ela já está quase no lugar.
+constexpr float kTorchIntroStart = 1.1f;   // s depois da entrada
+constexpr float kTorchIntroSeconds = 1.2f;
+constexpr float kTorchIntroDrop = 4.5f;    // começam bem abaixo do chão
+constexpr float kIgniteSeconds = 0.6f;     // o fogo acende depois de a tocha ter surgido
 constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};  // câmera longe e alta
 constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
 struct IntroMistLayer {
@@ -212,8 +217,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_atmosphere_.light_intensity = 0.0f;
   arena_atmosphere_.light_color = {1.0f, 0.74f, 0.46f, 1.0f};
   arena_atmosphere_.ambient = {0.07f, 0.08f, 0.13f, 1.0f};
-  arena_atmosphere_.point_intensity = kTorchLight;
-  arena_atmosphere_.point2_intensity = kTorchLight;
+  arena_atmosphere_.point_intensity = 0.0f;  // acendem quando o fogo surge nas tochas
+  arena_atmosphere_.point2_intensity = 0.0f;
   arena_atmosphere_.fog_color = fog_color_;
   arena_atmosphere_.fog_density = 0.05f;
   arena_atmosphere_.fog_start = 15.0f;
@@ -237,20 +242,25 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 }
 
 void BattleScene::UpdateIntro(float dt_seconds) {
-  if (intro_ >= 1.0f) return;
+  if (intro_ >= 1.0f && torch_intro_ >= 1.0f && ignite_ >= 1.0f) return;
   intro_time_ += dt_seconds;
   intro_ = SmoothStep(intro_time_ / kIntroSeconds);
+  torch_intro_ = SmoothStep((intro_time_ - kTorchIntroStart) / kTorchIntroSeconds);
+  ignite_ = SmoothStep((intro_time_ - kTorchIntroStart - kTorchIntroSeconds) / kIgniteSeconds);
   // Depuração: PONTIFICE_ARENA_EYE fixa a câmera, então pula a abertura.
-  if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = 1.0f;
+  if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = torch_intro_ = ignite_ = 1.0f;
   const float drop = kIntroDrop * (1.0f - intro_);
   arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(kArenaScale);
-  // Tochas sobem junto com a arena; as luzes seguem as chamas.
-  torch_world_[0] = math::Mat4::Translate({-kTorchX, kArenaBaseY - drop, kTorchZ}) *
+  // Tochas emergem do chão depois da arena; o fogo acende depois, e a luz vem com ele.
+  const float torch_drop = kTorchIntroDrop * (1.0f - torch_intro_);
+  torch_world_[0] = math::Mat4::Translate({-kTorchX, kArenaBaseY - torch_drop, kTorchZ}) *
                     math::Mat4::RotateZ(kTorchTilt) * math::Mat4::Scale(kTorchScale);
-  torch_world_[1] = math::Mat4::Translate({kTorchX, kArenaBaseY - drop, kTorchZ}) *
+  torch_world_[1] = math::Mat4::Translate({kTorchX, kArenaBaseY - torch_drop, kTorchZ}) *
                     math::Mat4::RotateZ(-kTorchTilt) * math::Mat4::Scale(kTorchScale);
   arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
   arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
+  arena_atmosphere_.point_intensity = kTorchLight * ignite_;
+  arena_atmosphere_.point2_intensity = kTorchLight * ignite_;
   const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
@@ -337,7 +347,8 @@ void BattleScene::Render(SceneContext& ctx) {
     if (torch_ != nullptr) {
       gpu_->SetAtmosphere(arena_atmosphere_);
       for (const math::Mat4& world : torch_world_) {
-        torch_->DrawFlame(*gpu_, world, arena_view_proj_, arena_atmosphere_.camera_pos);
+        torch_->DrawFlame(*gpu_, world, arena_view_proj_, arena_atmosphere_.camera_pos,
+                          ignite_);
       }
     }
     gpu_->NewLayer();  // a mão fica sempre por cima da arena

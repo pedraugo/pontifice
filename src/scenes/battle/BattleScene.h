@@ -56,6 +56,8 @@ class BattleScene : public Scene {
   math::Vec3 eye_final_;        // posição final da câmera da arena
   float intro_time_ = 0.0f;     // segundos desde a entrada (animação de abertura)
   float intro_ = 0.0f;          // progresso suavizado da abertura, 0..1
+  float torch_intro_ = 0.0f;    // idem para as tochas, que emergem depois da arena
+  float ignite_ = 0.0f;         // fogo das tochas, que acende depois de elas surgirem
   GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa
   Atmosphere arena_atmosphere_;
   SDL_FColor fog_color_{};      // background.fog: fundo e névoa (colors.json)
