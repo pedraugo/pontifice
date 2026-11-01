@@ -320,10 +320,21 @@ bool Gpu::BeginFrame(SDL_FColor clear) {
     return false;
   }
 
+  return BeginPass(SDL_GPU_LOADOP_CLEAR, clear);
+}
+
+void Gpu::NewLayer() {
+  if (pass_ == nullptr) return;
+  SDL_EndGPURenderPass(pass_);
+  pass_ = nullptr;
+  BeginPass(SDL_GPU_LOADOP_LOAD, SDL_FColor{0, 0, 0, 0});
+}
+
+bool Gpu::BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear) {
   SDL_GPUColorTargetInfo color{};
   color.texture = target_gpu_;
   color.clear_color = clear;
-  color.load_op = SDL_GPU_LOADOP_CLEAR;
+  color.load_op = color_load;
   color.store_op = SDL_GPU_STOREOP_STORE;
 
   SDL_GPUDepthStencilTargetInfo depth{};

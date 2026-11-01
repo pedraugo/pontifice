@@ -55,6 +55,17 @@ src/
     CardBackBase.png  verso da carta
   models/
     Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
+    ArenaRaw.glb      arena bruta de imagem-para-3D (referência; usada só com --raw)
+    Arena.glb         arena procedural texturizada, gerada por tools/texture_arena.py
+  art/
+    Arena.png         ilustração de referência da arena (perspectiva)
+    ArenaAtlas2.png   sprite sheet: tabuleiro completo, painel de pedra e tiras
+    ArenaAtlas3.png   sprite sheet plano usado pela ferramenta: ladrilhos, painel de
+                      madeira, bandas de metal, tábuas, cruz e placa com flor-de-lis
+    ArenaAtlas.png    atlas gerado para a arena (2048x2048)
+    Card.png          ilustração de referência da carta
+tools/
+  texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
 tests/                testes automatizados
@@ -92,6 +103,29 @@ O campo é um **elemento 3D**, não uma imagem plana.
 - Carta em **modo de defesa** fica girada 90° no plano da mesa (deitada), carta em **modo de ataque** fica em pé em relação ao jogador.
 - A câmera fica em **perspectiva**, atrás e acima do lado do jogador, olhando para o centro do campo. Toda a arena é visível sem rolagem.
 - O monte é renderizado como uma **pilha 3D** cuja altura diminui conforme as cartas são compradas.
+
+## Arena em 3D
+
+A arena é `models/Arena.glb`, desenhada na cena de batalha com câmera própria (acima e à frente do lado do jogador), antes da mão. Fundo da cena em `#444`.
+
+`tools/texture_arena.py` (só biblioteca padrão do Python) gera o modelo e o atlas. A geometria é **procedural e low poly** (196 triângulos): um **prisma trapezoidal** com base retangular maior embaixo, topo retangular menor (onde ficam os ladrilhos e a canaleta) e laterais planas inclinadas com altura de **um ladrilho** e base de **2.5 x 2.5** (topo 1.9 x 1.9; ≈40° da vertical), seguindo a especificação do tabuleiro (visão de cima: b, a, canaleta, a, b; ladrilhos quadrados, canaleta com a largura de um ladrilho e rebaixada 0.2 ladrilho, moldura metálica em volta):
+
+- **duas plataformas** elevadas, fundo (lado do oponente, z < 0) e frente (lado do jogador, z > 0), cada uma com tabuleiro de **5 colunas x 2 linhas** e moldura metálica;
+- **canaleta central** com a largura de um ladrilho e rebaixada 0.2 ladrilho (paredes com ladrilhos escuros e lábio de metal, piso com ladrilhos escuros e cruz), fechada nas pontas por triângulos finos nos planos das paredes;
+- oito laterais inclinadas (frente, fundo e três trechos em cada lado: plataforma, canaleta baixa, plataforma), indo direto do topo até a base maior, cada uma com **painel de madeira rebaixado** dentro da moldura de metal (relevo); frente e fundo levam cruz ao centro, os trechos laterais são lisos;
+- **cantoneiras**: pirâmides triangulares com placa de flor-de-lis nas pontas dos painéis das plataformas (quinas externas e bordas da canaleta);
+- base retangular com tábuas.
+
+As dimensões ficam em constantes `ARENA_*` no início da seção de malha (`ARENA_TILE` é o lado do ladrilho quadrado; largura, profundidade das plataformas e largura da canaleta derivam dele, `ARENA_LOW_Y` fica `ARENA_CHANNEL_DEPTH_FRACTION` ladrilho abaixo de `ARENA_HIGH_Y`, a altura da lateral `ARENA_SIDE_H` é um ladrilho, e `ARENA_BASE_W` fixa a largura da base; `ARENA_SIDE_RUN` e `ARENA_SIDE_ANGLE_DEG` são derivados). A malha bruta `ArenaRaw.glb` (imagem-para-3D, irregular) continua disponível com `--raw`, que classifica as faces pela normal.
+
+Etapas da texturização:
+
+1. Recorta os elementos do sprite sheet `art/ArenaAtlas3.png` em coordenadas fixas (medidas por detecção de componentes): 25 ladrilhos do bloco xadrez, painel de madeira emoldurado, banda de metal rebitada, bloco de tábuas, cruz e placa com flor-de-lis. Pixels quase pretos dos ornamentos são tratados como transparentes.
+2. Monta um atlas 2048x2048 com três regiões. Topo: tabuleiro 5 colunas x 2 linhas por nível com ladrilhos sorteados do bloco (variedade real), faixa central da canaleta (paredes com ladrilhos escuros pequenos e lábio de metal, piso com ladrilhos escuros e cruz), moldura rebitada e placas nos quatro cantos. Laterais: duas faixas com o painel de madeira emoldurado, uma com cruz ao centro (frente e fundo) e outra lisa (metades laterais). Fundo: tábuas.
+3. Atribui UV por face: plataformas, paredes e piso da canaleta em projeção planar "desdobrada" ao longo de Z sobre a região do topo (plataforma, parede, piso, parede, plataforma), cada lateral recebe o painel de madeira com a moldura geométrica casada à moldura do sprite (espessura constante, independente da altura do painel), pirâmides usam a placa triangular guardada no canto inferior direito do atlas, e o fundo recebe as tábuas.
+4. Grava o GLB com o atlas PNG embutido.
+
+Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/texture_arena.py`. O passo seguinte é alinhar os 10 slots de cada lado com os ladrilhos do tabuleiro.
 
 ## Mão em 3D (dock)
 
@@ -133,8 +167,9 @@ Ordem de um quadro na cena de batalha:
 1. `SDL_FlushRenderer` envia o que o renderer 2D já enfileirou.
 2. `Gpu::BeginFrame` abre um passe de render na textura alvo (1280x720, RGBA8) com buffer de profundidade (D24 ou D32), limpa ambos.
 3. Cada `Gpu::Draw` envia uniforms (MVP e modelo no vértice; cor e flag de textura no fragmento), liga textura e sampler, e desenha a malha indexada.
-4. `Gpu::EndFrame` fecha o passe e submete o command buffer.
-5. A cena desenha a textura alvo com `SDL_RenderTexture` e o HUD por cima com o renderer 2D.
+4. `Gpu::NewLayer` fecha o passe e abre outro mantendo a cor e limpando só a profundidade. É assim que a mão (câmera fixa) fica sempre por cima da arena (câmera do jogador).
+5. `Gpu::EndFrame` fecha o passe e submete o command buffer.
+6. A cena desenha a textura alvo com `SDL_RenderTexture` e o HUD por cima com o renderer 2D.
 
 O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
 
@@ -147,6 +182,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva o quadro 60 em BMP e encerra |
+| `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 
 Exemplo: `PONTIFICE_SCENE=battle PONTIFICE_MOUSE=640,560 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`
 

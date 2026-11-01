@@ -26,9 +26,12 @@ class BattleScene : public Scene {
 
   std::unique_ptr<Gpu> gpu_;
   std::unique_ptr<Model> card_model_;
+  std::unique_ptr<Model> arena_model_;
   std::vector<SDL_GPUTexture*> textures_;
   Hand hand_;
-  math::Mat4 view_proj_;
+  math::Mat4 hand_view_proj_;   // câmera fixa da mão (dock)
+  math::Mat4 arena_view_proj_;  // câmera da arena, vista do jogador
+  math::Mat4 arena_world_;
   math::Vec2 mouse_{-1, -1};
   bool ready_ = false;
 };

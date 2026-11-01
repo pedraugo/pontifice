@@ -40,6 +40,9 @@ class Gpu {
 
   // Um quadro: BeginFrame limpa a textura alvo, Draw enfileira malhas, EndFrame envia à GPU.
   bool BeginFrame(SDL_FColor clear);
+  // Fecha o passe atual e abre outro mantendo a cor e limpando só a profundidade.
+  // Permite desenhar camadas com câmeras diferentes (ex.: arena e depois a mão por cima).
+  void NewLayer();
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
             const math::Mat4& view_proj, SDL_FColor tint);
   void EndFrame();
@@ -62,6 +65,8 @@ class Gpu {
   SDL_GPUTexture* white_ = nullptr;  // textura 1x1 para malhas sem textura
   int width_ = 0;
   int height_ = 0;
+
+  bool BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear);
 
   SDL_GPUCommandBuffer* cmd_ = nullptr;
   SDL_GPURenderPass* pass_ = nullptr;
