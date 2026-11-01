@@ -8,6 +8,7 @@
 
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
+#include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 
 namespace {
@@ -100,6 +101,15 @@ int main(int /*argc*/, char** /*argv*/) {
   if (!Init(app)) {
     Shutdown(app);
     return 1;
+  }
+
+  // Paleta (assets/colors.json) antes da primeira cena: menu e HUD pedem cores por papel.
+  {
+    const char* base = SDL_GetBasePath();
+    const std::string palette = std::string(base != nullptr ? base : "./") + "assets/colors.json";
+    if (!colors::Load(palette)) {
+      std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
+    }
   }
 
   SceneContext ctx;

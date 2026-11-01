@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 #include "scripts/text/Text.h"
 
@@ -15,13 +16,6 @@ std::string BasePath() {
 }  // namespace
 
 namespace {
-
-// Fundo = cor da névoa: o que some na distância se funde com ele.
-constexpr SDL_FColor kFogColor{0.12f, 0.15f, 0.21f, 1.0f};  // azul-cinza escuro
-constexpr SDL_Color kBackground{static_cast<Uint8>(kFogColor.r * 255),
-                                static_cast<Uint8>(kFogColor.g * 255),
-                                static_cast<Uint8>(kFogColor.b * 255), 255};
-constexpr SDL_FColor kBackgroundF = kFogColor;
 
 // A arena é um prisma trapezoidal: topo 1,9 x 1,9 (tabuleiro), base 2,5 x 2,5, altura 0,36 unidades no
 // modelo (um ladrilho); escalada para caber na câmera.
@@ -99,6 +93,9 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
   hud_.ClearFieldCard();
   hud_.SetGraveyard(0);
+  // Fundo = cor da névoa: o que some na distância se funde com ele (assets/colors.json).
+  fog_color_ = colors::GetF("background.fog");
+  mist_color_ = colors::GetF("background.mist");
   if (field_front_2d_ == nullptr) {
     field_front_2d_ = LoadHudSprite(ctx.renderer, "CardFrontField.png");
   }
@@ -163,7 +160,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_atmosphere_.ambient = {0.15f, 0.17f, 0.27f, 1.0f};
   arena_atmosphere_.point_pos = {0.0f, kArenaTopY + 4.5f, 0.0f};
   arena_atmosphere_.point_intensity = 1.7f;
-  arena_atmosphere_.fog_color = kFogColor;
+  arena_atmosphere_.fog_color = fog_color_;
   arena_atmosphere_.fog_density = 0.05f;
   arena_atmosphere_.fog_start = 15.0f;
   arena_atmosphere_.fog_full_y = kArenaBaseY;
@@ -224,10 +221,11 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
 
 void BattleScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const SDL_Color fg{230, 220, 200, 255};
+  const SDL_Color fg = colors::Get("text.primary");
+  const SDL_Color background = colors::Get("background.fog");
   const float cx = ctx.logical_width / 2.0f;
 
-  if (ready_ && gpu_->BeginFrame(kBackgroundF)) {
+  if (ready_ && gpu_->BeginFrame(fog_color_)) {
     gpu_->SetAtmosphere(arena_atmosphere_);
     if (arena_model_ != nullptr) {
       arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_, SDL_FColor{1, 1, 1, 1});
@@ -235,24 +233,25 @@ void BattleScene::Render(SceneContext& ctx) {
     // Névoa depois da arena (transparente): de baixo para cima.
     for (const MistLayer& layer : kMistLayers) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
-                 SDL_FColor{0.45f, 0.58f, 0.82f, layer.alpha}, Gpu::DrawMode::kMist);
+                 SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b, layer.alpha},
+                 Gpu::DrawMode::kMist);
     }
     gpu_->NewLayer();  // a mão fica sempre por cima da arena
     gpu_->SetAtmosphere(hand_atmosphere_);
     hand_.Render(*gpu_, hand_view_proj_);
     gpu_->EndFrame();
 
-    SDL_SetRenderDrawColor(r, kBackground.r, kBackground.g, kBackground.b, kBackground.a);
+    SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
     SDL_RenderClear(r);
     SDL_RenderTexture(r, gpu_->Target(), nullptr, nullptr);
   } else {
-    SDL_SetRenderDrawColor(r, kBackground.r, kBackground.g, kBackground.b, kBackground.a);
+    SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
     SDL_RenderClear(r);
     text::DrawCentered(r, "Render 3D indisponivel. Veja o log.", cx, ctx.logical_height * 0.5f,
                        2.0f, fg);
   }
 
-  text::DrawCentered(r, "BATALHA", cx, 40.0f, 4.0f, fg);
+  text::DrawCentered(r, "BATALHA", cx, 40.0f, 4.0f, colors::Get("text.title"));
   text::DrawCentered(r, "Esc volta ao menu", cx, 80.0f, 2.0f, fg);
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
 }

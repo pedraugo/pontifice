@@ -1,12 +1,10 @@
 #include "scripts/button/Button.h"
 
+#include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
 
 namespace {
 
-constexpr SDL_Color kForeground{230, 220, 200, 255};
-constexpr SDL_Color kHoverFill{60, 50, 80, 255};
-constexpr SDL_Color kPressedFill{90, 75, 120, 255};
 constexpr float kLabelScale = 3.0f;
 
 void FillRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
@@ -53,13 +51,25 @@ bool Button::HandleEvent(const SDL_Event& event) {
 }
 
 void Button::Render(SDL_Renderer* r) const {
+  // Cores de assets/colors.json (papéis "button.*"); o preenchimento normal pode ter alpha.
+  SDL_BlendMode previous = SDL_BLENDMODE_NONE;
+  SDL_GetRenderDrawBlendMode(r, &previous);
+  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+
   const bool highlight = hovered_ || focused_;
   if (pressed_) {
-    FillRect(r, rect_, kPressedFill);
+    FillRect(r, rect_, colors::Get("button.pressedFill"));
   } else if (highlight) {
-    FillRect(r, rect_, kHoverFill);
+    FillRect(r, rect_, colors::Get("button.hoverFill"));
+  } else {
+    FillRect(r, rect_, colors::Get("button.fill"));
   }
-  StrokeRect(r, rect_, kForeground, highlight ? 3 : 1);
+  const char* border = focused_ ? "button.focusBorder"
+                       : hovered_ ? "button.hoverBorder"
+                                  : "button.border";
+  StrokeRect(r, rect_, colors::Get(border), highlight ? 3 : 1);
   text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
-                     kLabelScale, kForeground);
+                     kLabelScale, colors::Get("button.text"));
+
+  SDL_SetRenderDrawBlendMode(r, previous);
 }

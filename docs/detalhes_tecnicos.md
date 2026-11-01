@@ -44,10 +44,15 @@ src/
       Hand.*          mão em dock: layout em arco, hover, animação
     hud/
       Hud.*           HUD da batalha (docs/hud.md): carta de campo ativa e pontos de vida
+    json/
+      Json.*          leitor JSON mínimo (objetos, arrays, strings, números)
+    colors/
+      Colors.*        paleta lida de assets/colors.json; cores pedidas por papel ("panel.fill")
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)
-  assets/             dados das cartas em JSON e ícone do jogo
+  assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
+    colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
     CardsEvil.json

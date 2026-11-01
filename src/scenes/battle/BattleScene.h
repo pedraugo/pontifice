@@ -45,6 +45,8 @@ class BattleScene : public Scene {
   math::Mat4 arena_world_;
   GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa
   Atmosphere arena_atmosphere_;
+  SDL_FColor fog_color_{};      // background.fog: fundo e névoa (colors.json)
+  SDL_FColor mist_color_{};     // background.mist: camadas de névoa na base
   Atmosphere hand_atmosphere_;
   math::Vec2 mouse_{-1, -1};
   bool ready_ = false;

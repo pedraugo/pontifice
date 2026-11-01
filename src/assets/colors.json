@@ -1,0 +1,76 @@
+{
+  "source": "assets/icon.png",
+  "notes": [
+    "Paleta extraída do ícone: pedra azul-acinzentada escura e aço claro, tudo no mesmo matiz (~211 graus).",
+    "palette: tons medidos no ícone, do mais escuro (900) ao mais claro (50).",
+    "roles: para que serve cada cor no jogo. Formato #rrggbb ou #rrggbbaa.",
+    "status.buff e status.nerf não existem no ícone: escolhidos para contrastar com a paleta."
+  ],
+  "palette": {
+    "stone900": "#04090f",
+    "stone800": "#111923",
+    "stone700": "#1e2835",
+    "stone600": "#2c3847",
+    "stone500": "#3c4859",
+    "slate400": "#4c596b",
+    "slate300": "#6c798e",
+    "steel200": "#8c99af",
+    "steel100": "#aeb9cc",
+    "steel50": "#ced8e7",
+    "silver": "#e1e9f4",
+    "white": "#f1f7fd"
+  },
+  "roles": {
+    "text": {
+      "primary": "#e1e9f4",
+      "secondary": "#aeb9cc",
+      "muted": "#6c798e",
+      "title": "#f1f7fd",
+      "shadow": "#04090f"
+    },
+    "background": {
+      "menu": "#111923",
+      "battle": "#1e2835",
+      "fog": "#1e2835",
+      "mist": "#7394d1",
+      "overlay": "#04090fa0"
+    },
+    "border": {
+      "default": "#8c99af",
+      "focus": "#e1e9f4",
+      "subtle": "#3c4859"
+    },
+    "panel": {
+      "fill": "#111923c8",
+      "border": "#8c99af",
+      "title": "#f1f7fd",
+      "label": "#aeb9cc",
+      "value": "#e1e9f4"
+    },
+    "button": {
+      "text": "#e1e9f4",
+      "border": "#8c99af",
+      "fill": "#1e283500",
+      "hoverFill": "#2c3847",
+      "hoverBorder": "#ced8e7",
+      "pressedFill": "#3c4859",
+      "focusBorder": "#e1e9f4"
+    },
+    "hud": {
+      "fieldName": "#f1f7fd",
+      "fieldLabel": "#aeb9cc",
+      "lifeLabel": "#e1e9f4",
+      "lifeValue": "#f1f7fd",
+      "lifeZero": "#d9655a",
+      "counterLabel": "#aeb9cc",
+      "counterValue": "#e1e9f4",
+      "deckEmpty": "#d9655a"
+    },
+    "status": {
+      "buff": "#8fcf86",
+      "nerf": "#d9655a",
+      "victory": "#8fcf86",
+      "defeat": "#d9655a"
+    }
+  }
+}

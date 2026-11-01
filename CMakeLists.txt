@@ -79,6 +79,8 @@ add_executable(pontifice
   src/scripts/model/Model.cpp
   src/scripts/hand/Hand.cpp
   src/scripts/hud/Hud.cpp
+  src/scripts/json/Json.cpp
+  src/scripts/colors/Colors.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )

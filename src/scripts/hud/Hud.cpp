@@ -2,16 +2,11 @@
 
 #include <algorithm>
 
+#include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
 
+// Cores vêm de assets/colors.json, pelos papéis "panel.*", "hud.*", "status.*" e "text.*".
 namespace {
-
-constexpr SDL_Color kForeground{230, 220, 200, 255};
-constexpr SDL_Color kMuted{160, 150, 135, 255};
-constexpr SDL_Color kBuff{140, 210, 120, 255};
-constexpr SDL_Color kNerf{225, 110, 95, 255};
-constexpr SDL_Color kPanelFill{13, 10, 20, 190};
-constexpr SDL_Color kResultShade{0, 0, 0, 150};
 
 constexpr float kMargin = 16.0f;
 constexpr float kPadding = 10.0f;
@@ -38,8 +33,8 @@ void StrokeRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
 }
 
 void Panel(SDL_Renderer* r, const SDL_FRect& rect) {
-  FillRect(r, rect, kPanelFill);
-  StrokeRect(r, rect, kForeground);
+  FillRect(r, rect, colors::Get("panel.fill"));
+  StrokeRect(r, rect, colors::Get("panel.border"));
 }
 
 const char* CategoryName(Category c) { return c == Category::kGood ? "Bondosas" : "Malignas"; }
@@ -99,7 +94,7 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
 
   if (!has_field_) {
     text::DrawCentered(r, "Sem campo", panel.x + panel.w / 2.0f, panel.y + panel.h / 2.0f,
-                       kLineScale, kMuted);
+                       kLineScale, colors::Get("text.muted"));
     return;
   }
 
@@ -109,24 +104,24 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   if (field_.image != nullptr) {
     SDL_RenderTexture(r, field_.image, nullptr, &card);
   } else {
-    FillRect(r, card, kMuted);
+    FillRect(r, card, colors::Get("border.subtle"));
   }
-  StrokeRect(r, card, kForeground);
+  StrokeRect(r, card, colors::Get("panel.border"));
 
   const float text_x = card.x + card.w + kPadding;
   float y = card.y;
-  text::Draw(r, field_.name.c_str(), text_x, y, kLineScale, kForeground);
+  text::Draw(r, field_.name.c_str(), text_x, y, kLineScale, colors::Get("hud.fieldName"));
   y += kLineHeight + kLineGap;
-  text::Draw(r, "Carta de campo", text_x, y, kDetailScale, kMuted);
+  text::Draw(r, "Carta de campo", text_x, y, kDetailScale, colors::Get("hud.fieldLabel"));
   y += kDetailHeight + kLineGap * 2;
 
   const std::string buff =
       std::string("Buff  ") + CategoryName(field_.favored) + " +" + std::to_string(field_.buff);
   const std::string nerf = std::string("Nerf  ") + CategoryName(Other(field_.favored)) + " -" +
                            std::to_string(field_.nerf);
-  text::Draw(r, buff.c_str(), text_x, y, kDetailScale, kBuff);
+  text::Draw(r, buff.c_str(), text_x, y, kDetailScale, colors::Get("status.buff"));
   y += kDetailHeight + kLineGap;
-  text::Draw(r, nerf.c_str(), text_x, y, kDetailScale, kNerf);
+  text::Draw(r, nerf.c_str(), text_x, y, kDetailScale, colors::Get("status.nerf"));
 }
 
 void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
@@ -137,13 +132,16 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   const float left = panel.x + kPadding;
   const float right = panel.x + panel.w - kPadding;
   float y = panel.y + kPadding;
-  text::Draw(r, "OPONENTE", left, y, kLineScale, kForeground);
+  const SDL_Color label = colors::Get("hud.lifeLabel");
+  const SDL_Color value = colors::Get("hud.lifeValue");
+  const SDL_Color zero = colors::Get("hud.lifeZero");
+  text::Draw(r, "OPONENTE", left, y, kLineScale, label);
   DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, kLineScale,
-            opponent_life_ > 0 ? kForeground : kNerf);
+            opponent_life_ > 0 ? value : zero);
   y += kLineHeight + kLineGap;
-  text::Draw(r, "VOCÊ", left, y, kLineScale, kForeground);
+  text::Draw(r, "VOCÊ", left, y, kLineScale, label);
   DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, kLineScale,
-            player_life_ > 0 ? kForeground : kNerf);
+            player_life_ > 0 ? value : zero);
 }
 
 // Painel de contadores: título e linhas "rótulo ... valor".
@@ -165,10 +163,11 @@ void CounterPanel(SDL_Renderer* r, const SDL_FRect& panel, const char* title,
   const float left = panel.x + kPadding;
   const float right = panel.x + panel.w - kPadding;
   float y = panel.y + kPadding;
-  text::Draw(r, title, left, y, kLineScale, kForeground);
+  text::Draw(r, title, left, y, kLineScale, colors::Get("panel.title"));
   y += kLineHeight + kLineGap;
+  const SDL_Color label = colors::Get("hud.counterLabel");
   for (int i = 0; i < count; ++i) {
-    text::Draw(r, lines[i].label, left, y, kDetailScale, kMuted);
+    text::Draw(r, lines[i].label, left, y, kDetailScale, label);
     DrawRight(r, std::to_string(lines[i].value).c_str(), right, y, kDetailScale,
               lines[i].color);
     y += kDetailHeight + kLineGap;
@@ -181,9 +180,10 @@ void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
   const float panel_h = CounterPanelHeight(2);
   const SDL_FRect panel{kMargin, height - kMargin - panel_h, kCounterPanelWidth, panel_h};
   // Monte vazio: destaca "restantes", o jogador não compra mais.
+  const SDL_Color value = colors::Get("hud.counterValue");
   const CounterLine lines[] = {
-      {"usadas", deck_used_, kForeground},
-      {"restantes", deck_remaining_, deck_remaining_ > 0 ? kForeground : kNerf},
+      {"usadas", deck_used_, value},
+      {"restantes", deck_remaining_, deck_remaining_ > 0 ? value : colors::Get("hud.deckEmpty")},
   };
   CounterPanel(r, panel, "MONTE", lines, 2);
 }
@@ -192,18 +192,19 @@ void Hud::RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const {
   const float panel_h = CounterPanelHeight(1);
   const SDL_FRect panel{width - kMargin - kCounterPanelWidth, height - kMargin - panel_h,
                         kCounterPanelWidth, panel_h};
-  const CounterLine lines[] = {{"cartas", graveyard_, kForeground}};
+  const CounterLine lines[] = {{"cartas", graveyard_, colors::Get("hud.counterValue")}};
   CounterPanel(r, panel, "CEMITÉRIO", lines, 1);
 }
 
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   FillRect(r, SDL_FRect{0, 0, static_cast<float>(width), static_cast<float>(height)},
-           kResultShade);
+           colors::Get("background.overlay"));
   const float cx = width / 2.0f;
   const float cy = height / 2.0f;
   // Os dois em 0 ao mesmo tempo não acontece pelas regras; se acontecer, conta como derrota.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
   text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - 20.0f, kResultScale,
-                     won ? kBuff : kNerf);
-  text::DrawCentered(r, "Esc volta ao menu", cx, cy + 40.0f, kLineScale, kForeground);
+                     colors::Get(won ? "status.victory" : "status.defeat"));
+  text::DrawCentered(r, "Esc volta ao menu", cx, cy + 40.0f, kLineScale,
+                     colors::Get("text.primary"));
 }

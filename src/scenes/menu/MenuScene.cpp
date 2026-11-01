@@ -2,12 +2,10 @@
 
 #include "scripts/button/ButtonExit.h"
 #include "scripts/button/ButtonPlay.h"
+#include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
 
 namespace {
-
-constexpr SDL_Color kBackground{13, 10, 20, 255};
-constexpr SDL_Color kForeground{230, 220, 200, 255};
 
 constexpr float kButtonWidth = 260.0f;
 constexpr float kButtonHeight = 56.0f;
@@ -79,15 +77,16 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
 void MenuScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  SDL_SetRenderDrawColor(r, kBackground.r, kBackground.g, kBackground.b, kBackground.a);
+  const SDL_Color background = colors::Get("background.menu");
+  SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
 
   const float center_x = ctx.logical_width / 2.0f;
   text::DrawCentered(r, "PONTIFICE", center_x, ctx.logical_height * 0.22f, kTitleScale,
-                     kForeground);
+                     colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
 
   text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - 48.0f,
-                     kFooterScale, kForeground);
+                     kFooterScale, colors::Get("text.secondary"));
 }
