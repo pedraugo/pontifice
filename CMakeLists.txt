@@ -88,6 +88,7 @@ add_executable(pontifice
   src/scripts/json/Json.cpp
   src/scripts/colors/Colors.cpp
   src/scripts/clouds/Clouds.cpp
+  src/scripts/torch/Torch.cpp
   src/scripts/music/Music.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}

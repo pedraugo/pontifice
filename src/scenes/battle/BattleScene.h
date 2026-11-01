@@ -11,6 +11,7 @@
 #include "scripts/hud/Hud.h"
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
+#include "scripts/torch/Torch.h"
 
 // Cena de batalha. Por enquanto: arena, mão de cartas 3D com hover e HUD (docs/hud.md).
 // Esc volta ao menu. Teclas de depuração até existir a lógica de jogo: F alterna uma carta de
@@ -40,6 +41,8 @@ class BattleScene : public Scene {
   std::unique_ptr<Gpu> gpu_;
   std::unique_ptr<Model> card_model_;
   std::unique_ptr<Model> arena_model_;
+  std::unique_ptr<Torch> torch_;
+  math::Mat4 torch_world_[2];  // tochas fincadas à esquerda e à direita da arena
   std::vector<SDL_GPUTexture*> textures_;
   SDL_GPUTexture* back_ = nullptr;       // verso das cartas
   std::vector<SDL_GPUTexture*> fronts_;  // frentes: Good, Evil, Field (compra de exemplo)

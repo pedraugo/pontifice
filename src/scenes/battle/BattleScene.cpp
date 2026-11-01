@@ -35,6 +35,13 @@ constexpr MistLayer kMistLayers[] = {{kArenaBaseY + 0.05f, 0.8f},
                                      {kArenaBaseY + 0.45f, 0.5f}};
 constexpr float kMistHalfSize = 40.0f;
 
+// Tochas fincadas no chão de cada lado da arena; são a única luz da arena.
+constexpr float kTorchX = 6.4f;
+constexpr float kTorchZ = -1.0f;
+constexpr float kTorchScale = 2.6f;
+constexpr float kTorchTilt = 0.10f;   // rad, levemente inclinadas para fora
+constexpr float kTorchLight = 2.6f;   // intensidade de cada chama
+
 // Abertura da batalha: a arena sobe de dentro de uma névoa densa enquanto a câmera se
 // aproxima. A névoa extra fica em alturas fixas do mundo, por isso a arena "fura" camada por
 // camada ao subir, e vai rareando até restarem só as camadas da base.
@@ -64,6 +71,7 @@ BattleScene::~BattleScene() {
   hand_.Clear();
   card_model_.reset();
   arena_model_.reset();
+  torch_.reset();
   gpu_->DestroyMesh(mist_quad_);
   for (SDL_GPUTexture* t : textures_) gpu_->DestroyTexture(t);
   textures_.clear();
@@ -97,6 +105,11 @@ void BattleScene::Preload(const PreloadInfo& info) {
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
     SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
     arena_model_.reset();
+  }
+  torch_ = std::make_unique<Torch>();
+  if (!torch_->Upload(*gpu_, Model::Parse(base + "models/Torch.glb"))) {
+    SDL_Log("Torch.glb nao carregado; gere com tools/make_torch.py");
+    torch_.reset();
   }
   // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
   const float h = kMistHalfSize;
@@ -193,14 +206,14 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   eye_final_ = eye;
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
 
-  // Clima medieval: ambiente frio e azulado, luz principal quente de tocha vinda de cima e
-  // de lado, luz pontual quente sobre o centro da arena, névoa na base e vinheta.
+  // Clima medieval: a luz da arena vem só das duas tochas (luzes pontuais nas chamas, cor
+  // quente, com tremular); sem luz direcional, ambiente frio e fraco, névoa na base e vinheta.
   arena_atmosphere_.light_dir = {-0.35f, 1.0f, 0.45f};
-  arena_atmosphere_.light_intensity = 0.5f;
+  arena_atmosphere_.light_intensity = 0.0f;
   arena_atmosphere_.light_color = {1.0f, 0.74f, 0.46f, 1.0f};
-  arena_atmosphere_.ambient = {0.15f, 0.17f, 0.27f, 1.0f};
-  arena_atmosphere_.point_pos = {0.0f, kArenaTopY + 4.5f, 0.0f};
-  arena_atmosphere_.point_intensity = 1.7f;
+  arena_atmosphere_.ambient = {0.07f, 0.08f, 0.13f, 1.0f};
+  arena_atmosphere_.point_intensity = kTorchLight;
+  arena_atmosphere_.point2_intensity = kTorchLight;
   arena_atmosphere_.fog_color = fog_color_;
   arena_atmosphere_.fog_density = 0.05f;
   arena_atmosphere_.fog_start = 15.0f;
@@ -231,6 +244,13 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = 1.0f;
   const float drop = kIntroDrop * (1.0f - intro_);
   arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(kArenaScale);
+  // Tochas sobem junto com a arena; as luzes seguem as chamas.
+  torch_world_[0] = math::Mat4::Translate({-kTorchX, kArenaBaseY - drop, kTorchZ}) *
+                    math::Mat4::RotateZ(kTorchTilt) * math::Mat4::Scale(kTorchScale);
+  torch_world_[1] = math::Mat4::Translate({kTorchX, kArenaBaseY - drop, kTorchZ}) *
+                    math::Mat4::RotateZ(-kTorchTilt) * math::Mat4::Scale(kTorchScale);
+  arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
+  arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
   const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
@@ -286,6 +306,11 @@ void BattleScene::Render(SceneContext& ctx) {
     if (arena_model_ != nullptr) {
       arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_, SDL_FColor{1, 1, 1, 1});
     }
+    if (torch_ != nullptr) {
+      for (const math::Mat4& world : torch_world_) {
+        torch_->DrawBody(*gpu_, world, arena_view_proj_);
+      }
+    }
     // Névoa depois da arena (transparente): de baixo para cima.
     for (const MistLayer& layer : kMistLayers) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
@@ -306,6 +331,13 @@ void BattleScene::Render(SceneContext& ctx) {
                    SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b,
                               layer.alpha * std::sqrt(remain)},
                    Gpu::DrawMode::kMist);
+      }
+    }
+    // Chamas por cima da névoa (transparentes, escrevem profundidade).
+    if (torch_ != nullptr) {
+      gpu_->SetAtmosphere(arena_atmosphere_);
+      for (const math::Mat4& world : torch_world_) {
+        torch_->DrawFlame(*gpu_, world, arena_view_proj_, arena_atmosphere_.camera_pos);
       }
     }
     gpu_->NewLayer();  // a mão fica sempre por cima da arena

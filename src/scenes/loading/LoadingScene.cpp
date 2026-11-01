@@ -14,6 +14,12 @@ namespace {
 // Medidas do portão, as mesmas de tools/make_door.py.
 constexpr float kDoorR = 1.07f;     // meia largura da porta: a dobradiça fica em x = -kDoorR
 constexpr float kDoorZ = -0.42f;    // frente da porta
+// Tochas presas nos pilares (faixa de aduelas), uma de cada lado, inclinadas para fora.
+constexpr float kTorchX = 1.72f;
+constexpr float kTorchY = 1.75f;      // ponta do cabo
+constexpr float kTorchZ = 0.16f;      // à frente da parede
+constexpr float kTorchTilt = 0.22f;   // rad, para fora
+constexpr float kTorchLight = 0.9f;   // intensidade de cada chama
 // Linha do tempo (segundos).
 constexpr float kFadeInSeconds = 0.5f;   // entrada do preto
 constexpr float kOpenStart = 0.6f;       // porta começa a abrir
@@ -60,6 +66,7 @@ LoadingScene::~LoadingScene() {
   next_.reset();
   if (gpu_ == nullptr) return;
   door_.reset();
+  torch_.reset();
   gpu_->DestroyMesh(mist_quad_);
 }
 
@@ -82,6 +89,15 @@ void LoadingScene::OnEnter(SceneContext& ctx) {
     door_.reset();
     return;
   }
+  torch_ = std::make_unique<Torch>();
+  if (!torch_->LoadGlb(*gpu_, base + "models/Torch.glb")) {
+    SDL_Log("Torch.glb nao carregado; gere com tools/make_torch.py");
+    torch_.reset();
+  }
+  torch_world_[0] = math::Mat4::Translate({-kTorchX, kTorchY, kTorchZ}) *
+                    math::Mat4::RotateZ(kTorchTilt);
+  torch_world_[1] = math::Mat4::Translate({kTorchX, kTorchY, kTorchZ}) *
+                    math::Mat4::RotateZ(-kTorchTilt);
 
   const float h = kMistHalfSize;
   mist_quad_ = gpu_->CreateMesh(
@@ -89,15 +105,18 @@ void LoadingScene::OnEnter(SceneContext& ctx) {
       {0, 1, 2, 0, 2, 3});
   mist_color_ = colors::GetF("background.loadingMist");
 
-  // Vazio preto: ambiente frio e fraco, tocha quente à frente e à direita, névoa por
+  // Vazio preto: toda a luz vem das duas tochas (luzes pontuais nas chamas); sem luz
+  // direcional e com ambiente mínimo só para o que fica de costas não sumir. Névoa por
   // distância preta (a passagem some no escuro) e vinheta forte. A névoa de chão é feita
   // pelas camadas kMist, não pela névoa de altura (que escureceria para o preto).
   atmosphere_.light_dir = {0.45f, 0.55f, 1.0f};
-  atmosphere_.light_intensity = 0.45f;
-  atmosphere_.light_color = {1.0f, 0.88f, 0.72f, 1.0f};
-  atmosphere_.ambient = {0.10f, 0.11f, 0.16f, 1.0f};
-  atmosphere_.point_pos = {1.6f, 2.4f, 2.6f};
-  atmosphere_.point_intensity = 1.3f;
+  atmosphere_.light_intensity = 0.0f;
+  atmosphere_.light_color = {1.0f, 0.78f, 0.52f, 1.0f};
+  atmosphere_.ambient = {0.025f, 0.028f, 0.04f, 1.0f};
+  atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
+  atmosphere_.point_intensity = kTorchLight;
+  atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
+  atmosphere_.point2_intensity = kTorchLight;
   atmosphere_.fog_color = {0, 0, 0, 1};
   atmosphere_.fog_density = 0.13f;
   atmosphere_.fog_start = 6.0f;
@@ -173,6 +192,9 @@ void LoadingScene::Render(SceneContext& ctx) {
       const math::Mat4& world = part.name == "Door" ? door_world : math::Mat4::Identity();
       gpu_->Draw(part.mesh, part.texture, world, view_proj, SDL_FColor{1, 1, 1, 1});
     }
+    if (torch_ != nullptr) {
+      for (const math::Mat4& world : torch_world_) torch_->DrawBody(*gpu_, world, view_proj);
+    }
     // Névoa no chão depois do portão (transparente), de baixo para cima; cada camada com
     // seu alcance e densidade.
     for (const MistLayer& layer : kMistLayers) {
@@ -184,6 +206,13 @@ void LoadingScene::Render(SceneContext& ctx) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), view_proj,
                  SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b, layer.alpha},
                  Gpu::DrawMode::kMist);
+    }
+    // Chamas por cima da névoa (transparentes, escrevem profundidade).
+    if (torch_ != nullptr) {
+      gpu_->SetAtmosphere(atmosphere_);
+      for (const math::Mat4& world : torch_world_) {
+        torch_->DrawFlame(*gpu_, world, view_proj, atmosphere_.camera_pos);
+      }
     }
     gpu_->EndFrame();
     SDL_RenderTexture(r, gpu_->Target(), nullptr, nullptr);

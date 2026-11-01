@@ -36,6 +36,9 @@ Uint32 MipLevels(int w, int h) {
 Gpu::~Gpu() {
   if (device_ == nullptr) return;
   if (pipeline_ != nullptr) SDL_ReleaseGPUGraphicsPipeline(device_, pipeline_);
+  if (pipeline_transparent_ != nullptr) {
+    SDL_ReleaseGPUGraphicsPipeline(device_, pipeline_transparent_);
+  }
   if (sampler_ != nullptr) SDL_ReleaseGPUSampler(device_, sampler_);
   if (depth_ != nullptr) SDL_ReleaseGPUTexture(device_, depth_);
   if (white_ != nullptr) SDL_ReleaseGPUTexture(device_, white_);
@@ -158,9 +161,11 @@ bool Gpu::InitDevice(SDL_GPUDevice* device, int width, int height,
   info.target_info.has_depth_stencil_target = true;
 
   pipeline_ = SDL_CreateGPUGraphicsPipeline(device_, &info);
+  info.depth_stencil_state.enable_depth_write = false;
+  pipeline_transparent_ = SDL_CreateGPUGraphicsPipeline(device_, &info);
   SDL_ReleaseGPUShader(device_, vs);
   SDL_ReleaseGPUShader(device_, fs);
-  if (pipeline_ == nullptr) {
+  if (pipeline_ == nullptr || pipeline_transparent_ == nullptr) {
     SDL_Log("SDL_CreateGPUGraphicsPipeline: %s", SDL_GetError());
     return false;
   }
@@ -365,6 +370,7 @@ bool Gpu::BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear) {
   depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
 
   pass_ = SDL_BeginGPURenderPass(cmd_, &color, 1, &depth);
+  bound_pipeline_ = pipeline_;
   SDL_BindGPUGraphicsPipeline(pass_, pipeline_);
 
   SDL_GPUViewport viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0.0f,
@@ -376,6 +382,13 @@ bool Gpu::BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear) {
 void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
                const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode) {
   if (pass_ == nullptr || mesh.index_count == 0) return;
+
+  // Transparentes não escrevem profundidade (ver pipeline_transparent_).
+  SDL_GPUGraphicsPipeline* wanted = mode == DrawMode::kMesh ? pipeline_ : pipeline_transparent_;
+  if (wanted != bound_pipeline_) {
+    SDL_BindGPUGraphicsPipeline(pass_, wanted);
+    bound_pipeline_ = wanted;
+  }
 
   struct VertexUniforms {
     math::Mat4 mvp;
@@ -393,18 +406,19 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
     float light_color[4];
     float ambient[4];
     float point_light[4];
+    float point_light2[4];
     float fog_color[4];
     float fog_height[4];
     float camera[4];
     float resolution[4];
     float mist[4];
   } fu{{tint.r, tint.g, tint.b, tint.a},
-       {texture != nullptr ? 1.0f : 0.0f, mode == DrawMode::kMist ? 1.0f : 0.0f, time_,
-        a.vignette},
+       {texture != nullptr ? 1.0f : 0.0f, static_cast<float>(mode), time_, a.vignette},
        {l.x, l.y, l.z, a.light_intensity},
        {a.light_color.r, a.light_color.g, a.light_color.b, 1.0f},
        {a.ambient.r, a.ambient.g, a.ambient.b, 1.0f},
        {a.point_pos.x, a.point_pos.y, a.point_pos.z, a.point_intensity},
+       {a.point2_pos.x, a.point2_pos.y, a.point2_pos.z, a.point2_intensity},
        {a.fog_color.r, a.fog_color.g, a.fog_color.b, a.fog_density},
        {a.fog_full_y, a.fog_clear_y, a.fog_height_strength, a.fog_start},
        {a.camera_pos.x, a.camera_pos.y, a.camera_pos.z, 0.0f},

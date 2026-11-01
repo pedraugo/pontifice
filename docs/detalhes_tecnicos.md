@@ -53,6 +53,8 @@ src/
       Colors.*        paleta lida de assets/colors.json; cores pedidas por papel ("panel.fill")
     clouds/
       Clouds.*        nuvens e névoa 2D em camadas (ruído gerado na CPU): 4 atrás e 3 na frente do texto do menu
+    torch/
+      Torch.*         tocha 3D: corpo iluminado, chama emissiva tremulando; FlamePosition dá onde pôr a luz
     music/
       Music.*         trilha sonora: lê assets/ost.json, decodifica MP3 (dr_mp3), toca em loop com fade e intervalo
   shaders/
@@ -76,6 +78,7 @@ src/
   models/
     Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
     Door.glb          portão da tela de loading (nós Wall e Door), gerado por tools/make_door.py
+    Torch.glb         tocha (nós Torch e Flame), gerada por tools/make_torch.py; luz do loading e da arena
     ArenaRaw.glb      arena bruta de imagem-para-3D (referência; usada só com --raw)
     Arena.glb         arena procedural texturizada, gerada por tools/texture_arena.py
   art/
@@ -87,9 +90,12 @@ src/
     Card.png          ilustração de referência da carta
     Door.jpg          ilustração de referência do portão da tela de loading
     DoorAtlas.png     atlas gerado para o portão (1024x1024): pedra procedural, madeira e ferro da arena
+    torch.webp        ilustração de referência da tocha
+    TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
   make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
+  make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
@@ -202,12 +208,22 @@ Ordem de um quadro na cena de batalha:
 
 1. `SDL_FlushRenderer` envia o que o renderer 2D já enfileirou.
 2. `Gpu::BeginFrame` abre um passe de render na textura alvo (1280x720, RGBA8) com buffer de profundidade (D24 ou D32), limpa ambos.
-3. Cada `Gpu::Draw` envia uniforms (MVP e modelo no vértice; cor e flag de textura no fragmento), liga textura e sampler, e desenha a malha indexada.
+3. Cada `Gpu::Draw` envia uniforms (MVP e modelo no vértice; cor e flag de textura no fragmento), liga textura e sampler, e desenha a malha indexada. Malhas opacas (`kMesh`) usam o pipeline com escrita de profundidade; névoa, chama e halo usam um segundo pipeline igual mas **sem escrita de profundidade**, então testam contra o que é opaco sem esconder o que for desenhado atrás depois (uma camada de névoa à frente não corta a chama).
 4. `Gpu::NewLayer` fecha o passe e abre outro mantendo a cor e limpando só a profundidade. É assim que a mão (câmera fixa) fica sempre por cima da arena (câmera do jogador).
 5. `Gpu::EndFrame` fecha o passe e submete o command buffer.
 6. A cena desenha a textura alvo com `SDL_RenderTexture` e o HUD por cima com o renderer 2D.
 
 O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
+
+Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad) e `kFlameGlow` (a mesma chama como halo oval difuso).
+
+## Tochas e iluminação
+
+A luz das cenas 3D vem das **tochas** (`models/Torch.glb`, `src/scripts/torch/Torch.*`): cada chama é uma luz pontual (`Atmosphere::point_pos` e `point2_pos`, posição de `Torch::FlamePosition`), de cor quente e com o tremular do shader. A luz direcional fica em zero e o ambiente baixo e frio.
+
+- **Loading**: duas tochas presas nos pilares do portão (x = ±1,72, altura 1,75, inclinadas 0,22 rad para fora), intensidade 0,9 cada.
+- **Batalha**: duas tochas fincadas no chão à esquerda e à direita da arena (x = ±6,4, z = −1, escala 2,6), intensidade 2,6 cada; sobem junto com a arena na abertura. A mão continua com a iluminação própria, para as cartas ficarem legíveis.
+- A chama (nó `Flame`) é um quad sempre na vertical e virado para a câmera, desenhado em `kFlame` (chama procedural no shader: gota deformada por três camadas de ruído que sobem, línguas no topo, núcleo claro na base, fase por posição) mais um halo maior e translúcido um pouco atrás. Corpo da tocha é desenhado antes das camadas de névoa e a chama depois delas.
 
 ## Depuração
 

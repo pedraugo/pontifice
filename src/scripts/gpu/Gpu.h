@@ -30,6 +30,8 @@ struct Atmosphere {
   SDL_FColor ambient{0.6f, 0.6f, 0.6f, 1.0f};
   math::Vec3 point_pos{0, 0, 0};
   float point_intensity = 0.0f;  // 0 desliga
+  math::Vec3 point2_pos{0, 0, 0};  // segunda luz pontual (ex.: segunda tocha), mesma cor
+  float point2_intensity = 0.0f;
   SDL_FColor fog_color{0, 0, 0, 1};
   float fog_density = 0.0f;         // névoa por distância (0 desliga)
   float fog_start = 0.0f;           // distância da câmera onde a névoa por distância começa
@@ -76,7 +78,10 @@ class Gpu {
   // Permite desenhar camadas com câmeras diferentes (ex.: arena e depois a mão por cima).
   void NewLayer();
   // kMist: quad horizontal de névoa; a cor vem do tint e o alpha de ruído animado no shader.
-  enum class DrawMode { kMesh, kMist };
+  // kEmissive: sem iluminação nem névoa: a cor da textura sai como está.
+  // kFlame: chama procedural animada no shader a partir do UV (u largura, v 0 topo .. 1 base).
+  // kFlameGlow: a mesma chama como halo difuso (oval, base esmaecida), para um quad maior atrás.
+  enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow };
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
             const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode = DrawMode::kMesh);
   void EndFrame();
@@ -98,6 +103,10 @@ class Gpu {
   SDL_GPUTexture* target_gpu_ = nullptr;
   SDL_GPUTexture* depth_ = nullptr;
   SDL_GPUGraphicsPipeline* pipeline_ = nullptr;
+  // Igual ao pipeline_, mas sem escrita de profundidade: névoa, chama e halo (transparentes)
+  // testam profundidade contra o que é opaco, mas não escondem o que vier atrás depois.
+  SDL_GPUGraphicsPipeline* pipeline_transparent_ = nullptr;
+  SDL_GPUGraphicsPipeline* bound_pipeline_ = nullptr;
   SDL_GPUSampler* sampler_ = nullptr;
   SDL_GPUTexture* white_ = nullptr;  // textura 1x1 para malhas sem textura
   int width_ = 0;
