@@ -1,6 +1,7 @@
 #include "scenes/battle/BattleScene.h"
 
 #include <string>
+#include <utility>
 
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
@@ -46,14 +47,49 @@ BattleScene::~BattleScene() {
   textures_.clear();
 }
 
-SDL_GPUTexture* BattleScene::LoadSprite(const char* file) {
-  SDL_GPUTexture* texture = gpu_->CreateTexture(Image::LoadFile(BasePath() + "sprites/" + file));
+void BattleScene::Preload(const PreloadInfo& info) {
+  preloaded_ = true;
+  const std::string base = BasePath();
+  // Frente da carta de campo para o HUD: aparece com ~120 px de altura, então vai reduzida 4x
+  // (400x557); vira SDL_Texture em OnEnter, na thread principal.
+  hud_field_ = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(4);
+  if (info.gpu_device == nullptr) return;
+
+  gpu_ = std::make_unique<Gpu>();
+  if (!gpu_->InitDevice(info.gpu_device, info.logical_width, info.logical_height,
+                        base + "shaders")) {
+    gpu_.reset();
+    return;
+  }
+  card_model_ = std::make_unique<Model>();
+  if (!card_model_->Upload(*gpu_, Model::Parse(base + "models/Card.glb"))) {
+    SDL_Log("Falha ao carregar models/Card.glb");
+    card_model_.reset();
+    return;
+  }
+  back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
+  fronts_ = {UploadSprite(Image::LoadFile(base + "sprites/CardFrontGood.png")),
+             UploadSprite(Image::LoadFile(base + "sprites/CardFrontEvil.png")),
+             UploadSprite(Image::LoadFile(base + "sprites/CardFrontField.png"))};
+  arena_model_ = std::make_unique<Model>();
+  if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
+    SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
+    arena_model_.reset();
+  }
+  // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
+  const float h = kMistHalfSize;
+  mist_quad_ = gpu_->CreateMesh(
+      {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
+      {0, 1, 2, 0, 2, 3});
+}
+
+SDL_GPUTexture* BattleScene::UploadSprite(const Image& image) {
+  SDL_GPUTexture* texture = gpu_->CreateTexture(image);
   if (texture != nullptr) textures_.push_back(texture);
   return texture;
 }
 
-SDL_Texture* BattleScene::LoadHudSprite(SDL_Renderer* renderer, const char* file) {
-  const Image image = Image::LoadFile(BasePath() + "sprites/" + file);
+SDL_Texture* BattleScene::UploadHudSprite(SDL_Renderer* renderer, const Image& image) {
   if (!image.Valid()) return nullptr;
   SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
                                            SDL_TEXTUREACCESS_STATIC, image.width, image.height);
@@ -86,7 +122,8 @@ void BattleScene::DrawCard() {
 }
 
 void BattleScene::OnEnter(SceneContext& ctx) {
-  const std::string base = BasePath();
+  // Sem Preload antes (entrada direta na batalha), carrega tudo aqui mesmo.
+  if (!preloaded_) Preload(ctx.Preload());
 
   // HUD (docs/hud.md): vida cheia, sem carta de campo, cemitério vazio e monte com a mão
   // inicial já comprada. Não depende do render 3D.
@@ -97,50 +134,29 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   fog_color_ = colors::GetF("background.fog");
   mist_color_ = colors::GetF("background.mist");
   if (field_front_2d_ == nullptr) {
-    field_front_2d_ = LoadHudSprite(ctx.renderer, "CardFrontField.png");
+    field_front_2d_ = UploadHudSprite(ctx.renderer, hud_field_);
+    hud_field_ = Image{};
   }
 
-  gpu_ = std::make_unique<Gpu>();
-  if (!gpu_->Init(ctx.renderer, ctx.logical_width, ctx.logical_height, base + "shaders")) {
+  if (gpu_ == nullptr || card_model_ == nullptr) {
     SDL_Log("Falha ao iniciar o render 3D");
-    gpu_.reset();
     return;
   }
-
-  card_model_ = std::make_unique<Model>();
-  if (!card_model_->LoadGlb(*gpu_, base + "models/Card.glb")) {
-    SDL_Log("Falha ao carregar models/Card.glb");
-    return;
-  }
-
-  SDL_GPUTexture* back = LoadSprite("CardBack.png");
-  SDL_GPUTexture* good = LoadSprite("CardFrontGood.png");
-  SDL_GPUTexture* evil = LoadSprite("CardFrontEvil.png");
-  SDL_GPUTexture* field = LoadSprite("CardFrontField.png");
+  gpu_->SetRenderer(ctx.renderer);
 
   hand_.SetModel(card_model_.get());
-  hand_.SetBack(back);
+  hand_.SetBack(back_);
   // Mão inicial de 5 cartas (ver docs/batalha.md). Conteúdo real virá do monte.
+  SDL_GPUTexture* good = fronts_[0];
+  SDL_GPUTexture* evil = fronts_[1];
+  SDL_GPUTexture* field = fronts_[2];
   hand_.Add(good);
   hand_.Add(evil);
   hand_.Add(good);
   hand_.Add(field);
   hand_.Add(evil);
   hud_.SetDeck(static_cast<int>(hand_.Size()), Hud::kDeckSize - static_cast<int>(hand_.Size()));
-  fronts_ = {good, evil, field};
-
-  arena_model_ = std::make_unique<Model>();
-  if (!arena_model_->LoadGlb(*gpu_, base + "models/Arena.glb")) {
-    SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
-    arena_model_.reset();
-  }
   arena_world_ = math::Mat4::Scale(kArenaScale);
-
-  // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
-  const float h = kMistHalfSize;
-  mist_quad_ = gpu_->CreateMesh(
-      {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
-      {0, 1, 2, 0, 2, 3});
 
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
   const math::Mat4 proj = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);

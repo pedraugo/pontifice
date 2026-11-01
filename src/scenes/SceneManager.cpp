@@ -1,14 +1,23 @@
 #include "scenes/SceneManager.h"
 
+#include <utility>
+
 #include "scenes/battle/BattleScene.h"
+#include "scenes/loading/LoadingScene.h"
 #include "scenes/menu/MenuScene.h"
 
-SceneManager::SceneManager(SceneContext ctx) : ctx_(ctx) {}
+SceneManager::SceneManager(SceneContext ctx) : ctx_(std::move(ctx)) {}
 
 void SceneManager::SwitchTo(SceneId id) {
   if (current_) current_->OnExit(ctx_);
-  current_ = Create(id);
   ctx_.next_scene.reset();
+  fade_in_total_ = fade_in_left_ = ctx_.fade_in_seconds;
+  ctx_.fade_in_seconds = 0.0f;
+  if (ctx_.preloaded) {
+    current_ = std::move(ctx_.preloaded);  // já passou por OnEnter na tela de loading
+    return;
+  }
+  current_ = Create(id);
   current_->OnEnter(ctx_);
 }
 
@@ -18,12 +27,21 @@ void SceneManager::HandleEvent(const SDL_Event& event) {
 }
 
 void SceneManager::Update(float dt_seconds) {
+  if (fade_in_left_ > 0.0f) fade_in_left_ -= dt_seconds;
   if (current_) current_->Update(ctx_, dt_seconds);
   ApplyPendingSwitch();
 }
 
 void SceneManager::Render() {
   if (current_) current_->Render(ctx_);
+  if (fade_in_left_ > 0.0f && fade_in_total_ > 0.0f) {
+    const float alpha = fade_in_left_ / fade_in_total_;
+    SDL_SetRenderDrawBlendMode(ctx_.renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(ctx_.renderer, 0, 0, 0, static_cast<Uint8>(alpha * 255.0f));
+    const SDL_FRect full{0, 0, static_cast<float>(ctx_.logical_width),
+                         static_cast<float>(ctx_.logical_height)};
+    SDL_RenderFillRect(ctx_.renderer, &full);
+  }
 }
 
 void SceneManager::ApplyPendingSwitch() {
@@ -34,6 +52,8 @@ std::unique_ptr<Scene> SceneManager::Create(SceneId id) {
   switch (id) {
     case SceneId::kMenu:
       return std::make_unique<MenuScene>();
+    case SceneId::kLoading:
+      return std::make_unique<LoadingScene>();
     case SceneId::kBattle:
       return std::make_unique<BattleScene>();
   }

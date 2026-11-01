@@ -30,9 +30,11 @@
     },
     "background": {
       "menu": "#111923",
+      "loading": "#000000",
       "battle": "#1e2835",
       "fog": "#1e2835",
       "mist": "#7394d1",
+      "loadingMist": "#8c99af",
       "overlay": "#04090fa0"
     },
     "border": {

@@ -6,7 +6,8 @@
 
 #include "scenes/Scene.h"
 
-// Mantém a cena ativa e executa as trocas pedidas via SceneContext.
+// Mantém a cena ativa e executa as trocas pedidas via SceneContext. Se a troca vier com
+// fade_in_seconds, desenha um véu preto que clareia sobre a nova cena.
 class SceneManager {
  public:
   explicit SceneManager(SceneContext ctx);
@@ -19,10 +20,14 @@ class SceneManager {
   bool ShouldQuit() const { return ctx_.quit; }
   void RequestQuit() { ctx_.quit = true; }
 
+  // Fábrica de cenas; a tela de loading a usa para preparar a próxima cena.
+  static std::unique_ptr<Scene> Create(SceneId id);
+
  private:
   void ApplyPendingSwitch();
-  static std::unique_ptr<Scene> Create(SceneId id);
 
   SceneContext ctx_;
   std::unique_ptr<Scene> current_;
+  float fade_in_total_ = 0.0f;
+  float fade_in_left_ = 0.0f;
 };

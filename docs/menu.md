@@ -34,7 +34,7 @@ Não há mais nada na tela: sem opções, sem créditos extras, sem imagem de fu
 
 ## Comportamento
 
-- **Jogar**: troca para a cena de batalha.
+- **Jogar**: abre a tela de loading (docs/loading.md), que carrega a batalha e entra nela.
 - **Sair**: encerra o jogo.
 - **Mouse**: passar o cursor sobre um botão destaca a borda e o texto. Clicar com o botão esquerdo ativa.
 - **Teclado**: setas para cima e para baixo movem o foco entre os botões. `Enter` ou `Espaço` ativa o botão focado. `Esc` sai do jogo.

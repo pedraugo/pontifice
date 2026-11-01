@@ -38,6 +38,12 @@ struct Atmosphere {
   float fog_height_strength = 0.0f; // força máxima da névoa de altura (0 desliga)
   math::Vec3 camera_pos{0, 0, 0};
   float vignette = 0.0f;  // 0 desliga
+  // Névoa de chão (DrawMode::kMist): some entre estes raios a partir da origem (xz) e usa
+  // esta escala de ruído (maior = fiapos menores).
+  float mist_fade_start = 8.0f;
+  float mist_fade_end = 28.0f;
+  float mist_noise_scale = 1.0f;
+  float mist_density = 0.0f;  // desloca o limiar do ruído: 0 = fiapos da arena, ~0.3 = manto
 };
 
 // Camada fina sobre o SDL_GPU: desenha malhas texturizadas com profundidade em uma textura
@@ -49,7 +55,14 @@ class Gpu {
   Gpu(const Gpu&) = delete;
   Gpu& operator=(const Gpu&) = delete;
 
+  // Thread principal: device do renderer + InitDevice + SetRenderer.
   bool Init(SDL_Renderer* renderer, int width, int height, const std::string& shader_dir);
+  // Qualquer thread: pipeline, sampler, profundidade e textura branca a partir do device.
+  // Depois disso CreateMesh/CreateTexture já funcionam (carga em segundo plano).
+  bool InitDevice(SDL_GPUDevice* device, int width, int height, const std::string& shader_dir);
+  // Thread principal, antes do primeiro BeginFrame: renderer que apresenta a textura alvo
+  // (criada aí, preguiçosamente).
+  void SetRenderer(SDL_Renderer* renderer) { renderer_ = renderer; }
 
   GpuMesh CreateMesh(const std::vector<Vertex>& vertices, const std::vector<Uint32>& indices);
   void DestroyMesh(GpuMesh& mesh);
@@ -93,6 +106,7 @@ class Gpu {
   float time_ = 0.0f;  // segundos desde o início, atualizado em BeginFrame
 
   bool BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear);
+  bool EnsureTarget();  // cria a textura alvo no renderer na primeira vez
 
   SDL_GPUCommandBuffer* cmd_ = nullptr;
   SDL_GPURenderPass* pass_ = nullptr;

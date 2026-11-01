@@ -14,4 +14,7 @@ struct Image {
 
   static Image LoadFile(const std::string& path);
   static Image LoadMemory(const uint8_t* data, size_t size);
+  // Cópia reduzida por um fator inteiro (média de blocos factor x factor). Para texturas que
+  // só aparecem pequenas na tela, poupa memória e tempo de envio.
+  Image Downscaled(int factor) const;
 };

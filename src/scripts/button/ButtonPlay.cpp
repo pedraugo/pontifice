@@ -4,4 +4,8 @@
 
 ButtonPlay::ButtonPlay() : Button("Jogar") {}
 
-void ButtonPlay::OnClick(SceneContext& ctx) { ctx.next_scene = SceneId::kBattle; }
+// Passa pela tela de loading (portão), que prepara a batalha e abre em seguida.
+void ButtonPlay::OnClick(SceneContext& ctx) {
+  ctx.loading_target = SceneId::kBattle;
+  ctx.next_scene = SceneId::kLoading;
+}

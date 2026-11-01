@@ -43,20 +43,26 @@ Gpu::~Gpu() {
 }
 
 bool Gpu::Init(SDL_Renderer* renderer, int width, int height, const std::string& shader_dir) {
-  renderer_ = renderer;
-  width_ = width;
-  height_ = height;
-
-  device_ = SDL_GetGPURendererDevice(renderer);
-  if (device_ == nullptr) {
+  SDL_GPUDevice* device = SDL_GetGPURendererDevice(renderer);
+  if (device == nullptr) {
     SDL_Log("Renderer nao e GPU: %s", SDL_GetError());
     return false;
   }
+  if (!InitDevice(device, width, height, shader_dir)) return false;
+  SetRenderer(renderer);
+  return true;
+}
 
+bool Gpu::EnsureTarget() {
+  if (target_ != nullptr) return true;
+  if (renderer_ == nullptr) {
+    SDL_Log("Gpu sem renderer: chame SetRenderer antes de BeginFrame");
+    return false;
+  }
   // Textura alvo: criada pelo renderer para poder ser desenhada com SDL_RenderTexture,
   // e acessada aqui como SDL_GPUTexture para servir de color target.
-  target_ = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, width,
-                              height);
+  target_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, width_,
+                              height_);
   if (target_ == nullptr) {
     SDL_Log("SDL_CreateTexture (alvo 3D): %s", SDL_GetError());
     return false;
@@ -68,6 +74,15 @@ bool Gpu::Init(SDL_Renderer* renderer, int width, int height, const std::string&
     SDL_Log("Textura alvo sem SDL_GPUTexture associada");
     return false;
   }
+  return true;
+}
+
+bool Gpu::InitDevice(SDL_GPUDevice* device, int width, int height,
+                     const std::string& shader_dir) {
+  device_ = device;
+  width_ = width;
+  height_ = height;
+  // Mesmo formato da textura alvo criada em EnsureTarget.
   const SDL_GPUTextureFormat color_format =
       SDL_GetGPUTextureFormatFromPixelFormat(SDL_PIXELFORMAT_RGBA32);
 
@@ -312,6 +327,7 @@ void Gpu::DestroyTexture(SDL_GPUTexture* texture) {
 }
 
 bool Gpu::BeginFrame(SDL_FColor clear) {
+  if (!EnsureTarget()) return false;
   // Garante que tudo que o renderer 2D enfileirou antes vai para a GPU antes do passe 3D.
   SDL_FlushRenderer(renderer_);
 
@@ -381,6 +397,7 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
     float fog_height[4];
     float camera[4];
     float resolution[4];
+    float mist[4];
   } fu{{tint.r, tint.g, tint.b, tint.a},
        {texture != nullptr ? 1.0f : 0.0f, mode == DrawMode::kMist ? 1.0f : 0.0f, time_,
         a.vignette},
@@ -391,7 +408,8 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
        {a.fog_color.r, a.fog_color.g, a.fog_color.b, a.fog_density},
        {a.fog_full_y, a.fog_clear_y, a.fog_height_strength, a.fog_start},
        {a.camera_pos.x, a.camera_pos.y, a.camera_pos.z, 0.0f},
-       {static_cast<float>(width_), static_cast<float>(height_), 0.0f, 0.0f}};
+       {static_cast<float>(width_), static_cast<float>(height_), 0.0f, 0.0f},
+       {a.mist_fade_start, a.mist_fade_end, a.mist_noise_scale, a.mist_density}};
   SDL_PushGPUFragmentUniformData(cmd_, 0, &fu, sizeof(fu));
 
   SDL_GPUTextureSamplerBinding tex_binding{texture != nullptr ? texture : white_, sampler_};

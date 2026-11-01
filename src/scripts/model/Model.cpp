@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
+#include <utility>
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
@@ -27,15 +28,15 @@ Model::Role RoleFromName(const std::string& name) {
   return Model::Role::kEdge;
 }
 
-SDL_GPUTexture* LoadEmbeddedTexture(Gpu& gpu, const cgltf_material* material) {
-  if (material == nullptr || !material->has_pbr_metallic_roughness) return nullptr;
+Image DecodeEmbeddedTexture(const cgltf_material* material) {
+  if (material == nullptr || !material->has_pbr_metallic_roughness) return Image{};
   const cgltf_texture* texture = material->pbr_metallic_roughness.base_color_texture.texture;
-  if (texture == nullptr || texture->image == nullptr) return nullptr;
+  if (texture == nullptr || texture->image == nullptr) return Image{};
   const cgltf_image* image = texture->image;
-  if (image->buffer_view == nullptr) return nullptr;
+  if (image->buffer_view == nullptr) return Image{};
   const cgltf_buffer_view* view = image->buffer_view;
   const auto* bytes = static_cast<const uint8_t*>(view->buffer->data) + view->offset;
-  return gpu.CreateTexture(Image::LoadMemory(bytes, view->size));
+  return Image::LoadMemory(bytes, view->size);
 }
 
 }  // namespace
@@ -48,26 +49,27 @@ Model::~Model() {
   }
 }
 
-bool Model::LoadGlb(Gpu& gpu, const std::string& path) {
-  gpu_ = &gpu;
+Model::Data Model::Parse(const std::string& path) {
+  Data data;
+  data.path = path;
 
   cgltf_options options{};
-  cgltf_data* data = nullptr;
-  if (cgltf_parse_file(&options, path.c_str(), &data) != cgltf_result_success) {
+  cgltf_data* gltf = nullptr;
+  if (cgltf_parse_file(&options, path.c_str(), &gltf) != cgltf_result_success) {
     SDL_Log("cgltf_parse_file falhou: %s", path.c_str());
-    return false;
+    return data;
   }
-  if (cgltf_load_buffers(&options, data, path.c_str()) != cgltf_result_success) {
+  if (cgltf_load_buffers(&options, gltf, path.c_str()) != cgltf_result_success) {
     SDL_Log("cgltf_load_buffers falhou: %s", path.c_str());
-    cgltf_free(data);
-    return false;
+    cgltf_free(gltf);
+    return data;
   }
 
-  min_ = {FLT_MAX, FLT_MAX, FLT_MAX};
-  max_ = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+  data.min = {FLT_MAX, FLT_MAX, FLT_MAX};
+  data.max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-  for (cgltf_size n = 0; n < data->nodes_count; ++n) {
-    const cgltf_node& node = data->nodes[n];
+  for (cgltf_size n = 0; n < gltf->nodes_count; ++n) {
+    const cgltf_node& node = gltf->nodes[n];
     if (node.mesh == nullptr) continue;
 
     float world[16];
@@ -90,39 +92,57 @@ bool Model::LoadGlb(Gpu& gpu, const std::string& path) {
       }
       if (positions == nullptr) continue;
 
-      std::vector<Vertex> vertices(positions->count);
+      Data::PartData part;
+      part.vertices.resize(positions->count);
       for (cgltf_size i = 0; i < positions->count; ++i) {
         float pos[3] = {0, 0, 0};
         cgltf_accessor_read_float(positions, i, pos, 3);
         const math::Vec3 wp = xf.TransformPoint({pos[0], pos[1], pos[2]});
         float uv[2] = {0, 0};
         if (uvs != nullptr) cgltf_accessor_read_float(uvs, i, uv, 2);
-        vertices[i] = Vertex{wp.x, wp.y, wp.z, uv[0], uv[1]};
-        min_ = {std::min(min_.x, wp.x), std::min(min_.y, wp.y), std::min(min_.z, wp.z)};
-        max_ = {std::max(max_.x, wp.x), std::max(max_.y, wp.y), std::max(max_.z, wp.z)};
+        part.vertices[i] = Vertex{wp.x, wp.y, wp.z, uv[0], uv[1]};
+        data.min = {std::min(data.min.x, wp.x), std::min(data.min.y, wp.y),
+                    std::min(data.min.z, wp.z)};
+        data.max = {std::max(data.max.x, wp.x), std::max(data.max.y, wp.y),
+                    std::max(data.max.z, wp.z)};
       }
 
-      std::vector<Uint32> indices(prim.indices->count);
+      part.indices.resize(prim.indices->count);
       for (cgltf_size i = 0; i < prim.indices->count; ++i) {
-        indices[i] = static_cast<Uint32>(cgltf_accessor_read_index(prim.indices, i));
+        part.indices[i] = static_cast<Uint32>(cgltf_accessor_read_index(prim.indices, i));
       }
 
-      Part part;
       part.name = node.name != nullptr ? node.name : "";
-      part.role = RoleFromName(part.name);
-      part.mesh = gpu.CreateMesh(vertices, indices);
-      part.texture = LoadEmbeddedTexture(gpu, prim.material);
+      part.texture = DecodeEmbeddedTexture(prim.material);
       if (prim.material != nullptr && prim.material->has_pbr_metallic_roughness) {
         const float* f = prim.material->pbr_metallic_roughness.base_color_factor;
         part.color = SDL_FColor{f[0], f[1], f[2], f[3]};
       }
-      parts_.push_back(part);
+      data.parts.push_back(std::move(part));
     }
   }
 
-  cgltf_free(data);
-  SDL_Log("Modelo %s: %zu partes, bounds x[%.2f %.2f] y[%.2f %.2f] z[%.3f %.3f]", path.c_str(),
-          parts_.size(), min_.x, max_.x, min_.y, max_.y, min_.z, max_.z);
+  cgltf_free(gltf);
+  data.ok = !data.parts.empty();
+  return data;
+}
+
+bool Model::Upload(Gpu& gpu, Data&& data) {
+  gpu_ = &gpu;
+  if (!data.ok) return false;
+  min_ = data.min;
+  max_ = data.max;
+  for (Data::PartData& src : data.parts) {
+    Part part;
+    part.name = std::move(src.name);
+    part.role = RoleFromName(part.name);
+    part.mesh = gpu.CreateMesh(src.vertices, src.indices);
+    part.texture = src.texture.Valid() ? gpu.CreateTexture(src.texture) : nullptr;
+    part.color = src.color;
+    parts_.push_back(part);
+  }
+  SDL_Log("Modelo %s: %zu partes, bounds x[%.2f %.2f] y[%.2f %.2f] z[%.3f %.3f]",
+          data.path.c_str(), parts_.size(), min_.x, max_.x, min_.y, max_.y, min_.z, max_.z);
   return !parts_.empty();
 }
 

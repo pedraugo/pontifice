@@ -74,6 +74,7 @@ add_executable(pontifice
   src/main.cpp
   src/scenes/SceneManager.cpp
   src/scenes/menu/MenuScene.cpp
+  src/scenes/loading/LoadingScene.cpp
   src/scenes/battle/BattleScene.cpp
   src/scripts/text/Text.cpp
   src/scripts/button/Button.cpp

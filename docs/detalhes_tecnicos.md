@@ -24,6 +24,8 @@ src/
     SceneManager.*    cena ativa e troca de cena
     menu/
       MenuScene.*     menu (docs/menu.md), primeira cena
+    loading/
+      LoadingScene.*  tela de loading (docs/loading.md): portão 3D abrindo no preto, pré-carrega a próxima cena
     battle/
       BattleScene.*   batalha: render 3D e mão de cartas
   scripts/            componentes reutilizáveis, uma pasta por componente
@@ -38,9 +40,9 @@ src/
     image/
       Image.*         decodifica PNG/JPEG para RGBA8 (stb_image)
     gpu/
-      Gpu.*           pipeline SDL_GPU: malhas, texturas, passe com profundidade
+      Gpu.*           pipeline SDL_GPU: malhas, texturas, passe com profundidade; InitDevice serve em qualquer thread
     model/
-      Model.*         carrega .glb (cgltf), separa frente, verso e borda
+      Model.*         carrega .glb (cgltf): Parse (CPU, qualquer thread) e Upload (GPU); separa frente, verso e borda
     hand/
       Hand.*          mão em dock: layout em arco, hover, animação
     hud/
@@ -73,6 +75,7 @@ src/
     pontifice.rc      recurso do Windows que embute o icon.ico
   models/
     Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
+    Door.glb          portão da tela de loading (nós Wall e Door), gerado por tools/make_door.py
     ArenaRaw.glb      arena bruta de imagem-para-3D (referência; usada só com --raw)
     Arena.glb         arena procedural texturizada, gerada por tools/texture_arena.py
   art/
@@ -82,8 +85,11 @@ src/
                       madeira, bandas de metal, tábuas, cruz e placa com flor-de-lis
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
+    Door.jpg          ilustração de referência do portão da tela de loading
+    DoorAtlas.png     atlas gerado para o portão (1024x1024): pedra procedural, madeira e ferro da arena
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
+  make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
@@ -174,10 +180,10 @@ Quando o turno passa para o computador, a **câmera orbita 180°** em torno do c
 
 O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop principal repassa a ela eventos, atualização e desenho.
 
-- `Scene`: interface com `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
-- `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`.
-- `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização.
-- Ordem: `MenuScene` (inicial) e `BattleScene`. O botão Jogar troca para a batalha, `Esc` na batalha volta ao menu.
+- `Scene`: interface com `Preload` (carga pesada, inclusive envio à GPU, chamada pela tela de loading em outra thread), `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
+- `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_in_seconds` faz a nova cena entrar do preto.
+- `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização. Desenha o véu do fade in por cima da cena nova. `Create` é a fábrica de cenas.
+- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto o portão abre e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu.
 
 ## Passe 3D e composição
 
@@ -198,9 +204,11 @@ Variáveis de ambiente lidas em `main.cpp`:
 
 | Variável | Efeito |
 |---|---|
-| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha |
+| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha) |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
-| `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva o quadro 60 em BMP e encerra |
+| `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
+| `PONTIFICE_SCREENSHOT_FRAME=n` | Número do quadro salvo por `PONTIFICE_SCREENSHOT` |
+| `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (porta num ponto fixo da abertura) |
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 
 Exemplo: `PONTIFICE_SCENE=battle PONTIFICE_MOUSE=640,560 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`

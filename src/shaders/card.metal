@@ -29,6 +29,8 @@ struct FragmentUniforms {
   float4 fog_height;   // x = y névoa total, y = y sem névoa, z = força máx., w = dist. inicial
   float4 camera;       // xyz posição da câmera no mundo
   float4 resolution;   // xy tamanho do alvo em pixels
+  float4 mist;         // x, y = raios onde a névoa de chão começa a sumir e some; z = escala do
+                       // ruído; w = densidade (desloca o limiar do ruído para baixo)
 };
 
 vertex VertexOut vs_main(VertexIn in [[stage_in]], constant VertexUniforms& u [[buffer(0)]]) {
@@ -75,12 +77,12 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
   if (u.params.y > 0.5) {
     // Névoa: quad horizontal na base da arena. Alpha vem de ruído animado, com camadas em
     // alturas diferentes deslocadas (world_pos.y) para não repetirem o padrão.
-    const float2 p = in.world_pos.xz + in.world_pos.y * 7.0;
+    const float2 p = (in.world_pos.xz + in.world_pos.y * 7.0) * u.mist.z;
     const float n1 = Fbm(p * 0.35 + float2(t * 0.06, t * 0.025));
     const float n2 = Fbm(p * 0.7 - float2(t * 0.04, -t * 0.05) + 31.0);
-    const float mist = smoothstep(0.32, 0.82, n1 * 0.65 + n2 * 0.35);
+    const float mist = smoothstep(0.32 - u.mist.w, 0.82 - u.mist.w, n1 * 0.65 + n2 * 0.35);
     const float r = length(in.world_pos.xz);
-    const float falloff = 1.0 - smoothstep(8.0, 28.0, r);
+    const float falloff = 1.0 - smoothstep(u.mist.x, u.mist.y, r);
     // Brilho da luz pontual chega na névoa perto do centro.
     const float3 to_point = u.point_light.xyz - in.world_pos;
     const float glow = u.point_light.w / (1.0 + dot(to_point, to_point) * 0.03);

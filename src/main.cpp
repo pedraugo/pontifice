@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
@@ -117,6 +118,7 @@ int main(int /*argc*/, char** /*argv*/) {
 
   SceneContext ctx;
   ctx.renderer = app.renderer;
+  ctx.gpu_device = SDL_GetGPURendererDevice(app.renderer);  // nulo no renderer de fallback
   ctx.logical_width = kLogicalWidth;
   ctx.logical_height = kLogicalHeight;
 
@@ -126,16 +128,21 @@ int main(int /*argc*/, char** /*argv*/) {
   // Trilha sonora (assets/ost.json) toca em loop durante todo o jogo, em qualquer cena.
   Music music;
   music.Init(base);
-  SceneManager scenes(ctx);
+  SceneManager scenes(std::move(ctx));
 
-  // Depuração: PONTIFICE_SCENE=battle abre direto na batalha; PONTIFICE_MOUSE=x,y injeta um
+  // Depuração: PONTIFICE_SCENE=battle abre direto na batalha e =loading na tela de loading
+  // (que segue para a batalha); PONTIFICE_MOUSE=x,y injeta um
   // movimento de mouse em coordenadas lógicas; PONTIFICE_SCREENSHOT=arquivo.bmp salva o
-  // quadro 60 e encerra.
+  // quadro PONTIFICE_SCREENSHOT_FRAME (padrão 60) e encerra.
   const char* env_scene = std::getenv("PONTIFICE_SCENE");
   const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
   const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
-  scenes.SwitchTo(env_scene != nullptr && std::strcmp(env_scene, "battle") == 0 ? SceneId::kBattle
-                                                                                : SceneId::kMenu);
+  const char* env_shot_frame = std::getenv("PONTIFICE_SCREENSHOT_FRAME");
+  const int shot_frame = env_shot_frame != nullptr ? std::atoi(env_shot_frame) : 60;
+  SceneId first = SceneId::kMenu;
+  if (env_scene != nullptr && std::strcmp(env_scene, "battle") == 0) first = SceneId::kBattle;
+  if (env_scene != nullptr && std::strcmp(env_scene, "loading") == 0) first = SceneId::kLoading;
+  scenes.SwitchTo(first);
   int frame = 0;
 
   Uint64 last = SDL_GetTicksNS();
@@ -165,7 +172,7 @@ int main(int /*argc*/, char** /*argv*/) {
     scenes.Update(dt);
     scenes.Render();
 
-    if (env_shot != nullptr && ++frame == 60) {
+    if (env_shot != nullptr && ++frame == shot_frame) {
       SDL_Surface* shot = SDL_RenderReadPixels(app.renderer, nullptr);
       if (shot != nullptr) {
         SDL_SaveBMP(shot, env_shot);

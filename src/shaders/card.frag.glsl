@@ -16,6 +16,7 @@ layout(set = 3, binding = 0) uniform FragmentUniforms {
   vec4 fog_height;
   vec4 camera;
   vec4 resolution;
+  vec4 mist;
 } u;
 
 float Hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -49,12 +50,12 @@ void main() {
   vec3 rgb;
   float alpha;
   if (u.params.y > 0.5) {
-    vec2 p = v_world_pos.xz + v_world_pos.y * 7.0;
+    vec2 p = (v_world_pos.xz + v_world_pos.y * 7.0) * u.mist.z;
     float n1 = Fbm(p * 0.35 + vec2(t * 0.06, t * 0.025));
     float n2 = Fbm(p * 0.7 - vec2(t * 0.04, -t * 0.05) + 31.0);
-    float mist = smoothstep(0.32, 0.82, n1 * 0.65 + n2 * 0.35);
+    float mist = smoothstep(0.32 - u.mist.w, 0.82 - u.mist.w, n1 * 0.65 + n2 * 0.35);
     float r = length(v_world_pos.xz);
-    float falloff = 1.0 - smoothstep(8.0, 28.0, r);
+    float falloff = 1.0 - smoothstep(u.mist.x, u.mist.y, r);
     vec3 to_point = u.point_light.xyz - v_world_pos;
     float glow = u.point_light.w / (1.0 + dot(to_point, to_point) * 0.03);
     rgb = u.color.rgb * (u.ambient.rgb * 2.5 + u.light_color.rgb * glow * 0.45 * flicker);
