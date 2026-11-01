@@ -82,6 +82,11 @@ add_executable(pontifice
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
+# Windows: ícone do executável como recurso (src/icons/icon.ico, gerado por tools/make_icons.py).
+if(WIN32)
+  enable_language(RC)
+  target_sources(pontifice PRIVATE src/icons/pontifice.rc)
+endif()
 target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
 target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR})
 target_link_libraries(pontifice PRIVATE SDL3::SDL3)

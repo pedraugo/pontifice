@@ -4,9 +4,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
+#include "scripts/image/Image.h"
 
 namespace {
 
@@ -17,6 +19,38 @@ struct App {
   SDL_Window* window = nullptr;
   SDL_Renderer* renderer = nullptr;
 };
+
+// Ícone da janela a partir de assets/icon.png: título e barra de tarefas no Windows, janela e
+// dock no Linux, Dock no macOS (SDL chama setApplicationIconImage). O ícone do executável em
+// si vem de src/icons (recurso .rc no Windows).
+void SetWindowIcon(SDL_Window* window) {
+  const char* base = SDL_GetBasePath();
+  const std::string path = std::string(base != nullptr ? base : "./") + "assets/icon.png";
+  const Image image = Image::LoadFile(path);
+  if (!image.Valid()) {
+    std::fprintf(stderr, "Icone nao carregado: %s\n", path.c_str());
+    return;
+  }
+  SDL_Surface* icon = SDL_CreateSurfaceFrom(image.width, image.height, SDL_PIXELFORMAT_RGBA32,
+                                            const_cast<uint8_t*>(image.rgba.data()),
+                                            image.width * 4);
+  if (icon == nullptr) return;
+#ifndef SDL_PLATFORM_MACOS
+  // Fora do macOS os sistemas não precisam de 1024 px; X11 copia o ícone inteiro para uma
+  // propriedade da janela, então reduz para 256.
+  constexpr int kMaxSize = 256;
+  if (image.width > kMaxSize || image.height > kMaxSize) {
+    SDL_Surface* small = SDL_ScaleSurface(icon, kMaxSize, kMaxSize, SDL_SCALEMODE_LINEAR);
+    SDL_DestroySurface(icon);
+    icon = small;
+    if (icon == nullptr) return;
+  }
+#endif
+  if (!SDL_SetWindowIcon(window, icon)) {
+    std::fprintf(stderr, "SDL_SetWindowIcon: %s\n", SDL_GetError());
+  }
+  SDL_DestroySurface(icon);
+}
 
 bool Init(App& app) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -30,6 +64,7 @@ bool Init(App& app) {
     std::fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
     return false;
   }
+  SetWindowIcon(app.window);
 
   // Renderer 2D sobre o SDL_GPU (Metal no macOS, Vulkan/D3D12 em outros sistemas).
   // O device fica acessível via SDL_GetGPURendererDevice para o render 3D do campo.

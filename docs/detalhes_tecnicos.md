@@ -47,7 +47,8 @@ src/
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)
-  assets/             dados das cartas em JSON
+  assets/             dados das cartas em JSON e ícone do jogo
+    icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
     CardsEvil.json
     CardsNeutral.json
@@ -55,6 +56,9 @@ src/
   sprites/            texturas das cartas (PNG) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
+  icons/
+    icon.ico          ícone do executável no Windows, gerado por tools/make_icons.py
+    pontifice.rc      recurso do Windows que embute o icon.ico
   models/
     Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
     ArenaRaw.glb      arena bruta de imagem-para-3D (referência; usada só com --raw)
@@ -68,6 +72,7 @@ src/
     Card.png          ilustração de referência da carta
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
+  make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
 tests/                testes automatizados
