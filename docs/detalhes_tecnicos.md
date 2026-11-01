@@ -2,17 +2,31 @@
 
 ## Stack
 
-- **Linguagem**: C++ (padrão C++17 ou superior).
-- **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa).
+- **Linguagem**: C++20.
+- **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
-- **Renderização**: 3D em tempo real. Biblioteca gráfica a definir (candidatas: raylib, OpenGL puro, bgfx).
+- **Biblioteca**: SDL3 (`release-3.4.18`), baixada via `FetchContent` e ligada como estática. Janela, input, áudio e GPU.
+- **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O campo 3D usará o device diretamente, com shaders próprios.
+- **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto
 
 ```
+CMakeLists.txt        alvo pontifice, FetchContent do SDL3
+build.sh / run.sh     compilar / compilar e executar
 src/
-  main.cpp            ponto de entrada
+  main.cpp            janela, renderer, loop principal
+  scenes/             uma classe por cena
+    Scene.h           interface Scene e SceneContext
+    SceneManager.*    cena ativa e troca de cena
+    MenuScene.*       menu (docs/menu.md), primeira cena
+    BattleScene.*     batalha (marcador por enquanto)
+  scripts/            componentes reutilizáveis
+    Text.*            texto com a fonte de depuração do SDL
+    Button.*          botão base (hover, foco, clique)
+    ButtonPlay.*      botão Jogar
+    ButtonExit.*      botão Sair
   assets/             dados das cartas em JSON
     CardsGood.json
     CardsEvil.json
@@ -79,6 +93,15 @@ Quando o turno passa para o computador, a **câmera orbita 180°** em torno do c
 - O dock do computador aparece na parte inferior, com o verso das cartas. O dock do jogador fica no topo, também com verso.
 - O **HUD não gira**: carta de campo ativa segue no canto superior esquerdo e os pontos de vida no canto superior direito, com os nomes "Você" e "Oponente" inalterados.
 - Quando o turno volta ao jogador, a câmera orbita os 180° de volta, com a mesma animação.
+
+## Cenas
+
+O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop principal repassa a ela eventos, atualização e desenho.
+
+- `Scene`: interface com `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
+- `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`.
+- `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização.
+- Ordem: `MenuScene` (inicial) e `BattleScene`. O botão Jogar troca para a batalha, `Esc` na batalha volta ao menu.
 
 ## HUD
 
