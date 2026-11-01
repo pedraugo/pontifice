@@ -2,7 +2,8 @@
 
 #include <SDL3/SDL.h>
 
-// Texto com a fonte de depuração do SDL (8x8 px por caractere), escalada.
+// Texto com a fonte de depuração do SDL (8x8 px por caractere), escalada. Aceita UTF-8;
+// letras acentuadas são desenhadas sem acento (a fonte só tem ASCII).
 // Provisório até a direção de arte definir fonte própria.
 namespace text {
 

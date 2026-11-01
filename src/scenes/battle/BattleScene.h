@@ -8,10 +8,14 @@
 #include "scenes/Scene.h"
 #include "scripts/gpu/Gpu.h"
 #include "scripts/hand/Hand.h"
+#include "scripts/hud/Hud.h"
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 
-// Cena de batalha. Por enquanto: mão de cartas 3D com hover. Esc volta ao menu.
+// Cena de batalha. Por enquanto: arena, mão de cartas 3D com hover e HUD (docs/hud.md).
+// Esc volta ao menu. Teclas de depuração até existir a lógica de jogo: F alterna uma carta de
+// campo de exemplo; 1 e 2 tiram 700 pontos de vida do oponente e de você; D compra uma carta
+// do monte; G manda uma carta para o cemitério.
 class BattleScene : public Scene {
  public:
   ~BattleScene() override;
@@ -23,12 +27,19 @@ class BattleScene : public Scene {
 
  private:
   SDL_GPUTexture* LoadSprite(const char* file);
+  // Textura do renderer 2D (HUD) a partir do mesmo arquivo de sprite.
+  SDL_Texture* LoadHudSprite(SDL_Renderer* renderer, const char* file);
+  void ToggleSampleFieldCard();
+  void DrawCard();
 
   std::unique_ptr<Gpu> gpu_;
   std::unique_ptr<Model> card_model_;
   std::unique_ptr<Model> arena_model_;
   std::vector<SDL_GPUTexture*> textures_;
+  std::vector<SDL_GPUTexture*> fronts_;  // frentes por categoria, para a compra de exemplo
   Hand hand_;
+  Hud hud_;
+  SDL_Texture* field_front_2d_ = nullptr;  // frente da carta de campo no HUD
   math::Mat4 hand_view_proj_;   // câmera fixa da mão (dock)
   math::Mat4 arena_view_proj_;  // câmera da arena, vista do jogador
   math::Mat4 arena_world_;

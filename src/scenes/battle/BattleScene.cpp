@@ -42,6 +42,7 @@ constexpr float kMistHalfSize = 40.0f;
 }  // namespace
 
 BattleScene::~BattleScene() {
+  if (field_front_2d_ != nullptr) SDL_DestroyTexture(field_front_2d_);
   if (gpu_ == nullptr) return;
   hand_.Clear();
   card_model_.reset();
@@ -57,8 +58,50 @@ SDL_GPUTexture* BattleScene::LoadSprite(const char* file) {
   return texture;
 }
 
+SDL_Texture* BattleScene::LoadHudSprite(SDL_Renderer* renderer, const char* file) {
+  const Image image = Image::LoadFile(BasePath() + "sprites/" + file);
+  if (!image.Valid()) return nullptr;
+  SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
+                                           SDL_TEXTUREACCESS_STATIC, image.width, image.height);
+  if (texture == nullptr) return nullptr;
+  SDL_UpdateTexture(texture, nullptr, image.rgba.data(), image.width * 4);
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+  return texture;
+}
+
+void BattleScene::ToggleSampleFieldCard() {
+  if (hud_.HasFieldCard()) {
+    hud_.ClearFieldCard();
+    return;
+  }
+  // Primeira carta de assets/CardsField.json; o conteúdo real virá do slot de campo.
+  FieldCardInfo card;
+  card.name = "Dilúvio";
+  card.favored = Category::kEvil;
+  card.buff = 300;
+  card.nerf = 300;
+  card.image = field_front_2d_;
+  hud_.SetFieldCard(card);
+}
+
+void BattleScene::DrawCard() {
+  if (hud_.DeckRemaining() <= 0 || fronts_.empty()) return;
+  hud_.SetDeck(hud_.DeckUsed() + 1, hud_.DeckRemaining() - 1);
+  hand_.Add(fronts_[hud_.DeckUsed() % fronts_.size()]);
+}
+
 void BattleScene::OnEnter(SceneContext& ctx) {
   const std::string base = BasePath();
+
+  // HUD (docs/hud.md): vida cheia, sem carta de campo, cemitério vazio e monte com a mão
+  // inicial já comprada. Não depende do render 3D.
+  hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
+  hud_.ClearFieldCard();
+  hud_.SetGraveyard(0);
+  if (field_front_2d_ == nullptr) {
+    field_front_2d_ = LoadHudSprite(ctx.renderer, "CardFrontField.png");
+  }
 
   gpu_ = std::make_unique<Gpu>();
   if (!gpu_->Init(ctx.renderer, ctx.logical_width, ctx.logical_height, base + "shaders")) {
@@ -86,6 +129,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_.Add(good);
   hand_.Add(field);
   hand_.Add(evil);
+  hud_.SetDeck(static_cast<int>(hand_.Size()), Hud::kDeckSize - static_cast<int>(hand_.Size()));
+  fronts_ = {good, evil, field};
 
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->LoadGlb(*gpu_, base + "models/Arena.glb")) {
@@ -140,9 +185,29 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 }
 
 void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
-  if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
-    ctx.next_scene = SceneId::kMenu;
-    return;
+  if (event.type == SDL_EVENT_KEY_DOWN) {
+    switch (event.key.key) {
+      case SDLK_ESCAPE:
+        ctx.next_scene = SceneId::kMenu;
+        return;
+      case SDLK_F:  // depuração: carta de campo de exemplo
+        ToggleSampleFieldCard();
+        return;
+      case SDLK_1:  // depuração: dano no oponente
+        if (!hud_.Over()) hud_.SetLife(hud_.OpponentLife() - 700, hud_.PlayerLife());
+        return;
+      case SDLK_2:  // depuração: dano em você
+        if (!hud_.Over()) hud_.SetLife(hud_.OpponentLife(), hud_.PlayerLife() - 700);
+        return;
+      case SDLK_D:  // depuração: compra do monte
+        DrawCard();
+        return;
+      case SDLK_G:  // depuração: carta para o cemitério
+        hud_.SetGraveyard(hud_.Graveyard() + 1);
+        return;
+      default:
+        break;
+    }
   }
   if (event.type == SDL_EVENT_MOUSE_MOTION) {
     mouse_ = {event.motion.x, event.motion.y};
@@ -189,4 +254,5 @@ void BattleScene::Render(SceneContext& ctx) {
 
   text::DrawCentered(r, "BATALHA", cx, 40.0f, 4.0f, fg);
   text::DrawCentered(r, "Esc volta ao menu", cx, 80.0f, 2.0f, fg);
+  hud_.Render(r, ctx.logical_width, ctx.logical_height);
 }

@@ -78,6 +78,7 @@ add_executable(pontifice
   src/scripts/gpu/Gpu.cpp
   src/scripts/model/Model.cpp
   src/scripts/hand/Hand.cpp
+  src/scripts/hud/Hud.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )

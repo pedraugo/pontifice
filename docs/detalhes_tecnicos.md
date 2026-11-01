@@ -42,6 +42,8 @@ src/
       Model.*         carrega .glb (cgltf), separa frente, verso e borda
     hand/
       Hand.*          mão em dock: layout em arco, hover, animação
+    hud/
+      Hud.*           HUD da batalha (docs/hud.md): carta de campo ativa e pontos de vida
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)
