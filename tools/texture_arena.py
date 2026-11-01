@@ -608,7 +608,7 @@ ARENA_PANEL_CAP = 0.06     # largura (unidades) da moldura nas pontas dos painé
 ARENA_PANEL_TEX_FRAME = 0.09  # fração do sprite do painel ocupada pela moldura (cada lado)
 ARENA_PANEL_DEPTH = 0.045  # quanto a madeira afunda em relação à moldura (vinco da lateral)
 ARENA_PYRAMID_HEIGHT = 0.03
-ARENA_PYRAMID_SPAN = 0.26  # comprimento (unidades) coberto pelo triângulo de canto
+ARENA_PYRAMID_LEG = 0.18   # cateto (unidades) da placa triangular de canto
 
 # Região do atlas reservada para a placa triangular das pirâmides (canto inferior direito).
 TRI_BOX = (ATLAS - 512, ATLAS - 512, ATLAS, ATLAS)
@@ -635,9 +635,27 @@ def build_arena_mesh():
         uvs.extend([t0, t1, t2])
         indices.extend([base, base + 1, base + 2])
 
-    def quad(p0, p1, p2, p3, t0, t1, t2, t3):
-        tri(p0, p1, p2, t0, t1, t2)
-        tri(p0, p2, p3, t0, t2, t3)
+    def quad(p0, p1, p2, p3, t0, t1, t2, t3, nu=16, nv=4):
+        # Subdividido em grade bilinear: num quad trapezoidal (painéis laterais), dois
+        # triângulos com interpolação afim deixam a textura quebrada na diagonal (a cruz do
+        # painel frontal aparecia torta). A grade aproxima o mapeamento bilinear.
+        def lerp2(a, b, t):
+            return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+
+        def at(u, v):
+            return (lerp3(lerp3(p0, p1, u), lerp3(p3, p2, u), v),
+                    lerp2(lerp2(t0, t1, u), lerp2(t3, t2, u), v))
+
+        for i in range(nu):
+            for j in range(nv):
+                u0, u1 = i / nu, (i + 1) / nu
+                v0, v1 = j / nv, (j + 1) / nv
+                a, ta = at(u0, v0)
+                b, tb = at(u1, v0)
+                c_, tc = at(u1, v1)
+                d, td = at(u0, v1)
+                tri(a, b, c_, ta, tb, tc)
+                tri(a, c_, d, ta, tc, td)
 
     def lerp3(a, b, t):
         return tuple(a[k] + (b[k] - a[k]) * t for k in range(3))
@@ -767,17 +785,27 @@ def build_arena_mesh():
 
         if not pyramids:
             continue
-        # cantoneiras: pirâmides triangulares nas duas pontas do painel, apex para fora
-        span = min(ARENA_PYRAMID_SPAN / length, 0.45)
+        # cantoneiras: pirâmides triangulares pequenas nas duas pontas do painel, apex para
+        # fora. A base é um triângulo retângulo isósceles no plano do painel com o ângulo
+        # reto no canto superior: um cateto desce ao longo da aresta da quina (inclinada
+        # pelo trapézio, logo a placa fica angulada) e o outro é perpendicular a ele, para
+        # dentro do painel. Mesma forma da placa do atlas, sem distorção.
+        top_dir = norm3(add3(P10, P00, -1.0))
         for end in (0, 1):
-            if end == 0:
-                corners = [(0.0, 0.0), (0.0, 1.0), (span, 0.0)]       # topo-esq, base-esq, topo
-                tex = [(tri_u0, tri_v0), (tri_u0, tri_v1), (tri_u1, tri_v0)]
-            else:
-                corners = [(1.0, 0.0), (1.0 - span, 0.0), (1.0, 1.0)]
-                tex = [(tri_u0, tri_v0), (tri_u1, tri_v0), (tri_u0, tri_v1)]
-            pts = [P(u, v) for u, v in corners]
-            apex = add3(tuple(sum(p[k_] for p in pts) / 3 for k_ in range(3)), normal,
+            A = P00 if end == 0 else P10
+            edge = norm3(add3(P01 if end == 0 else P11, A, -1.0))  # aresta da quina, descendo
+            inward = cross3(normal, edge)                            # perpendicular no plano
+            toward = 1.0 if end == 0 else -1.0
+            if sum(inward[k_] * top_dir[k_] for k_ in range(3)) * toward < 0:
+                inward = tuple(-c_ for c_ in inward)
+            leg = min(ARENA_PYRAMID_LEG, length * 0.45, height)
+            B = add3(A, edge, leg)
+            C = add3(A, inward, leg)
+            pts = [A, B, C] if end == 0 else [A, C, B]
+            tex = [(tri_u0, tri_v0), (tri_u0, tri_v1), (tri_u1, tri_v0)]
+            if end == 1:
+                tex = [tex[0], tex[2], tex[1]]
+            apex = add3(tuple(sum(p_[k_] for p_ in pts) / 3 for k_ in range(3)), normal,
                         ARENA_PYRAMID_HEIGHT)
             apex_t = tuple(sum(t[k_] for t in tex) / 3 for k_ in range(2))
             for e in range(3):
