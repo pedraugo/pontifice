@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "scripts/colors/Colors.h"
+#include "scripts/ui/Ui.h"
 
 namespace {
 
@@ -103,6 +104,17 @@ bool Clouds::Init(SDL_Renderer* renderer, int width, int height) {
       {puffs, "menu.cloudPuff", 2.8f, 38.0f, -4.0f, 0.70f, 1100.0f, 500.0f},
       {wispy, "menu.cloudFront", 1.4f, 56.0f, 5.0f, 0.22f, 500.0f, 120.0f},
   };
+  // Medidas acima em px de 1280x720: tamanho do ladrilho, velocidade e deslocamento escalam
+  // para a resolução lógica, mantendo o mesmo visual.
+  for (std::vector<Layer>* group : {&back_, &front_}) {
+    for (Layer& layer : *group) {
+      layer.scale *= ui::kScale;
+      layer.speed_x *= ui::kScale;
+      layer.speed_y *= ui::kScale;
+      layer.offset_x *= ui::kScale;
+      layer.offset_y *= ui::kScale;
+    }
+  }
   return true;
 }
 

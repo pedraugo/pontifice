@@ -5,7 +5,14 @@
 void Torch::DrawBody(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj) const {
   for (const Model::Part& part : model_.Parts()) {
     if (part.name == "Flame") continue;
-    gpu.Draw(part.mesh, part.texture, world, view_proj, SDL_FColor{1, 1, 1, 1});
+    gpu.Draw(part.mesh, part.texture, world, view_proj, SDL_FColor{1, 1, 1, 1},
+             Gpu::DrawMode::kMesh, part.normal);
+  }
+}
+
+void Torch::DrawBodyDepth(Gpu& gpu, const math::Mat4& world) const {
+  for (const Model::Part& part : model_.Parts()) {
+    if (part.name != "Flame") gpu.DrawShadow(part.mesh, world);
   }
 }
 

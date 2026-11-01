@@ -7,8 +7,9 @@
 
 #include "scripts/math/Math.h"
 
+#include "scripts/model/Model.h"
+
 class Gpu;
-class Model;
 
 // Mão de cartas em 3D, disposta como um dock na parte de baixo da tela.
 // Em repouso a mão fica recolhida (parcialmente fora da tela) para não esconder a arena;
@@ -56,7 +57,7 @@ class Hand {
     float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
     float select_lift = 0.5f;     // quanto a carta selecionada sobe
     float select_forward = 0.15f; // quanto se aproxima da câmera
-    float drag_threshold = 24.0f; // px de arrasto vertical para virar gesto
+    float drag_threshold = 36.0f; // px lógicos (1920x1080) de arrasto vertical para virar gesto
     float inspect_z = 4.2f;       // profundidade da carta inspecionada
     float inspect_y = -0.05f;
     float camera_z = 10.0f;       // câmera da mão (BattleScene): em z = 10 olhando a origem
@@ -77,6 +78,11 @@ class Hand {
 
   void SetModel(const Model* model) { model_ = model; }
   void SetBack(SDL_GPUTexture* back) { back_ = back; }
+  // Normal maps da frente e do verso (relevo da moldura), aplicados a todas as cartas.
+  void SetNormalMaps(SDL_GPUTexture* front, SDL_GPUTexture* back) {
+    front_normal_ = front;
+    back_normal_ = back;
+  }
   Layout& GetLayout() { return layout_; }
 
   // A carta entra deslizando da esquerda da tela até o seu lugar; cartas adicionadas em
@@ -111,6 +117,7 @@ class Hand {
   // true se o mouse está sobre uma carta ou abaixo do topo da mão levantada.
   bool MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const;
   float CenterOffset(int index) const;  // x de repouso da carta em relação ao centro da mão
+  Model::Skin SkinFor(const Card& card) const;
   math::Mat4 CardMatrix(const Card& card, int index, bool with_tilt) const;
   // Posição do mouse relativa ao centro da carta, em [-1, 1] nos dois eixos (x direita,
   // y cima). Usa a matriz sem inclinação projetada na tela.
@@ -119,6 +126,8 @@ class Hand {
 
   const Model* model_ = nullptr;
   SDL_GPUTexture* back_ = nullptr;
+  SDL_GPUTexture* front_normal_ = nullptr;
+  SDL_GPUTexture* back_normal_ = nullptr;
   Layout layout_;
   std::vector<Card> cards_;
   int hovered_ = -1;

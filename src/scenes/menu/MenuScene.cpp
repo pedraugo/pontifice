@@ -4,14 +4,15 @@
 #include "scripts/button/ButtonPlay.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
+#include "scripts/ui/Ui.h"
 
 namespace {
 
-constexpr float kButtonWidth = 260.0f;
-constexpr float kButtonHeight = 56.0f;
-constexpr float kButtonGap = 24.0f;
-constexpr float kTitleScale = 6.0f;
-constexpr float kFooterScale = 2.0f;
+constexpr float kButtonWidth = ui::Px(260.0f);
+constexpr float kButtonHeight = ui::Px(56.0f);
+constexpr float kButtonGap = ui::Px(24.0f);
+constexpr float kTitleScale = 6.0f * ui::kScale;
+constexpr float kFooterScale = 2.0f * ui::kScale;
 
 }  // namespace
 
@@ -93,7 +94,7 @@ void MenuScene::Render(SceneContext& ctx) {
 
   for (auto& button : buttons_) button->Render(r);
 
-  text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - 48.0f,
+  text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - ui::Px(48.0f),
                      kFooterScale, colors::Get("text.secondary"));
   if (clouds_ready_) clouds_.RenderFront(r);  // névoa rala por cima do texto
 }

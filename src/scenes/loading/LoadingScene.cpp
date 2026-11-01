@@ -8,6 +8,7 @@
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
+#include "scripts/ui/Ui.h"
 
 namespace {
 
@@ -117,6 +118,14 @@ void LoadingScene::OnEnter(SceneContext& ctx) {
   atmosphere_.point_intensity = kTorchLight;
   atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
   atmosphere_.point2_intensity = kTorchLight;
+  // Sombras: cada chama olha para o centro do portão; o muro, a porta (ao abrir) e as cestas
+  // das tochas projetam sombra no muro, na passagem e na névoa do chão.
+  const math::Mat4 shadow_proj = math::Mat4::Perspective(math::Radians(125.0f), 1.0f, 0.2f, 40.0f);
+  for (int k = 0; k < 2; ++k) {
+    const math::Vec3 flame = k == 0 ? atmosphere_.point_pos : atmosphere_.point2_pos;
+    torch_light_vp_[k] = shadow_proj * math::Mat4::LookAt(flame, {0.0f, 1.4f, -0.4f}, {0, 1, 0});
+  }
+  atmosphere_.shadow_strength = 0.9f;
   atmosphere_.fog_color = {0, 0, 0, 1};
   atmosphere_.fog_density = 0.13f;
   atmosphere_.fog_start = 6.0f;
@@ -179,18 +188,31 @@ void LoadingScene::Render(SceneContext& ctx) {
   SDL_SetRenderDrawColor(r, black.r, black.g, black.b, 255);
   SDL_RenderClear(r);
 
+  // Porta gira em torno da dobradiça (ombreira esquerda); o resto fica parado.
+  const math::Vec3 hinge{-kDoorR, 0.0f, kDoorZ};
+  const math::Mat4 door_world = math::Mat4::Translate(hinge) *
+                                math::Mat4::RotateY(DoorAngle()) *
+                                math::Mat4::Translate({-hinge.x, -hinge.y, -hinge.z});
+  if (ready_) {
+    for (int k = 0; k < 2; ++k) {
+      if (!gpu_->BeginShadowPass(k, torch_light_vp_[k])) break;
+      for (const Model::Part& part : door_->Parts()) {
+        gpu_->DrawShadow(part.mesh, part.name == "Door" ? door_world : math::Mat4::Identity());
+      }
+      if (torch_ != nullptr) {
+        for (const math::Mat4& world : torch_world_) torch_->DrawBodyDepth(*gpu_, world);
+      }
+      gpu_->EndShadowPass();
+    }
+  }
   if (ready_ && gpu_->BeginFrame(SDL_FColor{0, 0, 0, 1})) {
     const math::Mat4 view_proj = ViewProj(ctx.logical_width, ctx.logical_height);
     atmosphere_.camera_pos = {1.4f, 1.8f, 7.6f};
     gpu_->SetAtmosphere(atmosphere_);
-    // Porta gira em torno da dobradiça (ombreira esquerda); o resto fica parado.
-    const math::Vec3 hinge{-kDoorR, 0.0f, kDoorZ};
-    const math::Mat4 door_world = math::Mat4::Translate(hinge) *
-                                  math::Mat4::RotateY(DoorAngle()) *
-                                  math::Mat4::Translate({-hinge.x, -hinge.y, -hinge.z});
     for (const Model::Part& part : door_->Parts()) {
       const math::Mat4& world = part.name == "Door" ? door_world : math::Mat4::Identity();
-      gpu_->Draw(part.mesh, part.texture, world, view_proj, SDL_FColor{1, 1, 1, 1});
+      gpu_->Draw(part.mesh, part.texture, world, view_proj, SDL_FColor{1, 1, 1, 1},
+                 Gpu::DrawMode::kMesh, part.normal);
     }
     if (torch_ != nullptr) {
       for (const math::Mat4& world : torch_world_) torch_->DrawBody(*gpu_, world, view_proj);
@@ -221,9 +243,10 @@ void LoadingScene::Render(SceneContext& ctx) {
   // "Carregando" com pontos que avançam, no canto inferior direito.
   const int dots = static_cast<int>(time_ * 2.0f) % 4;
   const std::string label = "Carregando" + std::string(static_cast<size_t>(dots), '.');
-  const float scale = 2.0f;
-  const float x = ctx.logical_width - 60.0f - text::Width("Carregando...", scale);
-  text::Draw(r, label.c_str(), x, ctx.logical_height - 60.0f, scale, colors::Get("text.muted"));
+  const float scale = 2.0f * ui::kScale;
+  const float x = ctx.logical_width - ui::Px(60.0f) - text::Width("Carregando...", scale);
+  text::Draw(r, label.c_str(), x, ctx.logical_height - ui::Px(60.0f), scale,
+             colors::Get("text.muted"));
 
   // Véu preto: entrada (clareia) e saída (escurece).
   const float fade_in = 1.0f - math::Clamp(time_ / kFadeInSeconds, 0.0f, 1.0f);

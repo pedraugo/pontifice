@@ -28,15 +28,23 @@ Model::Role RoleFromName(const std::string& name) {
   return Model::Role::kEdge;
 }
 
-Image DecodeEmbeddedTexture(const cgltf_material* material) {
-  if (material == nullptr || !material->has_pbr_metallic_roughness) return Image{};
-  const cgltf_texture* texture = material->pbr_metallic_roughness.base_color_texture.texture;
+Image DecodeTexture(const cgltf_texture* texture) {
   if (texture == nullptr || texture->image == nullptr) return Image{};
   const cgltf_image* image = texture->image;
   if (image->buffer_view == nullptr) return Image{};
   const cgltf_buffer_view* view = image->buffer_view;
   const auto* bytes = static_cast<const uint8_t*>(view->buffer->data) + view->offset;
   return Image::LoadMemory(bytes, view->size);
+}
+
+Image DecodeEmbeddedTexture(const cgltf_material* material) {
+  if (material == nullptr || !material->has_pbr_metallic_roughness) return Image{};
+  return DecodeTexture(material->pbr_metallic_roughness.base_color_texture.texture);
+}
+
+Image DecodeNormalTexture(const cgltf_material* material) {
+  if (material == nullptr) return Image{};
+  return DecodeTexture(material->normal_texture.texture);
 }
 
 }  // namespace
@@ -46,6 +54,7 @@ Model::~Model() {
   for (Part& part : parts_) {
     gpu_->DestroyMesh(part.mesh);
     gpu_->DestroyTexture(part.texture);
+    gpu_->DestroyTexture(part.normal);
   }
 }
 
@@ -114,6 +123,7 @@ Model::Data Model::Parse(const std::string& path) {
 
       part.name = node.name != nullptr ? node.name : "";
       part.texture = DecodeEmbeddedTexture(prim.material);
+      part.normal = DecodeNormalTexture(prim.material);
       if (prim.material != nullptr && prim.material->has_pbr_metallic_roughness) {
         const float* f = prim.material->pbr_metallic_roughness.base_color_factor;
         part.color = SDL_FColor{f[0], f[1], f[2], f[3]};
@@ -138,6 +148,7 @@ bool Model::Upload(Gpu& gpu, Data&& data) {
     part.role = RoleFromName(part.name);
     part.mesh = gpu.CreateMesh(src.vertices, src.indices);
     part.texture = src.texture.Valid() ? gpu.CreateTexture(src.texture) : nullptr;
+    part.normal = src.normal.Valid() ? gpu.CreateTexture(src.normal) : nullptr;
     part.color = src.color;
     parts_.push_back(part);
   }
@@ -147,11 +158,18 @@ bool Model::Upload(Gpu& gpu, Data&& data) {
 }
 
 void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
-                 SDL_GPUTexture* front, SDL_GPUTexture* back, Gpu::DrawMode front_mode) const {
+                 const Skin& skin) const {
   for (const Part& part : parts_) {
     SDL_GPUTexture* texture = part.texture;
-    if (part.role == Role::kFront && front != nullptr) texture = front;
-    if (part.role == Role::kBack && back != nullptr) texture = back;
+    SDL_GPUTexture* normal_map = part.normal;  // do glb; a skin pode substituir
+    if (part.role == Role::kFront) {
+      if (skin.front != nullptr) texture = skin.front;
+      if (skin.front_normal != nullptr) normal_map = skin.front_normal;
+    }
+    if (part.role == Role::kBack) {
+      if (skin.back != nullptr) texture = skin.back;
+      if (skin.back_normal != nullptr) normal_map = skin.back_normal;
+    }
 
     SDL_FColor color = part.color;
     if (texture != nullptr) color = SDL_FColor{1, 1, 1, 1};
@@ -160,6 +178,6 @@ void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj,
     color.b *= tint.b;
     color.a *= tint.a;
     gpu.Draw(part.mesh, texture, model, view_proj, color,
-             part.role == Role::kFront ? front_mode : Gpu::DrawMode::kMesh);
+             part.role == Role::kFront ? skin.front_mode : Gpu::DrawMode::kMesh, normal_map);
   }
 }

@@ -5,14 +5,20 @@ layout(location = 1) in vec2 in_uv;
 
 layout(location = 0) out vec3 v_world_pos;
 layout(location = 1) out vec2 v_uv;
+layout(location = 2) out vec4 v_light_pos0;
+layout(location = 3) out vec4 v_light_pos1;
 
 layout(set = 1, binding = 0) uniform VertexUniforms {
   mat4 mvp;
   mat4 model;
+  mat4 light_vp0;
+  mat4 light_vp1;
 } u;
 
 void main() {
   gl_Position = u.mvp * vec4(in_position, 1.0);
   v_world_pos = (u.model * vec4(in_position, 1.0)).xyz;
   v_uv = in_uv;
+  v_light_pos0 = u.light_vp0 * vec4(v_world_pos, 1.0);
+  v_light_pos1 = u.light_vp1 * vec4(v_world_pos, 1.0);
 }

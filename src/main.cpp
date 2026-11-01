@@ -17,8 +17,8 @@
 
 namespace {
 
-constexpr int kLogicalWidth = 1280;
-constexpr int kLogicalHeight = 720;
+constexpr int kLogicalWidth = 1920;
+constexpr int kLogicalHeight = 1080;
 
 struct App {
   SDL_Window* window = nullptr;
@@ -63,15 +63,20 @@ bool Init(App& app) {
     return false;
   }
 
-  // Janela de tamanho fixo: sem redimensionar, maximizar ou entrar em tela cheia. Sem
-  // SDL_WINDOW_RESIZABLE o sistema desabilita o zoom/maximizar e o SDL não oferece tela cheia.
-  app.window = SDL_CreateWindow("PONTIFICE", kLogicalWidth, kLogicalHeight,
-                                SDL_WINDOW_HIGH_PIXEL_DENSITY);
+  // Tela cheia (sem borda, na resolução do monitor) por padrão; a resolução lógica 1920x1080
+  // vai com letterbox. Sem SDL_WINDOW_RESIZABLE o usuário não redimensiona nem sai da tela
+  // cheia pelo sistema. PONTIFICE_WINDOWED=1 (depuração) abre em janela de 1280x720.
+  const bool windowed = std::getenv("PONTIFICE_WINDOWED") != nullptr;
+  SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+  if (!windowed) flags |= SDL_WINDOW_FULLSCREEN;
+  app.window = SDL_CreateWindow("PONTIFICE", windowed ? 1280 : kLogicalWidth,
+                                windowed ? 720 : kLogicalHeight, flags);
   if (app.window == nullptr) {
     std::fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
     return false;
   }
   SetWindowIcon(app.window);
+  if (!windowed) SDL_SetWindowFullscreenMode(app.window, nullptr);  // sem borda, resolução do monitor
 
   // Renderer 2D sobre o SDL_GPU (Metal no macOS, Vulkan/D3D12 em outros sistemas).
   // O device fica acessível via SDL_GetGPURendererDevice para o render 3D do campo.

@@ -34,6 +34,7 @@ class LoadingScene : public Scene {
   std::unique_ptr<Model> door_;
   std::unique_ptr<Torch> torch_;
   math::Mat4 torch_world_[2];  // tochas nos pilares esquerdo e direito do portão
+  math::Mat4 torch_light_vp_[2];  // câmera de sombra de cada chama
   GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa do chão
   SDL_FColor mist_color_{};     // background.mist (colors.json)
   std::unique_ptr<Scene> next_;  // cena alvo já carregada, entregue ao SceneManager no fim

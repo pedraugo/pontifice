@@ -4,21 +4,23 @@
 
 #include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
+#include "scripts/ui/Ui.h"
 
 // Cores vêm de assets/colors.json, pelos papéis "panel.*", "hud.*", "status.*" e "text.*".
 namespace {
 
-constexpr float kMargin = 16.0f;
-constexpr float kPadding = 10.0f;
-constexpr float kPanelWidth = 360.0f;
-constexpr float kFieldPanelHeight = 140.0f;
-constexpr float kCounterPanelWidth = 200.0f;  // painéis inferiores, fora da mão em repouso
-constexpr float kLineScale = 2.0f;      // 16 px
-constexpr float kDetailScale = 1.5f;    // 12 px
-constexpr float kResultScale = 6.0f;
+// Medidas em 1280x720, escaladas para a resolução lógica (ui::Px).
+constexpr float kMargin = ui::Px(16.0f);
+constexpr float kPadding = ui::Px(10.0f);
+constexpr float kPanelWidth = ui::Px(360.0f);
+constexpr float kFieldPanelHeight = ui::Px(140.0f);
+constexpr float kCounterPanelWidth = ui::Px(200.0f);  // painéis inferiores, fora da mão em repouso
+constexpr float kLineScale = 2.0f * ui::kScale;      // 16 px em 720p
+constexpr float kDetailScale = 1.5f * ui::kScale;    // 12 px em 720p
+constexpr float kResultScale = 6.0f * ui::kScale;
 constexpr float kLineHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kLineScale;
 constexpr float kDetailHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kDetailScale;
-constexpr float kLineGap = 8.0f;
+constexpr float kLineGap = ui::Px(8.0f);
 // Proporção da frente da carta (sprites 1600x2230).
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 
@@ -203,8 +205,8 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   const float cy = height / 2.0f;
   // Os dois em 0 ao mesmo tempo não acontece pelas regras; se acontecer, conta como derrota.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
-  text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - 20.0f, kResultScale,
+  text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - ui::Px(20.0f), kResultScale,
                      colors::Get(won ? "status.victory" : "status.defeat"));
-  text::DrawCentered(r, "Esc volta ao menu", cx, cy + 40.0f, kLineScale,
+  text::DrawCentered(r, "Esc volta ao menu", cx, cy + ui::Px(40.0f), kLineScale,
                      colors::Get("text.primary"));
 }

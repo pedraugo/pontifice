@@ -53,8 +53,11 @@ class BattleScene : public Scene {
   std::unique_ptr<Model> arena_model_;
   std::unique_ptr<Torch> torch_;
   math::Mat4 torch_world_[2];  // tochas fincadas à esquerda e à direita da arena
+  math::Mat4 torch_light_vp_[2];  // câmera de sombra de cada chama (perspectiva ampla)
   std::vector<SDL_GPUTexture*> textures_;
   SDL_GPUTexture* back_ = nullptr;       // verso das cartas
+  SDL_GPUTexture* front_normal_ = nullptr;  // normal maps da moldura (frente e verso)
+  SDL_GPUTexture* back_normal_ = nullptr;
   Image frames_[3];                      // molduras Good, Evil, Field reduzidas (cardface)
   std::vector<CardInfo> cards_;          // todas as cartas (assets/Cards*.json)
   deck::Deck deck_;                      // monte do jogador, já embaralhado

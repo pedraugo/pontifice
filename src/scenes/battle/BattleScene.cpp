@@ -10,6 +10,7 @@
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 #include "scripts/text/Text.h"
+#include "scripts/ui/Ui.h"
 
 namespace {
 
@@ -44,6 +45,7 @@ constexpr float kTorchZ = -1.0f;
 constexpr float kTorchScale = 2.6f;
 constexpr float kTorchTilt = 0.10f;   // rad, levemente inclinadas para fora
 constexpr float kTorchLight = 2.6f;   // intensidade de cada chama
+constexpr float kShadowFov = 130.0f;  // graus: da chama, cobre a arena inteira
 
 // Abertura da batalha: a arena sobe de dentro de uma névoa densa enquanto a câmera se
 // aproxima. A névoa extra fica em alturas fixas do mundo, por isso a arena "fura" camada por
@@ -106,6 +108,8 @@ void BattleScene::Preload(const PreloadInfo& info) {
     return;
   }
   back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
+  front_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardFrontNormalMap.png"));
+  back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.png"));
   // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
   // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
@@ -234,6 +238,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   hand_.SetModel(card_model_.get());
   hand_.SetBack(back_);
+  hand_.SetNormalMaps(front_normal_, back_normal_);
   // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
   // Entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
   hand_.DelayDeal(0.8f);
@@ -269,6 +274,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_atmosphere_.fog_height_strength = 0.9f;
   arena_atmosphere_.camera_pos = eye;
   arena_atmosphere_.vignette = 0.55f;
+  arena_atmosphere_.shadow_strength = 0.85f;
 
   // Mão: mesma tocha amarela (luz principal e pontual, com o mesmo tremular), ambiente um
   // pouco mais claro para as cartas ficarem legíveis. Sem névoa nem vinheta.
@@ -301,6 +307,13 @@ void BattleScene::UpdateIntro(float dt_seconds) {
                     math::Mat4::RotateZ(-kTorchTilt) * math::Mat4::Scale(kTorchScale);
   arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
   arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
+  // Sombras: cada chama olha para o centro da arena com campo bem aberto.
+  const math::Mat4 shadow_proj =
+      math::Mat4::Perspective(math::Radians(kShadowFov), 1.0f, 0.3f, 60.0f);
+  for (int k = 0; k < 2; ++k) {
+    const math::Vec3 flame = k == 0 ? arena_atmosphere_.point_pos : arena_atmosphere_.point2_pos;
+    torch_light_vp_[k] = shadow_proj * math::Mat4::LookAt(flame, {0.0f, 0.3f, 0.0f}, {0, 1, 0});
+  }
   arena_atmosphere_.point_intensity = kTorchLight * ignite_;
   arena_atmosphere_.point2_intensity = kTorchLight * ignite_;
   const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
@@ -369,6 +382,17 @@ void BattleScene::Render(SceneContext& ctx) {
   const SDL_Color background = colors::Get("background.fog");
   const float cx = ctx.logical_width / 2.0f;
 
+  if (ready_) {
+    // Passes de sombra (um por tocha): arena e corpos das tochas são os ocultadores.
+    for (int k = 0; k < 2; ++k) {
+      if (!gpu_->BeginShadowPass(k, torch_light_vp_[k])) break;
+      if (arena_model_ != nullptr) arena_model_->DrawDepth(*gpu_, arena_world_);
+      if (torch_ != nullptr) {
+        for (const math::Mat4& world : torch_world_) torch_->DrawBodyDepth(*gpu_, world);
+      }
+      gpu_->EndShadowPass();
+    }
+  }
   if (ready_ && gpu_->BeginFrame(fog_color_)) {
     gpu_->SetAtmosphere(arena_atmosphere_);
     if (arena_model_ != nullptr) {
@@ -421,10 +445,9 @@ void BattleScene::Render(SceneContext& ctx) {
     SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
     SDL_RenderClear(r);
     text::DrawCentered(r, "Render 3D indisponivel. Veja o log.", cx, ctx.logical_height * 0.5f,
-                       2.0f, fg);
+                       2.0f * ui::kScale, fg);
   }
 
-  text::DrawCentered(r, "BATALHA", cx, 40.0f, 4.0f, colors::Get("text.title"));
-  text::DrawCentered(r, "Esc volta ao menu", cx, 80.0f, 2.0f, fg);
+  text::DrawCentered(r, "BATALHA", cx, ui::Px(40.0f), 4.0f * ui::kScale, colors::Get("text.title"));
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
 }

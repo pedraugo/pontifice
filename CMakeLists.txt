@@ -55,15 +55,16 @@ add_custom_command(
 find_program(GLSLC glslc)
 set(SPIRV_OUTPUTS)
 if(GLSLC)
-  foreach(stage vert frag)
-    set(spv ${CMAKE_BINARY_DIR}/shaders/card.${stage}.spv)
+  foreach(shader card.vert card.frag card_shadow.frag)
+    string(REGEX REPLACE ".*\\." "" stage ${shader})
+    set(spv ${CMAKE_BINARY_DIR}/shaders/${shader}.spv)
     add_custom_command(
       OUTPUT ${spv}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shaders
       COMMAND ${GLSLC} -fshader-stage=${stage}
-              ${CMAKE_SOURCE_DIR}/src/shaders/card.${stage}.glsl -o ${spv}
-      DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/card.${stage}.glsl
-      COMMENT "Compilando card.${stage}.glsl para SPIR-V")
+              ${CMAKE_SOURCE_DIR}/src/shaders/${shader}.glsl -o ${spv}
+      DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/${shader}.glsl
+      COMMENT "Compilando ${shader}.glsl para SPIR-V")
     list(APPEND SPIRV_OUTPUTS ${spv})
   endforeach()
 else()

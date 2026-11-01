@@ -20,6 +20,7 @@ class Model {
     Role role = Role::kEdge;
     GpuMesh mesh;
     SDL_GPUTexture* texture = nullptr;  // textura embutida no glb, pode ser nula
+    SDL_GPUTexture* normal = nullptr;   // normalTexture do material, pode ser nula
     SDL_FColor color{1, 1, 1, 1};       // baseColorFactor do material
   };
 
@@ -32,6 +33,7 @@ class Model {
       std::vector<Vertex> vertices;
       std::vector<Uint32> indices;
       Image texture;  // vazia se a parte não tem textura
+      Image normal;   // normal map (vazia se não tem)
       SDL_FColor color{1, 1, 1, 1};
     };
     std::string path;
@@ -51,11 +53,28 @@ class Model {
   // Parse + Upload na thread principal.
   bool LoadGlb(Gpu& gpu, const std::string& path) { return Upload(gpu, Parse(path)); }
 
-  // Desenha todas as partes. front/back substituem as texturas embutidas quando não nulos;
-  // front_mode é o modo de desenho da parte da frente (ex.: Gpu::DrawMode::kFoil).
+  // Texturas por papel para um desenho: frente e verso substituem as embutidas quando não
+  // nulas; normal maps são opcionais; front_mode é o modo da frente (ex.: kFoil).
+  struct Skin {
+    SDL_GPUTexture* front = nullptr;
+    SDL_GPUTexture* back = nullptr;
+    SDL_GPUTexture* front_normal = nullptr;
+    SDL_GPUTexture* back_normal = nullptr;
+    Gpu::DrawMode front_mode = Gpu::DrawMode::kMesh;
+  };
+
+  // Desenha todas as partes.
+  void Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
+            const Skin& skin) const;
+  // Só profundidade, para o passe de sombra (Gpu::BeginShadowPass).
+  void DrawDepth(Gpu& gpu, const math::Mat4& model) const {
+    for (const Part& part : parts_) gpu.DrawShadow(part.mesh, model);
+  }
   void Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj, SDL_FColor tint,
             SDL_GPUTexture* front = nullptr, SDL_GPUTexture* back = nullptr,
-            Gpu::DrawMode front_mode = Gpu::DrawMode::kMesh) const;
+            Gpu::DrawMode front_mode = Gpu::DrawMode::kMesh) const {
+    Draw(gpu, model, view_proj, tint, Skin{front, back, nullptr, nullptr, front_mode});
+  }
 
   const std::vector<Part>& Parts() const { return parts_; }
   math::Vec3 BoundsMin() const { return min_; }

@@ -406,6 +406,8 @@ def main():
     print("atlas salvo em", OUT_ATLAS, len(png_bytes), "bytes")
     write_glb(OUT_GLB, [torch, flame], png_bytes)
     print("gravado", OUT_GLB, os.path.getsize(OUT_GLB), "bytes")
+    import normalmap
+    normalmap.add_to_glb(OUT_GLB, strength=2.0)
     print("chama: base y=%.2f centro y=%.2f" % (FLAME_BASE_Y, FLAME_CENTER_Y))
 
 

@@ -954,6 +954,8 @@ def main_procedural(rng):
     print("atlas salvo em", OUT_ATLAS, len(png_bytes), "bytes")
     write_glb(OUT_GLB, positions, uvs, indices, png_bytes)
     print("gravado", OUT_GLB, os.path.getsize(OUT_GLB), "bytes")
+    import normalmap
+    normalmap.add_to_glb(OUT_GLB, strength=1.2)  # ladrilhos: relevo mais discreto
 
 
 if __name__ == "__main__":

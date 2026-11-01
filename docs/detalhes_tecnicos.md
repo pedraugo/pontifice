@@ -9,8 +9,8 @@
 - **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop, em todas as cenas, com ganho do próprio stream (padrão 30%). Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
-- **Janela**: 1280x720, tamanho fixo (sem `SDL_WINDOW_RESIZABLE`): não redimensiona, não maximiza e não entra em tela cheia.
-- **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`), que continua cobrindo telas de alta densidade. Eventos de mouse são convertidos para essa resolução.
+- **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
+- **Resolução lógica**: 1920x1080 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução. O layout 2D foi medido em 1280x720 e passa por `ui::Px` / `ui::kScale` (1,5) em `scripts/ui/Ui.h`.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto
@@ -30,6 +30,8 @@ src/
     battle/
       BattleScene.*   batalha: render 3D e mão de cartas
   scripts/            componentes reutilizáveis, uma pasta por componente
+    ui/
+      Ui.h            escala da interface 2D (layout em 1280x720 -> lógica 1920x1080)
     text/
       Text.*          texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: atlas 16/32/64 px, ASCII e Latin-1; sem a fonte, cai na de depuração do SDL
     button/
@@ -43,7 +45,7 @@ src/
     gpu/
       Gpu.*           pipeline SDL_GPU: malhas, texturas, passe com profundidade; InitDevice serve em qualquer thread
     model/
-      Model.*         carrega .glb (cgltf): Parse (CPU, qualquer thread) e Upload (GPU); separa frente, verso e borda
+      Model.*         carrega .glb (cgltf): Parse (CPU, qualquer thread) e Upload (GPU); separa frente, verso e borda; lê baseColor e normalTexture
     hand/
       Hand.*          mão em dock: layout em arco, hover, animação
     hud/
@@ -67,6 +69,7 @@ src/
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
     card.*.glsl       shader GLSL para SPIR-V (Vulkan)
+    card_shadow.frag.glsl  fragmento vazio do passe de sombra (Vulkan)
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
     ost.json          trilha sonora: volume (0 a 1) e lista de MP3 em sounds/, tocados em sequência
@@ -104,6 +107,7 @@ tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
   make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
   make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)
+  normalmap.py        gera normal map (luminância -> Sobel) da textura embutida e grava como normalTexture no GLB; chamado pelos três geradores
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
 cmake/
   embed.cmake         converte arquivo texto em array de bytes C
@@ -171,7 +175,7 @@ Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/
 
 As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
-- Cada carta é uma instância de `models/Card.glb`. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- Arena, portão e tocha têm **normal map** gerado de suas texturas (`tools/normalmap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/Card.glb`, com **normal map** na frente (`CardFrontNormalMap.png`) e no verso (`CardBackNormalMap.png`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
 - **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o monte de 40 é montado por peso `odds` (no máximo 2 cópias por carta, 1 das de hierarquia 1) e **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
@@ -219,13 +223,13 @@ Ao entrar na batalha (depois do fade in da tela de loading), por 1,6 s a arena *
 Ordem de um quadro na cena de batalha:
 
 1. `SDL_FlushRenderer` envia o que o renderer 2D já enfileirou.
-2. `Gpu::BeginFrame` abre um passe de render na textura alvo (1280x720, RGBA8) com buffer de profundidade (D24 ou D32), limpa ambos.
+2. `Gpu::BeginFrame` abre um passe de render na textura alvo (1920x1080, RGBA8) com buffer de profundidade (D24 ou D32), limpa ambos.
 3. Cada `Gpu::Draw` envia uniforms (MVP e modelo no vértice; cor e flag de textura no fragmento), liga textura e sampler, e desenha a malha indexada. Malhas opacas (`kMesh`) usam o pipeline com escrita de profundidade; névoa, chama e halo usam um segundo pipeline igual mas **sem escrita de profundidade**, então testam contra o que é opaco sem esconder o que for desenhado atrás depois (uma camada de névoa à frente não corta a chama).
 4. `Gpu::NewLayer` fecha o passe e abre outro mantendo a cor e limpando só a profundidade. É assim que a mão (câmera fixa) fica sempre por cima da arena (câmera do jogador).
 5. `Gpu::EndFrame` fecha o passe e submete o command buffer.
 6. A cena desenha a textura alvo com `SDL_RenderTexture` e o HUD por cima com o renderer 2D.
 
-O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
+O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Com um **normal map** (segundo sampler, `Gpu::Draw(..., normal_map)`), o referencial tangente também vem das derivadas de posição e UV (cotangent frame), sem tangentes nos vértices; o mapa é lido na convenção OpenGL com o verde invertido porque o V das texturas cresce para baixo. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
 
 Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad), `kFlameGlow` (a mesma chama como halo oval difuso) e `kFoil` (como `kMesh`, mais brilho iridescente dependente do ângulo de visão).
 
@@ -240,6 +244,16 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 | Área branca de baixo | y 712–1031, x 70–730 | `description`, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
 
 Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMode::kFoil`, que soma faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes de raspão, pela fresnel) e com o tempo, com granulado fino; o efeito aparece ao inclinar a carta no hover ou girá-la na inspeção. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
+
+## Sombras
+
+Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 2048x2048 (D32 float) desenhado a partir da própria chama, com projeção perspectiva ampla (130° na batalha, 125° no loading) apontada para o centro da cena. Fluxo em um quadro:
+
+1. Para cada luz, `Gpu::BeginShadowPass(k, light_vp)` abre um passe só de profundidade (pipeline sem alvo de cor, `fs_shadow` vazio), a cena desenha os ocultadores com `Model::DrawDepth` / `Torch::DrawBodyDepth` / `Gpu::DrawShadow` e fecha com `EndShadowPass`. Tudo no mesmo command buffer do quadro.
+2. No passe principal o vertex shader projeta cada vértice nos dois espaços de luz; o fragment shader amostra os mapas com sampler de comparação e **PCF 3x3** (bordas suaves) e multiplica a contribuição da luz correspondente. Bias com inclinação (cresce onde a luz chega de raspão). Fora do frustum da luz não há sombra.
+3. A névoa de chão também recebe sombra (metade da força), então o muro e as tochas projetam sombra no nevoeiro.
+
+`Atmosphere::shadow_strength` (0,85 na arena, 0,9 no loading, 0 na mão) e `shadow_bias`. Ocultadores: arena e corpos das tochas na batalha; muro, porta (que ao abrir sombreia a passagem) e tochas no loading. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
 
 ## Tochas e iluminação
 
@@ -257,6 +271,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 |---|---|
 | `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha) |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
+| `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia |
 | `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |
 | `PONTIFICE_DRAG=...` | Sequência de gestos separados por `;`: `x0,y0,x1,y1,t` arrasta o botão esquerdo de (x0,y0) a (x1,y1) a partir de `t` s (mesmo ponto = clique); `w,dy,t` gira a roda. Testa seleção, inspeção, virar e zoom |
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
@@ -265,7 +280,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (porta num ponto fixo da abertura) |
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 
-Exemplo: `PONTIFICE_SCENE=battle PONTIFICE_MOUSE=640,560 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`
+Exemplo: `PONTIFICE_WINDOWED=1 PONTIFICE_SCENE=battle PONTIFICE_MOUSE=960,840 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`
 
 ## HUD
 

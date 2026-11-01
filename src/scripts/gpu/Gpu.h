@@ -40,6 +40,10 @@ struct Atmosphere {
   float fog_height_strength = 0.0f; // força máxima da névoa de altura (0 desliga)
   math::Vec3 camera_pos{0, 0, 0};
   float vignette = 0.0f;  // 0 desliga
+  // Sombras: cada luz pontual tem um shadow map (ver BeginShadowPass). strength 0 desliga;
+  // bias em profundidade normalizada do mapa, com inclinação aplicada no shader.
+  float shadow_strength = 0.0f;
+  float shadow_bias = 0.0015f;
   // Névoa de chão (DrawMode::kMist): some entre estes raios a partir da origem (xz) e usa
   // esta escala de ruído (maior = fiapos menores).
   float mist_fade_start = 8.0f;
@@ -72,6 +76,16 @@ class Gpu {
   SDL_GPUTexture* CreateTexture(const Image& image);
   void DestroyTexture(SDL_GPUTexture* texture);
 
+  // Sombras (shadow mapping por luz pontual, perspectiva a partir da chama): antes de
+  // BeginFrame, para cada luz (0 ou 1) abre um passe só de profundidade com a matriz
+  // view-projection da luz, desenha os ocultadores com DrawShadow e fecha. Os Draws do quadro
+  // amostram os dois mapas (PCF 3x3) e escurecem a luz correspondente. Falso se o backend não
+  // suporta (as cenas seguem sem sombra).
+  bool BeginShadowPass(int light, const math::Mat4& light_view_proj);
+  void DrawShadow(const GpuMesh& mesh, const math::Mat4& model);
+  void EndShadowPass();
+  bool ShadowsSupported() const { return shadow_pipeline_ != nullptr; }
+
   // Um quadro: BeginFrame limpa a textura alvo, Draw enfileira malhas, EndFrame envia à GPU.
   bool BeginFrame(SDL_FColor clear);
   // Fecha o passe atual e abre outro mantendo a cor e limpando só a profundidade.
@@ -83,8 +97,11 @@ class Gpu {
   // kFlameGlow: a mesma chama como halo difuso (oval, base esmaecida), para um quad maior atrás.
   // kFoil: como kMesh, mais um brilho iridescente que muda com o ângulo de visão (cartas raras).
   enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow, kFoil };
+  // normal_map (opcional, só com textura): mapa de normais em espaço tangente (OpenGL, verde
+  // para cima); o shader monta o referencial tangente pelas derivadas de posição e UV.
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,
-            const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode = DrawMode::kMesh);
+            const math::Mat4& view_proj, SDL_FColor tint, DrawMode mode = DrawMode::kMesh,
+            SDL_GPUTexture* normal_map = nullptr);
   void EndFrame();
 
   // Vale para os Draws seguintes (pode trocar entre camadas).
@@ -95,7 +112,9 @@ class Gpu {
   int Height() const { return height_; }
 
  private:
-  SDL_GPUShader* LoadShader(SDL_GPUShaderStage stage, const std::string& shader_dir);
+  SDL_GPUShader* LoadShader(SDL_GPUShaderStage stage, const std::string& shader_dir,
+                            const char* entrypoint, const char* spv_name, Uint32 num_samplers);
+  bool InitShadows(const std::string& shader_dir, const SDL_GPUVertexInputState& vertex_input);
   SDL_GPUBuffer* UploadBuffer(SDL_GPUBufferUsageFlags usage, const void* data, Uint32 size);
 
   SDL_Renderer* renderer_ = nullptr;
@@ -109,7 +128,15 @@ class Gpu {
   SDL_GPUGraphicsPipeline* pipeline_transparent_ = nullptr;
   SDL_GPUGraphicsPipeline* bound_pipeline_ = nullptr;
   SDL_GPUSampler* sampler_ = nullptr;
-  SDL_GPUTexture* white_ = nullptr;  // textura 1x1 para malhas sem textura
+  SDL_GPUTexture* white_ = nullptr;        // textura 1x1 para malhas sem textura
+  SDL_GPUTexture* flat_normal_ = nullptr;  // normal map 1x1 plano (128, 128, 255)
+  // Shadow maps (um por luz pontual), sampler de comparação e pipeline só de profundidade.
+  static constexpr int kShadowSize = 2048;
+  SDL_GPUTexture* shadow_[2] = {nullptr, nullptr};
+  SDL_GPUSampler* shadow_sampler_ = nullptr;
+  SDL_GPUGraphicsPipeline* shadow_pipeline_ = nullptr;
+  math::Mat4 light_vp_[2];
+  int shadow_pass_light_ = -1;
   int width_ = 0;
   int height_ = 0;
   Atmosphere atmosphere_;

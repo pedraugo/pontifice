@@ -10,18 +10,23 @@ struct VertexOut {
   float4 position [[position]];
   float3 world_pos;
   float2 uv;
+  float4 light_pos0;  // posição em clip da luz 0 (shadow map)
+  float4 light_pos1;
 };
 
 struct VertexUniforms {
   float4x4 mvp;
   float4x4 model;
+  float4x4 light_vp0;
+  float4x4 light_vp1;
 };
 
 // Mesma ordem e tamanho de Gpu::FragmentUniforms (só float4, sem padding).
 struct FragmentUniforms {
   float4 color;        // tint; multiplica a textura ou é a cor sólida
-  float4 params;       // x = 1 usa textura; y = modo (0 malha, 1 névoa, 2 emissivo, 3 chama,
-                       // 4 halo da chama, 5 malha com foil); z = tempo; w = vinheta
+  float4 params;       // x = textura (0 não, 1 sim, 2 sim + normal map); y = modo (0 malha,
+                       // 1 névoa, 2 emissivo, 3 chama, 4 halo da chama, 5 malha com foil);
+                       // z = tempo; w = vinheta
   float4 light_dir;    // xyz direção para a luz principal (normalizada), w = intensidade
   float4 light_color;  // rgb cor da luz principal (quente, tocha)
   float4 ambient;      // rgb luz ambiente (fria)
@@ -33,6 +38,7 @@ struct FragmentUniforms {
   float4 resolution;   // xy tamanho do alvo em pixels
   float4 mist;         // x, y = raios onde a névoa de chão começa a sumir e some; z = escala do
                        // ruído; w = densidade (desloca o limiar do ruído para baixo)
+  float4 shadow;       // x = força (0 = sem sombra), y = bias, z = 1 / tamanho do mapa
 };
 
 vertex VertexOut vs_main(VertexIn in [[stage_in]], constant VertexUniforms& u [[buffer(0)]]) {
@@ -40,7 +46,30 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant VertexUniforms& u [[
   out.position = u.mvp * float4(in.position, 1.0);
   out.world_pos = (u.model * float4(in.position, 1.0)).xyz;
   out.uv = in.uv;
+  out.light_pos0 = u.light_vp0 * float4(out.world_pos, 1.0);
+  out.light_pos1 = u.light_vp1 * float4(out.world_pos, 1.0);
   return out;
+}
+
+// Passe de sombra: só profundidade.
+fragment void fs_shadow(VertexOut in [[stage_in]]) {}
+
+// Fração iluminada (0 = sombra) pelo shadow map de uma luz: PCF 3x3 com sampler de comparação.
+// ndl = |n . direção da luz|, para o bias crescer onde a luz chega de raspão.
+static float ShadowFactor(depth2d<float> map, sampler smp, float4 lp, float bias, float texel,
+                          float ndl) {
+  if (lp.w <= 0.0) return 1.0;
+  const float3 p = lp.xyz / lp.w;
+  const float2 uv = float2(p.x * 0.5 + 0.5, 1.0 - (p.y * 0.5 + 0.5));
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 || p.z > 1.0) return 1.0;
+  const float ref = p.z - bias * (1.0 + 4.0 * (1.0 - ndl));
+  float sum = 0.0;
+  for (int dy = -1; dy <= 1; ++dy) {
+    for (int dx = -1; dx <= 1; ++dx) {
+      sum += map.sample_compare(smp, uv + float2(dx, dy) * texel, ref);
+    }
+  }
+  return sum / 9.0;
 }
 
 // Ruído de valor barato; suficiente para névoa rolando ao fundo.
@@ -103,7 +132,10 @@ static float4 Flame(float2 uv, float3 world_pos, float t, bool glow) {
 }
 
 fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]],
-                        sampler smp [[sampler(0)]], constant FragmentUniforms& u [[buffer(0)]]) {
+                        sampler smp [[sampler(0)]], texture2d<float> nmap [[texture(1)]],
+                        sampler nsmp [[sampler(1)]], depth2d<float> shadow0 [[texture(2)]],
+                        sampler ssmp0 [[sampler(2)]], depth2d<float> shadow1 [[texture(3)]],
+                        sampler ssmp1 [[sampler(3)]], constant FragmentUniforms& u [[buffer(0)]]) {
   const float t = u.params.z;
   // Tremular de chama: modula as luzes quentes (principal e pontual).
   const float flicker = 1.0 + 0.035 * sin(t * 11.0) + 0.025 * sin(t * 6.3 + 1.7);
@@ -127,30 +159,59 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
     const float mist = smoothstep(0.32 - u.mist.w, 0.82 - u.mist.w, n1 * 0.65 + n2 * 0.35);
     const float r = length(in.world_pos.xz);
     const float falloff = 1.0 - smoothstep(u.mist.x, u.mist.y, r);
-    // Brilho das luzes pontuais chega na névoa perto delas.
+    // Brilho das luzes pontuais chega na névoa perto delas (menos onde há sombra).
     const float3 to_point = u.point_light.xyz - in.world_pos;
     const float3 to_point2 = u.point_light2.xyz - in.world_pos;
-    const float glow = u.point_light.w / (1.0 + dot(to_point, to_point) * 0.03) +
-                       u.point_light2.w / (1.0 + dot(to_point2, to_point2) * 0.03);
+    float s0 = 1.0, s1 = 1.0;
+    if (u.shadow.x > 0.0) {
+      // Na névoa a sombra é mais suave (metade da força): ela é volume, não superfície.
+      s0 = mix(1.0, ShadowFactor(shadow0, ssmp0, in.light_pos0, u.shadow.y, u.shadow.z, 1.0), u.shadow.x * 0.5);
+      s1 = mix(1.0, ShadowFactor(shadow1, ssmp1, in.light_pos1, u.shadow.y, u.shadow.z, 1.0), u.shadow.x * 0.5);
+    }
+    const float glow = u.point_light.w * s0 / (1.0 + dot(to_point, to_point) * 0.03) +
+                       u.point_light2.w * s1 / (1.0 + dot(to_point2, to_point2) * 0.03);
     rgb = u.color.rgb * (u.ambient.rgb * 2.5 + u.light_color.rgb * glow * 0.45 * flicker);
     alpha = mist * falloff * u.color.a;
   } else {
     float4 base = u.color;
     if (u.params.x > 0.5) base = tex.sample(smp, in.uv) * u.color;
     // Normal da face via derivadas: funciona para malhas sem normais e é dupla face.
-    const float3 n = normalize(cross(dfdx(in.world_pos), dfdy(in.world_pos)));
+    float3 n = normalize(cross(dfdx(in.world_pos), dfdy(in.world_pos)));
+    if (u.params.x > 1.5) {
+      // Normal map sem tangentes nos vértices: referencial tangente pelas derivadas de posição
+      // e UV (cotangent frame). O mapa é OpenGL (verde = +V para cima na imagem), e o V da
+      // textura cresce para baixo, então o verde é invertido.
+      const float3 dp1 = dfdx(in.world_pos), dp2 = dfdy(in.world_pos);
+      const float2 duv1 = dfdx(in.uv), duv2 = dfdy(in.uv);
+      const float3 dp2perp = cross(dp2, n), dp1perp = cross(n, dp1);
+      const float3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
+      const float3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
+      const float inv_max = rsqrt(max(dot(tangent, tangent), dot(bitangent, bitangent)));
+      float3 tn = nmap.sample(nsmp, in.uv).xyz * 2.0 - 1.0;
+      tn.y = -tn.y;
+      tn.xy *= 2.5;  // intensidade do relevo (os mapas são suaves)
+      n = normalize(tangent * inv_max * tn.x + bitangent * inv_max * tn.y + n * tn.z);
+    }
     // Luz principal: half-lambert suave para não ficar chapado nem preto.
     const float key = abs(dot(n, u.light_dir.xyz)) * 0.6 + 0.4;
     float3 light = u.ambient.rgb + u.light_color.rgb * (u.light_dir.w * key * flicker);
-    // Luzes pontuais quentes (tochas): perto aceso, longe afundando no escuro.
+    // Luzes pontuais quentes (tochas): perto aceso, longe afundando no escuro; cada uma com
+    // o próprio shadow map.
     for (int k = 0; k < 2; ++k) {
       const float4 pt = k == 0 ? u.point_light : u.point_light2;
       if (pt.w <= 0.0) continue;
       const float3 to_point = pt.xyz - in.world_pos;
       const float d2 = dot(to_point, to_point);
-      const float pl = abs(dot(n, to_point * rsqrt(d2))) * 0.7 + 0.3;
+      const float ndl = abs(dot(n, to_point * rsqrt(d2)));
+      const float pl = ndl * 0.7 + 0.3;
       const float atten = pt.w / (1.0 + d2 * 0.035);
-      light += u.light_color.rgb * (pl * atten * flicker);
+      float shade = 1.0;
+      if (u.shadow.x > 0.0) {
+        shade = k == 0 ? ShadowFactor(shadow0, ssmp0, in.light_pos0, u.shadow.y, u.shadow.z, ndl)
+                       : ShadowFactor(shadow1, ssmp1, in.light_pos1, u.shadow.y, u.shadow.z, ndl);
+        shade = mix(1.0, shade, u.shadow.x);
+      }
+      light += u.light_color.rgb * (pl * atten * flicker * shade);
     }
     rgb = base.rgb * light;
     alpha = base.a;

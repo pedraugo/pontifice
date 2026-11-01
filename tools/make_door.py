@@ -532,6 +532,8 @@ def main():
     print("atlas salvo em", OUT_ATLAS, len(png_bytes), "bytes")
     write_glb(OUT_GLB, [wall, door], png_bytes)
     print("gravado", OUT_GLB, os.path.getsize(OUT_GLB), "bytes")
+    import normalmap
+    normalmap.add_to_glb(OUT_GLB, strength=2.0)
 
 
 if __name__ == "__main__":

@@ -308,11 +308,10 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
   }
 }
 
-namespace {
-Gpu::DrawMode FrontMode(const Hand::Card& card) {
-  return card.foil ? Gpu::DrawMode::kFoil : Gpu::DrawMode::kMesh;
+Model::Skin Hand::SkinFor(const Card& card) const {
+  return Model::Skin{card.front, back_, front_normal_, back_normal_,
+                     card.foil ? Gpu::DrawMode::kFoil : Gpu::DrawMode::kMesh};
 }
-}  // namespace
 
 void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (model_ == nullptr) return;
@@ -321,15 +320,14 @@ void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   // por último. Com blend ligado, desenhar na ordem da profundidade evita bordas erradas.
   for (size_t i = 0; i < cards_.size(); ++i) {
     if (static_cast<int>(i) == hovered_ || static_cast<int>(i) == inspect_card_) continue;
-    model_->Draw(gpu, cards_[i].world, view_proj, white, cards_[i].front, back_, FrontMode(cards_[i]));
+    model_->Draw(gpu, cards_[i].world, view_proj, white, SkinFor(cards_[i]));
   }
   if (hovered_ >= 0 && hovered_ < static_cast<int>(cards_.size()) && hovered_ != inspect_card_) {
-    model_->Draw(gpu, cards_[hovered_].world, view_proj, white, cards_[hovered_].front, back_,
-                 FrontMode(cards_[hovered_]));
+    model_->Draw(gpu, cards_[hovered_].world, view_proj, white, SkinFor(cards_[hovered_]));
   }
   // A carta inspecionada (ou voltando) por último: fica na frente de tudo.
   if (inspect_card_ >= 0 && inspect_card_ < static_cast<int>(cards_.size())) {
-    model_->Draw(gpu, cards_[inspect_card_].world, view_proj, white, cards_[inspect_card_].front,
-                 back_, FrontMode(cards_[inspect_card_]));
+    model_->Draw(gpu, cards_[inspect_card_].world, view_proj, white,
+                 SkinFor(cards_[inspect_card_]));
   }
 }

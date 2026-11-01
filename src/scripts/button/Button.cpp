@@ -2,10 +2,13 @@
 
 #include "scripts/colors/Colors.h"
 #include "scripts/text/Text.h"
+#include "scripts/ui/Ui.h"
 
 namespace {
 
-constexpr float kLabelScale = 3.0f;
+constexpr float kLabelScale = 3.0f * ui::kScale;
+constexpr int kBorderThin = 1;
+constexpr int kBorderThick = static_cast<int>(3.0f * ui::kScale + 0.5f);
 
 void FillRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -67,7 +70,7 @@ void Button::Render(SDL_Renderer* r) const {
   const char* border = focused_ ? "button.focusBorder"
                        : hovered_ ? "button.hoverBorder"
                                   : "button.border";
-  StrokeRect(r, rect_, colors::Get(border), highlight ? 3 : 1);
+  StrokeRect(r, rect_, colors::Get(border), highlight ? kBorderThick : kBorderThin);
   text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
                      kLabelScale, colors::Get("button.text"));
 
