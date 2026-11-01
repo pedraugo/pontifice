@@ -9,7 +9,8 @@
 - **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop, em todas as cenas, com ganho do próprio stream (padrão 30%). Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
-- **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução.
+- **Janela**: 1280x720, tamanho fixo (sem `SDL_WINDOW_RESIZABLE`): não redimensiona, não maximiza e não entra em tela cheia.
+- **Resolução lógica**: 1280x720 com letterbox (`SDL_SetRenderLogicalPresentation`), que continua cobrindo telas de alta densidade. Eventos de mouse são convertidos para essa resolução.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto

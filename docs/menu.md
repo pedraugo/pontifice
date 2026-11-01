@@ -63,4 +63,4 @@ Não há mais nada na tela: sem opções, sem créditos extras, sem imagem de fu
 - Cena: `src/scenes/menu/MenuScene.h` e `src/scenes/menu/MenuScene.cpp`.
 - Botões: `src/scripts/button/Button.h` (base), `src/scripts/button/ButtonPlay.cpp` (Jogar), `src/scripts/button/ButtonExit.cpp` (Sair).
 - Texto renderizado com a fonte de depuração do SDL (`SDL_RenderDebugText`) escalada. Será trocada por fonte própria via SDL_ttf quando a direção de arte definir tipografia.
-- Resolução lógica fixa de `1280x720` com letterbox, para o layout não depender do tamanho da janela.
+- Janela de tamanho fixo (`1280x720`, sem redimensionar nem tela cheia) e resolução lógica igual, com letterbox, para o layout não depender do tamanho da janela.

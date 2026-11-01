@@ -61,8 +61,10 @@ bool Init(App& app) {
     return false;
   }
 
+  // Janela de tamanho fixo: sem redimensionar, maximizar ou entrar em tela cheia. Sem
+  // SDL_WINDOW_RESIZABLE o sistema desabilita o zoom/maximizar e o SDL não oferece tela cheia.
   app.window = SDL_CreateWindow("PONTIFICE", kLogicalWidth, kLogicalHeight,
-                                SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+                                SDL_WINDOW_HIGH_PIXEL_DENSITY);
   if (app.window == nullptr) {
     std::fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
     return false;
