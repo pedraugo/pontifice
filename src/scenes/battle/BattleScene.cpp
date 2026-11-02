@@ -211,6 +211,7 @@ BattleScene::~BattleScene() {
   board_.Destroy(*gpu_);
   enemy_board_.Destroy(*gpu_);
   sword_.Destroy(*gpu_);
+  shield_.Destroy(*gpu_);
   card_aura_.Destroy(*gpu_);
   gpu_->DestroyMesh(veil_quad_);
   card_model_.reset();
@@ -260,6 +261,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   }
   enemy_board_.SetSide(-1.0f);
   sword_.Init(*gpu_);
+  shield_.Init(*gpu_);
   // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
   // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
@@ -282,7 +284,13 @@ void BattleScene::Preload(const PreloadInfo& info) {
     if (art.Valid()) arts_[card.code] = std::move(art);
   }
   SDL_Log("Ilustracoes de cartas: %zu", arts_.size());
-  rng_.seed(std::random_device{}());
+  // Depuração: PONTIFICE_SEED=n fixa o sorteio (montes, compras e quem começa) para repetir
+  // uma partida igual.
+  if (const char* env = SDL_getenv("PONTIFICE_SEED")) {
+    rng_.seed(static_cast<unsigned>(SDL_atoi(env)));
+  } else {
+    rng_.seed(std::random_device{}());
+  }
   deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_));
   deck_.Shuffle();
   // Monte do computador conforme o nível (menu; PONTIFICE_DIFFICULTY=easy|medium|hard|impossible
@@ -494,6 +502,7 @@ void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::st
 
 bool BattleScene::Busy() const {
   return !steps_.empty() || board_.Animating() || enemy_board_.Animating() || sword_.Active() ||
+         shield_.Active() ||
          std::fabs(orbit_ - orbit_target_) > 0.001f;
 }
 
@@ -794,6 +803,11 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
     outcome = rules::Resolve(attack, target->defense,
                              rules::EffectiveAttack(*target->info, field_),
                              rules::EffectiveDefense(*target->info, field_));
+    // Carta em defesa: o escudo surge sobre ela e segura o golpe da espada (ou quebra, se ela
+    // não aguenta).
+    if (target->defense) {
+      shield_.Play(hit, mine.CardPosition(slot), sword_.HitDelay(), outcome.defender_destroyed);
+    }
     SDL_Log("%s: %s (%s, %d) ataca %s (%s, %s)", attacker == Side::kPlayer ? "Voce" : "Oponente",
             card->info->name.c_str(), SlotName(slot, a_name), attack,
             target->info->name.c_str(), SlotName(target_slot, d_name),
@@ -1219,6 +1233,7 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   board_.Update(dt_seconds);
   enemy_board_.Update(dt_seconds);
   sword_.Update(dt_seconds);
+  shield_.Update(dt_seconds);
   // Tooltip e ampliação: carta de qualquer lado sob o mouse (fora da mão e sem inspeção).
   tooltip_slot_ = -1;
   if (intro_ >= 1.0f && hand_.Hovered() < 0 && !hand_.Inspecting() && mouse_.x >= 0) {
@@ -1487,6 +1502,7 @@ void BattleScene::Render(SceneContext& ctx) {
     board_.Render(*gpu_, arena_view_proj_);
     enemy_board_.Render(*gpu_, arena_view_proj_);
     sword_.Render(*gpu_, arena_view_proj_);
+    shield_.Render(*gpu_, arena_view_proj_);
     // Névoa depois da arena (transparente): de baixo para cima.
     for (const MistLayer& layer : mist_layers_) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,

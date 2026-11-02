@@ -25,6 +25,7 @@
 #include "scripts/model/Model.h"
 #include "scripts/rules/Rules.h"
 #include "scripts/soundbutton/SoundButton.h"
+#include "scripts/shield/Shield.h"
 #include "scripts/sword/Sword.h"
 #include "scripts/torch/Torch.h"
 
@@ -182,6 +183,7 @@ class BattleScene : public Scene {
   Board board_;        // seu lado do campo
   Board enemy_board_;  // lado do computador
   Sword sword_;        // efeito de golpe nos ataques
+  Shield shield_;  // escudo quando a carta atacada está em defesa
   Hud hud_;
   SDL_Renderer* renderer_ = nullptr;
   SDL_Texture* field_front_2d_ = nullptr;

@@ -74,6 +74,10 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 - Cartas **Neutras** não são afetadas por cartas de campo.
 - O buff e o nerf são aplicados antes de qualquer cálculo de dano.
 
+## Defesa
+
+Quando a carta atacada está em modo de defesa, um escudo dourado e prateado com uma cruz surge em pé sobre ela, virado para o atacante. No golpe da espada ele recua, brilha e solta uma onda de choque. Se a carta aguenta, o escudo fica um instante e some; se ela é destruída, o escudo fica vermelho e cai girando.
+
 ## Carta abatida
 
 Quando uma carta é destruída em combate, de qualquer lado, a arena treme por menos de meio segundo, forte no golpe e sumindo em seguida. A mão e o HUD não tremem.

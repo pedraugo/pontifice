@@ -34,6 +34,8 @@ class Sword {
   // Dispara o golpe em `target` (centro da carta, mundo) vindo de `from` (centro do atacante).
   void Play(const math::Vec3& target, const math::Vec3& from);
   bool Active() const { return time_ < layout_.seconds; }
+  // Segundos de Play até a lâmina chegar na carta (impacto).
+  float HitDelay() const { return layout_.seconds * layout_.swing_end; }
 
   void Update(float dt);
   // Desenha no passe da arena, depois das cartas (a espada é opaca; o rastro, transparente).
