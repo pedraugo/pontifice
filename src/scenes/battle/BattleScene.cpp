@@ -8,6 +8,7 @@
 
 #include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/config/Config.h"
 #include "scripts/frame/Frame.h"
 #include "scripts/i18n/I18n.h"
 #include "scripts/image/Image.h"
@@ -29,22 +30,26 @@ constexpr float kArenaScale = 4.2f;
 constexpr float kArenaBaseY = -0.061f * kArenaScale;
 constexpr float kArenaTopY = 0.3f * kArenaScale;
 
-// Camadas de névoa na base da arena: altura e opacidade de cada uma.
-struct MistLayer {
-  float y;
-  float alpha;
-};
-constexpr MistLayer kMistLayers[] = {{kArenaBaseY + 0.05f, 0.8f},
-                                     {kArenaBaseY + 0.45f, 0.5f}};
-constexpr float kMistHalfSize = 40.0f;
+// Camadas de névoa (altura acima da base da arena e opacidade), de assets/Fog.json:
+// battle.mist.layers (base, sempre) e battle.introMist.layers (manto da abertura).
+std::vector<BattleScene::MistLayer> LoadMistLayers(const char* path) {
+  std::vector<BattleScene::MistLayer> layers;
+  const json::Value* list = config::Node("fog", path);
+  if (list != nullptr && list->IsArray()) {
+    for (const json::Value& item : list->array) {
+      if (!item.IsObject()) continue;
+      layers.push_back({kArenaBaseY + config::Float(item, "y", 0.0f),
+                        config::Float(item, "alpha", 0.5f)});
+    }
+  }
+  return layers;
+}
 
 // Tochas fincadas no chão de cada lado da arena; são a única luz da arena.
 constexpr float kTorchX = 6.4f;
 constexpr float kTorchZ = -1.0f;
 constexpr float kTorchScale = 2.6f;
 constexpr float kTorchTilt = 0.10f;   // rad, levemente inclinadas para fora
-constexpr float kTorchLight = 2.6f;   // intensidade de cada chama
-constexpr float kShadowFov = 130.0f;  // graus: da chama, cobre a arena inteira
 
 // Abertura da batalha: a arena sobe de dentro de uma névoa densa enquanto a câmera se
 // aproxima. A névoa extra fica em alturas fixas do mundo, por isso a arena "fura" camada por
@@ -59,14 +64,6 @@ constexpr float kIgniteSeconds = 0.6f;     // o fogo acende depois de a tocha te
 constexpr float kMatchStart = 3.2f;        // s: sorteio e primeiro turno, com as tochas acesas
 constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};  // câmera longe e alta
 constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
-struct IntroMistLayer {
-  float y;
-  float alpha;
-};
-constexpr IntroMistLayer kIntroMistLayers[] = {
-    {kArenaBaseY + 0.9f, 0.9f}, {kArenaBaseY + 1.3f, 0.8f}, {kArenaTopY - 0.3f, 0.7f},
-    {kArenaTopY + 0.2f, 0.6f},  {kArenaTopY + 0.8f, 0.45f},
-};
 
 // Virada de campo (docs/detalhes_tecnicos.md): a câmera orbita 180° em torno do centro da
 // arena no turno do computador e volta no seu.
@@ -251,10 +248,13 @@ void BattleScene::Preload(const PreloadInfo& info) {
     torch_.reset();
   }
   // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
-  const float h = kMistHalfSize;
+  const float h = config::Float("fog", "battle.mist.halfSize", 40.0f);
   mist_quad_ = gpu_->CreateMesh(
       {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
       {0, 1, 2, 0, 2, 3});
+  mist_layers_ = LoadMistLayers("battle.mist.layers");
+  intro_mist_layers_ = LoadMistLayers("battle.introMist.layers");
+  if (mist_layers_.empty()) mist_layers_ = {{kArenaBaseY + 0.05f, 0.8f}, {kArenaBaseY + 0.45f, 0.5f}};
 }
 
 SDL_GPUTexture* BattleScene::UploadSprite(const Image& image) {
@@ -683,9 +683,10 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
   hud_.ClearFieldCard();
   hud_.SetGraveyard(0);
-  // Fundo = cor da névoa: o que some na distância se funde com ele (assets/colors.json).
-  fog_color_ = colors::GetF("background.fog");
-  mist_color_ = colors::GetF("background.mist");
+  // Fundo = cor da névoa: o que some na distância se funde com ele (assets/Fog.json, que
+  // por padrão aponta para os papéis background.fog e background.mist de colors.json).
+  fog_color_ = config::Color("fog", "battle.fog.color", colors::GetF("background.fog"));
+  mist_color_ = config::Color("fog", "battle.mist.color", colors::GetF("background.mist"));
   if (field_front_2d_ == nullptr) {
     field_front_2d_ = UploadHudSprite(ctx.renderer, hud_field_);
     hud_field_ = Image{};
@@ -720,31 +721,42 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
 
   // Clima medieval: a luz da arena vem só das duas tochas (luzes pontuais nas chamas, cor
-  // quente, com tremular); sem luz direcional, ambiente frio e fraco, névoa na base e vinheta.
-  arena_atmosphere_.light_dir = {-0.35f, 1.0f, 0.45f};
-  arena_atmosphere_.light_intensity = 0.0f;
-  arena_atmosphere_.light_color = {1.0f, 0.74f, 0.46f, 1.0f};
-  arena_atmosphere_.ambient = {0.07f, 0.08f, 0.13f, 1.0f};
+  // amarelo-branca de Torch::LightColor, com tremular); sem luz direcional, ambiente frio e
+  // fraco, névoa na base e vinheta. Valores em assets/Light.json (battle.arena, torch),
+  // Fog.json (battle.fog, battle.mist) e Shadow.json (battle).
+  arena_atmosphere_.light_dir = config::Vec3("light", "battle.arena.lightDir", {-0.35f, 1.0f, 0.45f});
+  arena_atmosphere_.light_intensity = config::Float("light", "battle.arena.lightIntensity", 0.0f);
+  arena_atmosphere_.light_color = Torch::LightColor();
+  arena_atmosphere_.ambient = config::Color("light", "battle.arena.ambient", {0.07f, 0.08f, 0.13f, 1.0f});
   arena_atmosphere_.point_intensity = 0.0f;  // acendem quando o fogo surge nas tochas
   arena_atmosphere_.point2_intensity = 0.0f;
   arena_atmosphere_.fog_color = fog_color_;
-  arena_atmosphere_.fog_density = 0.05f;
-  arena_atmosphere_.fog_start = 15.0f;
-  arena_atmosphere_.fog_full_y = kArenaBaseY;
-  arena_atmosphere_.fog_clear_y = kArenaTopY - 0.2f;
-  arena_atmosphere_.fog_height_strength = 0.9f;
+  arena_atmosphere_.fog_density = config::Float("fog", "battle.fog.density", 0.05f);
+  arena_atmosphere_.fog_start = config::Float("fog", "battle.fog.start", 15.0f);
+  arena_atmosphere_.fog_full_y = kArenaBaseY + config::Float("fog", "battle.fog.fullYOffset", 0.0f);
+  arena_atmosphere_.fog_clear_y = kArenaTopY + config::Float("fog", "battle.fog.clearYOffset", -0.2f);
+  arena_atmosphere_.fog_height_strength = config::Float("fog", "battle.fog.heightStrength", 0.9f);
   arena_atmosphere_.camera_pos = eye;
-  arena_atmosphere_.vignette = 0.55f;
-  arena_atmosphere_.shadow_strength = 0.85f;
+  arena_atmosphere_.vignette = config::Float("light", "battle.arena.vignette", 0.55f);
+  arena_atmosphere_.shadow_strength = config::Float("shadow", "battle.strength", 0.85f);
+  arena_atmosphere_.shadow_bias = config::Float("shadow", "bias", 0.0015f);
+  arena_atmosphere_.mist_fade_start = config::Float("fog", "battle.mist.fadeStart", 8.0f);
+  arena_atmosphere_.mist_fade_end = config::Float("fog", "battle.mist.fadeEnd", 28.0f);
+  arena_atmosphere_.mist_noise_scale = config::Float("fog", "battle.mist.noiseScale", 1.0f);
+  torch_light_ = config::Float("light", "torch.battle.intensity", 2.6f);
+  shadow_proj_ = math::Mat4::Perspective(
+      math::Radians(config::Float("shadow", "battle.fov", 130.0f)), 1.0f,
+      config::Float("shadow", "battle.near", 0.3f), config::Float("shadow", "battle.far", 60.0f));
+  shadow_target_ = config::Vec3("shadow", "battle.target", {0.0f, 0.3f, 0.0f});
 
-  // Mão: mesma tocha amarela (luz principal e pontual, com o mesmo tremular), ambiente um
+  // Mão: mesma luz da tocha (principal e pontual, com o mesmo tremular), ambiente um
   // pouco mais claro para as cartas ficarem legíveis. Sem névoa nem vinheta.
-  hand_atmosphere_.light_dir = {0.3f, 0.6f, 1.0f};
-  hand_atmosphere_.light_intensity = 0.5f;
+  hand_atmosphere_.light_dir = config::Vec3("light", "battle.hand.lightDir", {0.3f, 0.6f, 1.0f});
+  hand_atmosphere_.light_intensity = config::Float("light", "battle.hand.lightIntensity", 0.5f);
   hand_atmosphere_.light_color = arena_atmosphere_.light_color;
-  hand_atmosphere_.ambient = {0.34f, 0.36f, 0.46f, 1.0f};
-  hand_atmosphere_.point_pos = {0.0f, 2.5f, 4.0f};  // acima e à frente da mão
-  hand_atmosphere_.point_intensity = 1.0f;
+  hand_atmosphere_.ambient = config::Color("light", "battle.hand.ambient", {0.34f, 0.36f, 0.46f, 1.0f});
+  hand_atmosphere_.point_pos = config::Vec3("light", "battle.hand.pointPos", {0.0f, 2.5f, 4.0f});
+  hand_atmosphere_.point_intensity = config::Float("light", "battle.hand.pointIntensity", 1.0f);
   hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
   UpdateIntro(0.0f);  // primeiro quadro já com a arena afundada e a câmera longe
@@ -769,14 +781,12 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
   arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
   // Sombras: cada chama olha para o centro da arena com campo bem aberto.
-  const math::Mat4 shadow_proj =
-      math::Mat4::Perspective(math::Radians(kShadowFov), 1.0f, 0.3f, 60.0f);
   for (int k = 0; k < 2; ++k) {
     const math::Vec3 flame = k == 0 ? arena_atmosphere_.point_pos : arena_atmosphere_.point2_pos;
-    torch_light_vp_[k] = shadow_proj * math::Mat4::LookAt(flame, {0.0f, 0.3f, 0.0f}, {0, 1, 0});
+    torch_light_vp_[k] = shadow_proj_ * math::Mat4::LookAt(flame, shadow_target_, {0, 1, 0});
   }
-  arena_atmosphere_.point_intensity = kTorchLight * ignite_;
-  arena_atmosphere_.point2_intensity = kTorchLight * ignite_;
+  arena_atmosphere_.point_intensity = torch_light_ * ignite_;
+  arena_atmosphere_.point2_intensity = torch_light_ * ignite_;
   const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
@@ -1122,7 +1132,7 @@ void BattleScene::Render(SceneContext& ctx) {
     enemy_board_.Render(*gpu_, arena_view_proj_);
     sword_.Render(*gpu_, arena_view_proj_);
     // Névoa depois da arena (transparente): de baixo para cima.
-    for (const MistLayer& layer : kMistLayers) {
+    for (const MistLayer& layer : mist_layers_) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
                  SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b, layer.alpha},
                  Gpu::DrawMode::kMist);
@@ -1131,11 +1141,12 @@ void BattleScene::Render(SceneContext& ctx) {
     if (intro_ < 1.0f) {
       const float remain = 1.0f - intro_;
       Atmosphere dense = arena_atmosphere_;
-      dense.mist_density = 0.3f * remain;      // manto fechado no início, fiapos no fim
-      dense.mist_fade_start = 10.0f;
-      dense.mist_fade_end = 30.0f;
+      // Manto fechado no início, fiapos no fim (Fog.json, battle.introMist).
+      dense.mist_density = config::Float("fog", "battle.introMist.density", 0.3f) * remain;
+      dense.mist_fade_start = config::Float("fog", "battle.introMist.fadeStart", 10.0f);
+      dense.mist_fade_end = config::Float("fog", "battle.introMist.fadeEnd", 30.0f);
       gpu_->SetAtmosphere(dense);
-      for (const IntroMistLayer& layer : kIntroMistLayers) {
+      for (const MistLayer& layer : intro_mist_layers_) {
         gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}),
                    arena_view_proj_,
                    SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b,

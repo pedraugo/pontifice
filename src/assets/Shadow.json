@@ -1,0 +1,23 @@
+{
+  "notes": [
+    "Sombras do jogo (scripts/config, nome \"shadow\"): shadow mapping por luz pontual, um mapa por tocha.",
+    "mapSize: lado do mapa de profundidade em px (potência de 2). bias: deslocamento em profundidade normalizada contra acne.",
+    "Por cena: strength 0..1 (0 desliga), câmera da sombra a partir da chama: fov em graus, planos near/far e o ponto para onde olha (target)."
+  ],
+  "mapSize": 2048,
+  "bias": 0.0015,
+  "battle": {
+    "strength": 0.85,
+    "fov": 130.0,
+    "near": 0.3,
+    "far": 60.0,
+    "target": [0.0, 0.3, 0.0]
+  },
+  "loading": {
+    "strength": 0.9,
+    "fov": 125.0,
+    "near": 0.2,
+    "far": 40.0,
+    "target": [0.0, 1.4, -0.4]
+  }
+}

@@ -17,6 +17,9 @@ class Torch {
   // Medidas do modelo (mesmas de tools/make_torch.py).
   static constexpr float kFlameBaseY = 0.82f;
   static constexpr float kFlameCenterY = 1.04f;
+  // Cor da luz que a tocha lança nas cenas (Atmosphere::light_color), de assets/Light.json
+  // (torch.color): amarelo-branco, como a chama perto do núcleo. O halo usa a mesma cor.
+  static SDL_FColor LightColor();
 
   bool LoadGlb(Gpu& gpu, const std::string& path) { return model_.LoadGlb(gpu, path); }
   bool Upload(Gpu& gpu, Model::Data&& data) { return model_.Upload(gpu, std::move(data)); }

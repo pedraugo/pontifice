@@ -2,8 +2,10 @@
 
 #include <cmath>
 #include <cstdint>
+#include <map>
 
 #include "scripts/colors/Colors.h"
+#include "scripts/config/Config.h"
 #include "scripts/ui/Ui.h"
 
 namespace {
@@ -83,29 +85,53 @@ SDL_Texture* Clouds::MakeNoiseTexture(SDL_Renderer* renderer, unsigned seed, flo
 bool Clouds::Init(SDL_Renderer* renderer, int width, int height) {
   width_ = width;
   height_ = height;
-  SDL_Texture* far = MakeNoiseTexture(renderer, 3u, 0.36f, 0.34f);    // manto contínuo
-  SDL_Texture* dense = MakeNoiseTexture(renderer, 7u, 0.42f, 0.30f);  // massas grandes
-  SDL_Texture* wispy = MakeNoiseTexture(renderer, 31u, 0.55f, 0.18f); // fiapos ralos
-  SDL_Texture* puffs = MakeNoiseTexture(renderer, 53u, 0.60f, 0.10f); // nuvens soltas
-  if (far == nullptr || dense == nullptr || wispy == nullptr || puffs == nullptr) return false;
-
-  // Atrás do texto, do fundo para a frente: cada camada mais clara, menor e mais rápida que
-  // a anterior; sentidos alternados reforçam a paralaxe.
-  back_ = {
-      {far, "menu.cloudFar", 4.0f, 4.0f, 0.5f, 0.90f, 0.0f, 0.0f},
-      {dense, "menu.cloudBack", 3.0f, 9.0f, 1.5f, 0.85f, 900.0f, 200.0f},
-      {dense, "menu.cloudMid", 2.2f, -16.0f, -2.0f, 0.55f, 600.0f, 90.0f},
-      {wispy, "menu.cloudNear", 1.8f, 21.0f, 2.5f, 0.45f, 150.0f, 300.0f},
+  // Texturas de ruído e camadas vêm de assets/Fog.json (menu.clouds). Texturas: "far" manto
+  // contínuo, "dense" massas grandes, "wispy" fiapos ralos, "puffs" nuvens soltas.
+  std::map<std::string, SDL_Texture*> textures;
+  const json::Value* defs = config::Node("fog", "menu.clouds.textures");
+  if (defs != nullptr && defs->IsObject()) {
+    for (const auto& [name, def] : defs->object) {
+      if (!def.IsObject()) continue;
+      SDL_Texture* t = MakeNoiseTexture(renderer, static_cast<unsigned>(config::Float(def, "seed", 1.0f)),
+                                        config::Float(def, "threshold", 0.5f),
+                                        config::Float(def, "softness", 0.2f));
+      if (t == nullptr) return false;
+      textures[name] = t;
+    }
+  }
+  if (textures.empty()) {  // sem Fog.json: um manto simples
+    SDL_Texture* t = MakeNoiseTexture(renderer, 3u, 0.36f, 0.34f);
+    if (t == nullptr) return false;
+    textures["far"] = t;
+  }
+  // Atrás do texto (back), do fundo para a frente: cada camada mais clara, menor e mais
+  // rápida que a anterior; sentidos alternados reforçam a paralaxe. Na frente do texto e
+  // dos botões (front): névoa rala contínua, nuvens soltas que passam por cima de vez em
+  // quando e fiapos rápidos bem transparentes; tudo translúcido para não esconder.
+  auto load_layers = [&](const char* path, std::vector<Layer>& out) {
+    const json::Value* list = config::Node("fog", path);
+    if (list == nullptr || !list->IsArray()) return;
+    for (const json::Value& item : list->array) {
+      if (!item.IsObject()) continue;
+      const auto texture = textures.find(config::String(item, "texture", "far"));
+      if (texture == textures.end()) continue;
+      Layer layer;
+      layer.texture = texture->second;
+      layer.color_role = config::String(item, "color", "menu.cloudFar");
+      layer.scale = config::Float(item, "scale", 2.0f);
+      layer.speed_x = config::Float(item, "speedX", 0.0f);
+      layer.speed_y = config::Float(item, "speedY", 0.0f);
+      layer.alpha = config::Float(item, "alpha", 0.5f);
+      layer.offset_x = config::Float(item, "offsetX", 0.0f);
+      layer.offset_y = config::Float(item, "offsetY", 0.0f);
+      out.push_back(layer);
+    }
   };
-  // Na frente do texto e dos botões: névoa rala contínua, nuvens soltas que passam por cima
-  // de vez em quando e fiapos rápidos bem transparentes; tudo translúcido para não esconder.
-  front_ = {
-      {wispy, "menu.cloudFront", 2.6f, 28.0f, 3.0f, 0.35f, 300.0f, 40.0f},
-      {puffs, "menu.cloudPuff", 2.8f, 38.0f, -4.0f, 0.70f, 1100.0f, 500.0f},
-      {wispy, "menu.cloudFront", 1.4f, 56.0f, 5.0f, 0.22f, 500.0f, 120.0f},
-  };
-  // Medidas acima em px de 1280x720: tamanho do ladrilho, velocidade e deslocamento escalam
-  // para a resolução lógica, mantendo o mesmo visual.
+  load_layers("menu.clouds.back", back_);
+  load_layers("menu.clouds.front", front_);
+  if (back_.empty()) back_.push_back({textures.begin()->second, "menu.cloudFar", 4.0f, 4.0f, 0.5f, 0.9f, 0.0f, 0.0f});
+  // Medidas do arquivo em px de 1280x720: tamanho do ladrilho, velocidade e deslocamento
+  // escalam para a resolução lógica, mantendo o mesmo visual.
   for (std::vector<Layer>* group : {&back_, &front_}) {
     for (Layer& layer : *group) {
       layer.scale *= ui::kScale;

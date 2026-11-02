@@ -7,6 +7,7 @@
 
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/config/Config.h"
 #include "scripts/i18n/I18n.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
@@ -21,7 +22,6 @@ constexpr float kTorchX = 1.72f;
 constexpr float kTorchY = 1.75f;      // ponta do cabo
 constexpr float kTorchZ = 0.16f;      // à frente da parede
 constexpr float kTorchTilt = 0.22f;   // rad, para fora
-constexpr float kTorchLight = 0.9f;   // intensidade de cada chama
 // Linha do tempo (segundos).
 constexpr float kFadeInSeconds = 0.5f;   // entrada do preto
 constexpr float kOpenStart = 0.6f;       // porta começa a abrir
@@ -32,23 +32,25 @@ constexpr float kNextFadeIn = 1.0f;      // fade in da próxima cena
 constexpr float kMaxAngle = 100.0f * math::kPi / 180.0f;
 constexpr float kMaxDt = 0.05f;  // um quadro longo (envio à GPU) não faz a animação pular
 
-// Névoa densa e espessa no chão: camadas kMist empilhadas. De baixo para cima cada camada é
-// mais transparente, menos densa (mais fiapos) e alcança menos longe do portão, para o manto
-// ter volume (largo embaixo, estreito em cima) em vez de um lençol com borda reta.
-struct MistLayer {
-  float y;
-  float alpha;
-  float density;     // Atmosphere::mist_density
-  float fade_start;  // raios onde some (Atmosphere::mist_fade_*)
-  float fade_end;
-};
-constexpr MistLayer kMistLayers[] = {
-    {0.02f, 0.95f, 0.20f, 4.0f, 12.0f}, {0.16f, 0.85f, 0.17f, 3.6f, 10.5f},
-    {0.32f, 0.75f, 0.14f, 3.2f, 9.0f},  {0.50f, 0.62f, 0.11f, 2.8f, 7.6f},
-    {0.72f, 0.48f, 0.08f, 2.4f, 6.4f},  {0.98f, 0.34f, 0.05f, 2.0f, 5.4f},
-    {1.30f, 0.20f, 0.02f, 1.6f, 4.6f},
-};
-constexpr float kMistHalfSize = 40.0f;
+// Névoa densa e espessa no chão: camadas empilhadas (assets/Fog.json, loading.mist.layers).
+// De baixo para cima cada camada é mais transparente, menos densa (mais fiapos) e alcança
+// menos longe do portão, para o manto ter volume (largo embaixo, estreito em cima) em vez de
+// um lençol com borda reta.
+std::vector<LoadingScene::MistLayer> LoadMistLayers() {
+  std::vector<LoadingScene::MistLayer> layers;
+  const json::Value* list = config::Node("fog", "loading.mist.layers");
+  if (list != nullptr && list->IsArray()) {
+    for (const json::Value& item : list->array) {
+      if (!item.IsObject()) continue;
+      layers.push_back({config::Float(item, "y", 0.0f), config::Float(item, "alpha", 0.5f),
+                        config::Float(item, "density", 0.1f),
+                        config::Float(item, "fadeStart", 3.0f),
+                        config::Float(item, "fadeEnd", 8.0f)});
+    }
+  }
+  if (layers.empty()) layers.push_back({0.02f, 0.95f, 0.20f, 4.0f, 12.0f});
+  return layers;
+}
 
 std::string BasePath() {
   const char* base = SDL_GetBasePath();
@@ -101,38 +103,47 @@ void LoadingScene::OnEnter(SceneContext& ctx) {
   torch_world_[1] = math::Mat4::Translate({kTorchX, kTorchY, kTorchZ}) *
                     math::Mat4::RotateZ(-kTorchTilt);
 
-  const float h = kMistHalfSize;
+  const float h = config::Float("fog", "loading.mist.halfSize", 40.0f);
   mist_quad_ = gpu_->CreateMesh(
       {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
       {0, 1, 2, 0, 2, 3});
-  mist_color_ = colors::GetF("background.loadingMist");
+  mist_color_ = config::Color("fog", "loading.mist.color", colors::GetF("background.loadingMist"));
+  mist_layers_ = LoadMistLayers();
 
   // Vazio preto: toda a luz vem das duas tochas (luzes pontuais nas chamas); sem luz
   // direcional e com ambiente mínimo só para o que fica de costas não sumir. Névoa por
   // distância preta (a passagem some no escuro) e vinheta forte. A névoa de chão é feita
   // pelas camadas kMist, não pela névoa de altura (que escureceria para o preto).
-  atmosphere_.light_dir = {0.45f, 0.55f, 1.0f};
-  atmosphere_.light_intensity = 0.0f;
-  atmosphere_.light_color = {1.0f, 0.78f, 0.52f, 1.0f};
-  atmosphere_.ambient = {0.025f, 0.028f, 0.04f, 1.0f};
+  // Valores em assets/Light.json (loading.*, torch.*), Fog.json (loading.fog) e Shadow.json
+  // (loading.*).
+  atmosphere_.light_dir = config::Vec3("light", "loading.lightDir", {0.45f, 0.55f, 1.0f});
+  atmosphere_.light_intensity = config::Float("light", "loading.lightIntensity", 0.0f);
+  atmosphere_.light_color = Torch::LightColor();
+  atmosphere_.ambient = config::Color("light", "loading.ambient", {0.025f, 0.028f, 0.04f, 1.0f});
+  const float torch_light = config::Float("light", "torch.loading.intensity", 0.9f);
   atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
-  atmosphere_.point_intensity = kTorchLight;
+  atmosphere_.point_intensity = torch_light;
   atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
-  atmosphere_.point2_intensity = kTorchLight;
+  atmosphere_.point2_intensity = torch_light;
   // Sombras: cada chama olha para o centro do portão; o muro, a porta (ao abrir) e as cestas
   // das tochas projetam sombra no muro, na passagem e na névoa do chão.
-  const math::Mat4 shadow_proj = math::Mat4::Perspective(math::Radians(125.0f), 1.0f, 0.2f, 40.0f);
+  const math::Mat4 shadow_proj = math::Mat4::Perspective(
+      math::Radians(config::Float("shadow", "loading.fov", 125.0f)), 1.0f,
+      config::Float("shadow", "loading.near", 0.2f), config::Float("shadow", "loading.far", 40.0f));
+  const math::Vec3 shadow_target = config::Vec3("shadow", "loading.target", {0.0f, 1.4f, -0.4f});
   for (int k = 0; k < 2; ++k) {
     const math::Vec3 flame = k == 0 ? atmosphere_.point_pos : atmosphere_.point2_pos;
-    torch_light_vp_[k] = shadow_proj * math::Mat4::LookAt(flame, {0.0f, 1.4f, -0.4f}, {0, 1, 0});
+    torch_light_vp_[k] = shadow_proj * math::Mat4::LookAt(flame, shadow_target, {0, 1, 0});
   }
-  atmosphere_.shadow_strength = 0.9f;
-  atmosphere_.fog_color = {0, 0, 0, 1};
-  atmosphere_.fog_density = 0.13f;
-  atmosphere_.fog_start = 6.0f;
-  atmosphere_.fog_height_strength = 0.0f;
-  atmosphere_.vignette = 0.8f;
-  atmosphere_.mist_noise_scale = 1.4f;  // alcance e densidade vêm de cada kMistLayer
+  atmosphere_.shadow_strength = config::Float("shadow", "loading.strength", 0.9f);
+  atmosphere_.shadow_bias = config::Float("shadow", "bias", 0.0015f);
+  atmosphere_.fog_color = config::Color("fog", "loading.fog.color", {0, 0, 0, 1});
+  atmosphere_.fog_density = config::Float("fog", "loading.fog.density", 0.13f);
+  atmosphere_.fog_start = config::Float("fog", "loading.fog.start", 6.0f);
+  atmosphere_.fog_height_strength = config::Float("fog", "loading.fog.heightStrength", 0.0f);
+  atmosphere_.vignette = config::Float("light", "loading.vignette", 0.8f);
+  // Alcance e densidade vêm de cada camada (mist_layers_).
+  atmosphere_.mist_noise_scale = config::Float("fog", "loading.mist.noiseScale", 1.4f);
   ready_ = true;
 }
 
@@ -220,7 +231,7 @@ void LoadingScene::Render(SceneContext& ctx) {
     }
     // Névoa no chão depois do portão (transparente), de baixo para cima; cada camada com
     // seu alcance e densidade.
-    for (const MistLayer& layer : kMistLayers) {
+    for (const MistLayer& layer : mist_layers_) {
       Atmosphere mist = atmosphere_;
       mist.mist_density = layer.density;
       mist.mist_fade_start = layer.fade_start;

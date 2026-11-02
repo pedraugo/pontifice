@@ -72,6 +72,15 @@ class BattleScene : public Scene {
   SDL_GPUTexture* UploadSprite(const Image& image);
   SDL_Texture* UploadHudSprite(SDL_Renderer* renderer, const Image& image);
   Face MakeCardFace(const std::string& code);
+
+ public:
+  // Camada de névoa de chão: altura no mundo e opacidade (assets/Fog.json).
+  struct MistLayer {
+    float y;
+    float alpha;
+  };
+
+ private:
   // Frente da carta como SDL_Texture (renderer 2D), para o HUD e o tooltip; composta uma vez
   // por código e guardada.
   SDL_Texture* HudFace(const CardInfo& card);
@@ -183,6 +192,11 @@ class BattleScene : public Scene {
   Atmosphere arena_atmosphere_;
   SDL_FColor fog_color_{};
   SDL_FColor mist_color_{};
+  std::vector<MistLayer> mist_layers_;        // névoa da base (Fog.json, battle.mist)
+  std::vector<MistLayer> intro_mist_layers_;  // manto da abertura (battle.introMist)
+  float torch_light_ = 2.6f;                  // intensidade de cada chama (Light.json)
+  math::Mat4 shadow_proj_;                    // câmera de sombra das chamas (Shadow.json)
+  math::Vec3 shadow_target_{0.0f, 0.3f, 0.0f};
   Atmosphere hand_atmosphere_;
   math::Vec2 mouse_{-1, -1};
   bool ready_ = false;

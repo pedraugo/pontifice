@@ -1,5 +1,7 @@
 #include "scripts/gpu/Gpu.h"
 
+#include "scripts/config/Config.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -218,13 +220,14 @@ bool Gpu::InitShadows(const std::string& shader_dir,
   const SDL_GPUTextureUsageFlags usage =
       SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
   if (!SDL_GPUTextureSupportsFormat(device_, format, SDL_GPU_TEXTURETYPE_2D, usage)) return false;
+  shadow_size_ = SDL_max(256, config::Int("shadow", "mapSize", 2048));
   for (SDL_GPUTexture*& t : shadow_) {
     SDL_GPUTextureCreateInfo info{};
     info.type = SDL_GPU_TEXTURETYPE_2D;
     info.format = format;
     info.usage = usage;
-    info.width = kShadowSize;
-    info.height = kShadowSize;
+    info.width = static_cast<Uint32>(shadow_size_);
+    info.height = static_cast<Uint32>(shadow_size_);
     info.layer_count_or_depth = 1;
     info.num_levels = 1;
     info.sample_count = SDL_GPU_SAMPLECOUNT_1;
@@ -430,7 +433,8 @@ bool Gpu::BeginShadowPass(int light, const math::Mat4& light_view_proj) {
   pass_ = SDL_BeginGPURenderPass(cmd_, nullptr, 0, &depth);
   if (pass_ == nullptr) return false;
   SDL_BindGPUGraphicsPipeline(pass_, shadow_pipeline_);
-  SDL_GPUViewport viewport{0, 0, kShadowSize, kShadowSize, 0.0f, 1.0f};
+  SDL_GPUViewport viewport{0, 0, static_cast<float>(shadow_size_), static_cast<float>(shadow_size_),
+                           0.0f, 1.0f};
   SDL_SetGPUViewport(pass_, &viewport);
   shadow_pass_light_ = light;
   return true;
@@ -556,7 +560,7 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
        {static_cast<float>(width_), static_cast<float>(height_), desaturate_, 0.0f},
        {a.mist_fade_start, a.mist_fade_end, a.mist_noise_scale, a.mist_density},
        {shadow_pipeline_ != nullptr ? a.shadow_strength : 0.0f, a.shadow_bias,
-        1.0f / kShadowSize, 0.0f}};
+        1.0f / static_cast<float>(shadow_size_), 0.0f}};
   SDL_PushGPUFragmentUniformData(cmd_, 0, &fu, sizeof(fu));
 
   // Sem suporte a sombras, os slots 2 e 3 recebem a profundidade principal com o sampler

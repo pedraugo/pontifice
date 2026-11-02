@@ -133,7 +133,7 @@ class Gpu {
   SDL_GPUTexture* white_ = nullptr;        // textura 1x1 para malhas sem textura
   SDL_GPUTexture* flat_normal_ = nullptr;  // normal map 1x1 plano (128, 128, 255)
   // Shadow maps (um por luz pontual), sampler de comparação e pipeline só de profundidade.
-  static constexpr int kShadowSize = 2048;
+  int shadow_size_ = 2048;  // lado do mapa, assets/Shadow.json (mapSize)
   SDL_GPUTexture* shadow_[2] = {nullptr, nullptr};
   SDL_GPUSampler* shadow_sampler_ = nullptr;
   SDL_GPUGraphicsPipeline* shadow_pipeline_ = nullptr;

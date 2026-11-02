@@ -1,0 +1,36 @@
+{
+  "notes": [
+    "Iluminação do jogo (scripts/config, nome \"light\"). Direções apontam PARA a luz e são normalizadas no envio.",
+    "Cores: #rrggbb, papel de colors.json ou [r, g, b] em 0..1. Intensidades em unidades do shader (1 = cheia).",
+    "torch: a tocha é a única fonte de luz da arena e do portão; color vale para a luz pontual e o halo da chama.",
+    "battle.arena: luz da mesa 3D. battle.hand: luz da mão de cartas (camada própria, sem névoa).",
+    "loading: portão 3D no vazio preto, só as duas tochas."
+  ],
+  "torch": {
+    "color": "#fff5d1",
+    "glowAlpha": 0.22,
+    "battle": { "intensity": 2.6 },
+    "loading": { "intensity": 0.9 }
+  },
+  "battle": {
+    "arena": {
+      "lightDir": [-0.35, 1.0, 0.45],
+      "lightIntensity": 0.0,
+      "ambient": [0.07, 0.08, 0.13],
+      "vignette": 0.55
+    },
+    "hand": {
+      "lightDir": [0.3, 0.6, 1.0],
+      "lightIntensity": 0.5,
+      "ambient": [0.34, 0.36, 0.46],
+      "pointPos": [0.0, 2.5, 4.0],
+      "pointIntensity": 1.0
+    }
+  },
+  "loading": {
+    "lightDir": [0.45, 0.55, 1.0],
+    "lightIntensity": 0.0,
+    "ambient": [0.025, 0.028, 0.04],
+    "vignette": 0.8
+  }
+}

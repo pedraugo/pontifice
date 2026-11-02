@@ -65,6 +65,8 @@ src/
       SoundButton.*   botão com ícone de alto-falante (primitivas) que liga/desliga a música
     sword/
       Sword.*         efeito de golpe de espada nos ataques: espada procedural (caixas coloridas) que desce sobre o alvo e rastro de corte emissivo
+    config/
+      Config.*        ajustes de cena em JSON (assets/Light.json, Fog.json, Shadow.json) por caminho com pontos, com padrão no código
     rules/
       Rules.*         regras de combate sem SDL: carta de campo ativa, ataque/defesa efetivos, cálculo de dano
     ai/
@@ -304,19 +306,34 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 
 Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMode::kFoil`, que soma faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes de raspão, pela fresnel) e com o tempo, com granulado fino; o efeito aparece ao inclinar a carta no hover ou girá-la na inspeção. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
 
+## Ajustes em JSON
+
+Iluminação, névoa/nuvens e sombras ficam em três arquivos de `assets/`, lidos em `main.cpp` antes da primeira cena por `scripts/config` e consultados por caminho com pontos (`config::Float("fog", "battle.fog.density", 0.05f)`):
+
+| Arquivo | Nome | Conteúdo |
+|---|---|---|
+| `Light.json` | `light` | Cor, halo e intensidade das tochas (`torch`); luz direcional, ambiente e vinheta da arena (`battle.arena`), da mão (`battle.hand`) e do loading (`loading`) |
+| `Fog.json` | `fog` | Névoa por distância e de altura (`battle.fog`, `loading.fog`); camadas de névoa de chão (`battle.mist`, `loading.mist`); manto da abertura (`battle.introMist`); nuvens do menu e da cena de idioma (`menu.clouds`: texturas de ruído e camadas atrás e à frente) |
+| `Shadow.json` | `shadow` | Tamanho do mapa (`mapSize`), `bias` e, por cena, força, fov, near/far e alvo da câmera de sombra (`battle`, `loading`) |
+
+- Cores aceitam `#rrggbb`, papel de `colors.json` (`"background.fog"`) ou `[r, g, b]` em 0..1.
+- Valor ausente ou de tipo errado usa o padrão do código (os mesmos números de antes dos arquivos) e avisa no log uma vez.
+- Os valores são lidos ao entrar em cada cena; mudar o arquivo vale na próxima execução.
+- Cada arquivo traz um bloco `notes` explicando os campos.
+
 ## Sombras
 
-Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 2048x2048 (D32 float) desenhado a partir da própria chama, com projeção perspectiva ampla (130° na batalha, 125° no loading) apontada para o centro da cena. Fluxo em um quadro:
+Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 2048x2048 (D32 float, `Shadow.json` `mapSize`) desenhado a partir da própria chama, com projeção perspectiva ampla (130° na batalha, 125° no loading, `Shadow.json`) apontada para o centro da cena. Fluxo em um quadro:
 
 1. Para cada luz, `Gpu::BeginShadowPass(k, light_vp)` abre um passe só de profundidade (pipeline sem alvo de cor, `fs_shadow` vazio), a cena desenha os ocultadores com `Model::DrawDepth` / `Torch::DrawBodyDepth` / `Gpu::DrawShadow` e fecha com `EndShadowPass`. Tudo no mesmo command buffer do quadro.
 2. No passe principal o vertex shader projeta cada vértice nos dois espaços de luz; o fragment shader amostra os mapas com sampler de comparação e **PCF 3x3** (bordas suaves) e multiplica a contribuição da luz correspondente. Bias com inclinação (cresce onde a luz chega de raspão). Fora do frustum da luz não há sombra.
 3. A névoa de chão também recebe sombra (metade da força), então o muro e as tochas projetam sombra no nevoeiro.
 
-`Atmosphere::shadow_strength` (0,85 na arena, 0,9 no loading, 0 na mão) e `shadow_bias`. Ocultadores: arena e corpos das tochas na batalha; muro, porta (que ao abrir sombreia a passagem) e tochas no loading. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
+`Atmosphere::shadow_strength` (0,85 na arena, 0,9 no loading, 0 na mão) e `shadow_bias`, ambos de `Shadow.json`. Ocultadores: arena e corpos das tochas na batalha; muro, porta (que ao abrir sombreia a passagem) e tochas no loading. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
 
 ## Tochas e iluminação
 
-A luz das cenas 3D vem das **tochas** (`models/Torch.glb`, `src/scripts/torch/Torch.*`): cada chama é uma luz pontual (`Atmosphere::point_pos` e `point2_pos`, posição de `Torch::FlamePosition`), de cor quente e com o tremular do shader. A luz direcional fica em zero e o ambiente baixo e frio.
+A luz das cenas 3D vem das **tochas** (`models/Torch.glb`, `src/scripts/torch/Torch.*`): cada chama é uma luz pontual (`Atmosphere::point_pos` e `point2_pos`, posição de `Torch::FlamePosition`), de cor amarelo-branca (`Light.json`, `torch.color`) e com o tremular do shader. A luz direcional fica em zero e o ambiente baixo e frio.
 
 - **Loading**: duas tochas presas nos pilares do portão (x = ±1,72, altura 1,75, inclinadas 0,22 rad para fora), intensidade 0,9 cada.
 - **Batalha**: duas tochas fincadas no chão à esquerda e à direita da arena (x = ±6,4, z = −1, escala 2,6), intensidade 2,6 cada; na abertura emergem do chão depois da arena. A mão continua com a iluminação própria, para as cartas ficarem legíveis.

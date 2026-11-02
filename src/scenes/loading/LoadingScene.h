@@ -4,6 +4,7 @@
 
 #include <future>
 #include <memory>
+#include <vector>
 
 #include "scenes/Scene.h"
 #include "scripts/gpu/Gpu.h"
@@ -18,6 +19,15 @@
 class LoadingScene : public Scene {
  public:
   ~LoadingScene() override;
+
+  // Camada de névoa de chão (assets/Fog.json, loading.mist.layers).
+  struct MistLayer {
+    float y;
+    float alpha;
+    float density;     // Atmosphere::mist_density
+    float fade_start;  // raios onde some (Atmosphere::mist_fade_*)
+    float fade_end;
+  };
 
   void OnEnter(SceneContext& ctx) override;
   void HandleEvent(SceneContext& /*ctx*/, const SDL_Event& /*event*/) override {}
@@ -36,7 +46,8 @@ class LoadingScene : public Scene {
   math::Mat4 torch_world_[2];  // tochas nos pilares esquerdo e direito do portão
   math::Mat4 torch_light_vp_[2];  // câmera de sombra de cada chama
   GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa do chão
-  SDL_FColor mist_color_{};     // background.mist (colors.json)
+  SDL_FColor mist_color_{};     // loading.mist.color (Fog.json)
+  std::vector<MistLayer> mist_layers_;
   std::unique_ptr<Scene> next_;  // cena alvo já carregada, entregue ao SceneManager no fim
   std::future<void> preload_;    // Preload da cena alvo rodando em outra thread
   SceneId target_ = SceneId::kBattle;

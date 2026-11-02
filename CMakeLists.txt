@@ -96,6 +96,7 @@ add_executable(pontifice
   src/scripts/hand/Hand.cpp
   src/scripts/hud/Hud.cpp
   src/scripts/json/Json.cpp
+  src/scripts/config/Config.cpp
   src/scripts/i18n/I18n.cpp
   src/scripts/flag/Flag.cpp
   src/scripts/colors/Colors.cpp

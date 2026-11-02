@@ -11,6 +11,7 @@
 #include "scenes/Scene.h"
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/config/Config.h"
 #include "scripts/image/Image.h"
 #include "scripts/frame/Frame.h"
 #include "scripts/i18n/I18n.h"
@@ -124,6 +125,15 @@ int main(int /*argc*/, char** /*argv*/) {
     const std::string palette = base + "assets/colors.json";
     if (!colors::Load(palette)) {
       std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
+    }
+  }
+  // Ajustes de cena (assets/Light.json, Fog.json, Shadow.json): iluminação, névoa/nuvens e
+  // sombras. Valor ausente cai no padrão do código, com aviso no log.
+  for (const auto& [name, file] : {std::pair{"light", "Light.json"}, std::pair{"fog", "Fog.json"},
+                                   std::pair{"shadow", "Shadow.json"}}) {
+    const std::string path = base + "assets/" + file;
+    if (!config::Load(name, path)) {
+      std::fprintf(stderr, "Ajustes nao carregados (%s); usando os padroes\n", path.c_str());
     }
   }
   // Textos (assets/translate.json): pt, en e es. O idioma é escolhido na primeira cena;

@@ -1,5 +1,7 @@
 #include "scripts/torch/Torch.h"
 
+#include "scripts/config/Config.h"
+
 #include <cmath>
 
 void Torch::DrawBody(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj) const {
@@ -38,12 +40,19 @@ void Torch::DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_
            math::Mat4::Scale({s * sx * wx, s * sy * wy, s}) *
            math::Mat4::Translate({0.0f, -kFlameBaseY, 0.0f});
   };
+  const SDL_FColor light = LightColor();
+  const float glow_alpha = config::Float("light", "torch.glowAlpha", 0.22f);
   for (const Model::Part& part : model_.Parts()) {
     if (part.name != "Flame") continue;
     // Halo: a mesma chama, maior e bem translúcida, dá o brilho difuso em volta.
     gpu.Draw(part.mesh, nullptr, flame_matrix(2.1f, 1.3f, 0.04f), view_proj,
-             SDL_FColor{1.0f, 0.75f, 0.45f, 0.22f * ignite}, Gpu::DrawMode::kFlameGlow);
+             SDL_FColor{light.r, light.g, light.b, glow_alpha * ignite},
+             Gpu::DrawMode::kFlameGlow);
     gpu.Draw(part.mesh, nullptr, flame_matrix(1.0f, 1.0f, 0.0f), view_proj,
              SDL_FColor{1, 1, 1, ignite}, Gpu::DrawMode::kFlame);
   }
+}
+
+SDL_FColor Torch::LightColor() {
+  return config::Color("light", "torch.color", SDL_FColor{1.0f, 0.96f, 0.82f, 1.0f});
 }

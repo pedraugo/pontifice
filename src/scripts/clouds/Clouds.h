@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <string>
 #include <vector>
 
 // Nuvens e névoa em movimento para fundos 2D (menu). Texturas de ruído geradas na CPU ao
@@ -24,7 +25,7 @@ class Clouds {
  private:
   struct Layer {
     SDL_Texture* texture = nullptr;
-    const char* color_role = nullptr;  // papel em colors.json
+    std::string color_role;            // papel em colors.json
     float scale = 1.0f;                // tamanho do ladrilho em relação à textura
     float speed_x = 0.0f;              // px/s na tela (positivo = para a direita)
     float speed_y = 0.0f;
