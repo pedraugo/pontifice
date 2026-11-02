@@ -18,6 +18,9 @@ struct CardInfo {
   int defense = 0;
   int odds = 1;             // peso no sorteio do monte (maior = mais comum)
   bool combinable = false;
+  // Ilustração (imageUrl, relativo ao binário, ex.: "sprites/neutral/N301.png"); o arquivo
+  // pode ainda não existir, e aí a janela da imagem fica em branco.
+  std::string image_url;
   // Só cartas de campo: categoria favorecida ("good"/"evil"), buff e nerf.
   std::string favored;
   int buff = 0;

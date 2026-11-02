@@ -30,6 +30,7 @@ void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
     card.category_name = Str(item.Find("categoryName"));
     card.hierarchy = Int(item.Find("hierarchy"));
     card.hierarchy_name = Str(item.Find("hierarchyName"));
+    card.image_url = Str(item.Find("imageUrl"));
     card.attack = Int(item.Path("attributes.attack"));
     card.defense = Int(item.Path("attributes.defense"));
     card.odds = Int(item.Path("attributes.odds"), 1);

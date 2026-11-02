@@ -158,14 +158,14 @@ Cada arquivo em `src/assets` é um array JSON. Campos comuns a toda carta:
 | `categoryName` | string | `good`, `evil`, `neutral` ou `field`. |
 | `hierarchy` | int | 1 a 4 para cartas de batalha, 0 para cartas de campo. |
 | `hierarchyName` | string | Nome da hierarquia em inglês (ex.: `Archangels`). O exibido vem de `hierarchy.<categoryName>.<hierarchy>` no `translate.json`. Ausente em cartas de campo. |
-| `image`, `imageFile`, `imageUrl` | string | Nome, arquivo e caminho da textura. |
+| `image`, `imageFile`, `imageUrl` | string | Nome, arquivo e caminho da ilustração (`imageUrl` relativo ao binário, ex.: `sprites/neutral/N301.png`). O jogo usa `imageUrl`; se o arquivo não existe, a janela da imagem fica em branco. |
 | `attributes` | objeto | Atributos específicos do tipo de carta. |
 
 `attributes` de carta de batalha: `attack`, `defense`, `odds`, `combinable`.
 
 `attributes` de carta de campo: `odds`, `category` (`good` ou `evil`, lado favorecido), `buff`, `nerf`.
 
-Os JSON são carregados uma vez na inicialização e mantidos em memória como structs. A textura de cada carta é carregada sob demanda a partir de `imageUrl`.
+Os JSON são carregados uma vez na inicialização e mantidos em memória como structs. As ilustrações (`imageUrl`) são lidas no carregamento da batalha e entram na frente composta de cada carta.
 
 ## Campo em 3D
 
@@ -305,6 +305,7 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 | Área | Posição | Conteúdo |
 |---|---|---|
 | Faixa do topo | y 58–114 | `name` à esquerda e `hierarchy` (1 a 4) à direita (56 px); carta de campo não tem hierarquia |
+| Janela da imagem | y 129–576, x 66–733 (668x448) | Ilustração de `imageUrl` (ex.: `sprites/neutral/N301.png`, 1340x900), ajustada uma vez no carregamento da batalha (`cardface::FitArt`: preenche a janela cortando o excesso, centrada) e desenhada antes dos textos; sem o arquivo, fica o branco da moldura |
 | Faixa abaixo da imagem | y 592–688 | `attributes.attack` à esquerda (`ATK 2800`) e `attributes.defense` à direita (`DEF 2900`), 76 px; carta de campo mostra `BUFF +n` e `NERF -n` |
 | Área branca de baixo | y 712–1056, x 70–730 | `description`, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
 
@@ -315,7 +316,7 @@ Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMod
 - **Estrelas**: brilhos em cruz que piscam em pontos sorteados, mais fortes inclinando.
 - **Aura** (`scripts/aura/CardAura.*`, `Gpu::DrawMode::kAura`): grade 4x4 no espaço local da carta, no plano do meio da espessura, desenhada logo antes da carta; UV = distância além da borda. Energia que flui (ruído animado) e pulsa, branco-dourada junto à borda e em arco-íris para fora, com a borda externa irregular. Mais fraca em carta que já atacou e some junto no descarte.
 
-Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 129–576) continua em branco até existirem as ilustrações (`imageFile`).
+Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. Cartas neutras já têm ilustração (`sprites/neutral/`); as outras categorias ficam com a janela em branco até terem os arquivos.
 
 ## Ajustes em JSON
 

@@ -82,12 +82,75 @@ std::vector<std::string> Wrap(const std::string& textstr, float px, float max_wi
 
 namespace cardface {
 
-Image Compose(const Image& frame, const CardInfo& card) {
+Image FitArt(const Image& source) {
+  if (!source.Valid()) return Image{};
+  // Escala de "cobrir" a janela; reduções grandes passam antes por média de blocos (sem
+  // serrilhado), e o resto é amostragem bilinear.
+  Image src = source;
+  float scale = SDL_max(static_cast<float>(kArtWidth) / src.width,
+                        static_cast<float>(kArtHeight) / src.height);
+  const int factor = static_cast<int>(1.0f / scale);
+  if (factor >= 2) {
+    src = src.Downscaled(factor);
+    scale = SDL_max(static_cast<float>(kArtWidth) / src.width,
+                    static_cast<float>(kArtHeight) / src.height);
+  }
+  Image out;
+  out.width = kArtWidth;
+  out.height = kArtHeight;
+  out.rgba.resize(static_cast<size_t>(kArtWidth) * kArtHeight * 4);
+  const float ox = (src.width - kArtWidth / scale) * 0.5f;  // corte centrado
+  const float oy = (src.height - kArtHeight / scale) * 0.5f;
+  auto at = [&src](int x, int y, int c) {
+    x = SDL_clamp(x, 0, src.width - 1);
+    y = SDL_clamp(y, 0, src.height - 1);
+    return static_cast<float>(src.rgba[(static_cast<size_t>(y) * src.width + x) * 4 + c]);
+  };
+  for (int y = 0; y < kArtHeight; ++y) {
+    const float fy = oy + (y + 0.5f) / scale - 0.5f;
+    const int y0 = static_cast<int>(SDL_floorf(fy));
+    const float ty = fy - y0;
+    for (int x = 0; x < kArtWidth; ++x) {
+      const float fx = ox + (x + 0.5f) / scale - 0.5f;
+      const int x0 = static_cast<int>(SDL_floorf(fx));
+      const float tx = fx - x0;
+      uint8_t* o = &out.rgba[(static_cast<size_t>(y) * kArtWidth + x) * 4];
+      for (int c = 0; c < 3; ++c) {
+        const float top = at(x0, y0, c) * (1 - tx) + at(x0 + 1, y0, c) * tx;
+        const float bottom = at(x0, y0 + 1, c) * (1 - tx) + at(x0 + 1, y0 + 1, c) * tx;
+        o[c] = static_cast<uint8_t>(top * (1 - ty) + bottom * ty + 0.5f);
+      }
+      o[3] = 255;
+    }
+  }
+  return out;
+}
+
+Image Compose(const Image& frame, const CardInfo& card, const Image* art) {
   Image img = frame;
   if (!img.Valid()) return img;
   const float sx = static_cast<float>(img.width) / kWidth;  // tolera moldura em outra escala
   const float sy = static_cast<float>(img.height) / kHeight;
   const float cx = img.width / 2.0f;
+
+  // Ilustração na janela da imagem (opaca, substitui o branco da moldura). Com a moldura em
+  // outra escala, amostra pelo vizinho mais próximo.
+  if (art != nullptr && art->Valid()) {
+    const int left = static_cast<int>(kArtLeft * sx), top = static_cast<int>(kArtTop * sy);
+    const int w = static_cast<int>(kArtWidth * sx), h = static_cast<int>(kArtHeight * sy);
+    for (int y = 0; y < h && top + y < img.height; ++y) {
+      const int ay = SDL_min(art->height - 1, y * art->height / SDL_max(h, 1));
+      for (int x = 0; x < w && left + x < img.width; ++x) {
+        const int ax = SDL_min(art->width - 1, x * art->width / SDL_max(w, 1));
+        const uint8_t* s = &art->rgba[(static_cast<size_t>(ay) * art->width + ax) * 4];
+        uint8_t* d = &img.rgba[(static_cast<size_t>(top + y) * img.width + left + x) * 4];
+        d[0] = s[0];
+        d[1] = s[1];
+        d[2] = s[2];
+        d[3] = 255;
+      }
+    }
+  }
 
   // Faixa do topo: nome alinhado à esquerda e número da hierarquia à direita (cartas de
   // campo não têm hierarquia).

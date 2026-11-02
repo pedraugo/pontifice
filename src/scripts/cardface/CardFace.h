@@ -11,7 +11,19 @@ namespace cardface {
 constexpr int kWidth = 800;
 constexpr int kHeight = 1115;
 
-// `frame` já em kWidth x kHeight (moldura reduzida 2x). CPU só: pode rodar em outra thread.
-Image Compose(const Image& frame, const CardInfo& card);
+// Janela da ilustração na moldura (px em kWidth x kHeight): a área branca entre o nome e a
+// faixa de ATK/DEF, x 66..733 e y 129..576 (668 x 448).
+constexpr int kArtLeft = 66;
+constexpr int kArtTop = 129;
+constexpr int kArtWidth = 668;
+constexpr int kArtHeight = 448;
+
+// Ilustração ajustada à janela: preenche kArtWidth x kArtHeight cortando o excesso, centrada
+// (as de sprites/ têm 1340x900, o dobro da janela). Inválida se `source` for.
+Image FitArt(const Image& source);
+
+// `frame` já em kWidth x kHeight (moldura reduzida 2x); `art` (opcional) já de FitArt, vai
+// para a janela da imagem antes dos textos. CPU só: pode rodar em outra thread.
+Image Compose(const Image& frame, const CardInfo& card, const Image* art = nullptr);
 
 }  // namespace cardface

@@ -266,6 +266,17 @@ void BattleScene::Preload(const PreloadInfo& info) {
   // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
   // computador também compra 5 (só os dados; a frente é composta quando a carta entra).
   cards_ = cards::LoadAll(base);
+  // Ilustrações (imageUrl de cada carta), ajustadas uma vez à janela da imagem. Cartas sem o
+  // arquivo ficam com a janela em branco.
+  arts_.clear();
+  for (const CardInfo& card : cards_) {
+    if (card.image_url.empty()) continue;
+    const std::string path = base + card.image_url;
+    if (!SDL_GetPathInfo(path.c_str(), nullptr)) continue;
+    Image art = cardface::FitArt(Image::LoadFile(path));
+    if (art.Valid()) arts_[card.code] = std::move(art);
+  }
+  SDL_Log("Ilustracoes de cartas: %zu", arts_.size());
   rng_.seed(std::random_device{}());
   deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_));
   deck_.Shuffle();
@@ -386,7 +397,13 @@ BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
   if (card == nullptr || gpu_ == nullptr) return {};
   const Image& frame = FrameFor(*card);
   // Hierarquia 1 (Divindades, Soberanos): carta foil.
-  return {UploadSprite(cardface::Compose(frame, *card)), card->hierarchy == 1, card};
+  return {UploadSprite(cardface::Compose(frame, *card, ArtFor(*card))), card->hierarchy == 1,
+          card};
+}
+
+const Image* BattleScene::ArtFor(const CardInfo& card) const {
+  const auto it = arts_.find(card.code);
+  return it != arts_.end() ? &it->second : nullptr;
 }
 
 // Moldura da categoria (CardInfo::FrameSprite): Good, Evil, Neutral ou Field. Sem a neutra,
@@ -412,7 +429,8 @@ SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
   // tooltip mostram de 120 a 300 px de altura.
   const Image& frame = FrameFor(card);
   if (!frame.Valid()) return field_front_2d_;
-  SDL_Texture* texture = UploadHudSprite(renderer_, cardface::Compose(frame, card).Downscaled(2));
+  SDL_Texture* texture =
+      UploadHudSprite(renderer_, cardface::Compose(frame, card, ArtFor(card)).Downscaled(2));
   if (texture == nullptr) return field_front_2d_;
   hud_faces_[card.code] = texture;
   return texture;
