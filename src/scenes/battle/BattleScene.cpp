@@ -402,14 +402,16 @@ BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
           card};
 }
 
-SDL_Texture* BattleScene::HudArt(const CardInfo& card) {
+SDL_Texture* BattleScene::HudArt(const CardInfo& card, bool large) {
   if (renderer_ == nullptr) return nullptr;
-  if (const auto it = hud_arts_.find(card.code); it != hud_arts_.end()) return it->second;
+  const std::string key = large ? card.code + "#large" : card.code;
+  if (const auto it = hud_arts_.find(key); it != hud_arts_.end()) return it->second;
   const Image* art = ArtFor(card);
   if (art == nullptr) return nullptr;
-  // 668x448 reduzida 4x (167x112): no painel a miniatura tem 64 px de altura.
-  SDL_Texture* texture = UploadHudSprite(renderer_, art->Downscaled(4));
-  if (texture != nullptr) hud_arts_[card.code] = texture;
+  // Miniatura: 668x448 reduzida 4x (167x112), no painel tem 64 px de altura. Ampliação:
+  // resolução cheia, mostrada no tamanho nativo.
+  SDL_Texture* texture = UploadHudSprite(renderer_, large ? *art : art->Downscaled(4));
+  if (texture != nullptr) hud_arts_[key] = texture;
   return texture;
 }
 
@@ -718,6 +720,7 @@ void BattleScene::PlayField(Side owner, const CardInfo& card) {
   info.nerf = card.nerf;
   info.image = HudFace(card);
   info.art = HudArt(card);  // o painel mostra só a ilustração, se houver
+  info.art_large = HudArt(card, /*large=*/true);  // ampliação ao passar o mouse
   hud_.SetFieldCard(info);
   SDL_Log("%s ativou a carta de campo %s", owner == Side::kPlayer ? "Voce" : "Oponente",
           card.name.c_str());
@@ -1148,6 +1151,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (!ready_ || paused_) return;  // pausa: abertura, câmera, IA e animações congelam
+  hud_.Update(dt_seconds, mouse_.x, mouse_.y);  // ampliação da ilustração do painel de campo
   if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
   // Virada de campo.

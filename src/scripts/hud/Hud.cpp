@@ -28,6 +28,10 @@ constexpr float kLineGap = ui::Px(8.0f);
 // Proporção da frente da carta (sprites 1600x2230) e da ilustração (janela 668x448).
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 constexpr float kArtAspect = 668.0f / 448.0f;
+// Ilustração ampliada: tamanho nativo da janela da carta (668x448), 1 célula abaixo do painel.
+constexpr float kZoomWidth = 668.0f;
+constexpr float kZoomHeight = 448.0f;
+constexpr float kZoomSeconds = 0.15f;
 
 void FillRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -87,6 +91,19 @@ void Hud::SetDeck(int used, int remaining) {
 
 void Hud::SetGraveyard(int count) { graveyard_ = std::max(count, 0); }
 
+void Hud::Update(float dt, float mouse_x, float mouse_y) {
+  const FieldLayout layout = LayoutField();
+  auto inside = [mouse_x, mouse_y](const SDL_FRect& rect) {
+    return mouse_x >= rect.x && mouse_x < rect.x + rect.w && mouse_y >= rect.y &&
+           mouse_y < rect.y + rect.h;
+  };
+  // Sobre a miniatura abre; já aberta, continua enquanto o mouse estiver sobre a ampliação.
+  zoom_hover_ = has_field_ && layout.art &&
+                (inside(layout.thumb) || (zoom_t_ > 0.5f && inside(ZoomRect())));
+  const float step = dt / kZoomSeconds;
+  zoom_t_ = std::clamp(zoom_t_ + (zoom_hover_ ? step : -step), 0.0f, 1.0f);
+}
+
 void Hud::Render(SDL_Renderer* r, int width, int height) const {
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;
   SDL_GetRenderDrawBlendMode(r, &previous);
@@ -96,29 +113,69 @@ void Hud::Render(SDL_Renderer* r, int width, int height) const {
   RenderLifePanel(r, width);
   RenderDeckPanel(r, height);
   RenderGraveyardPanel(r, width, height);
+  RenderFieldZoom(r);  // por cima dos outros painéis
   if (Over()) RenderResult(r, width, height);
 
   SDL_SetRenderDrawBlendMode(r, previous);
 }
 
-void Hud::RenderFieldPanel(SDL_Renderer* r) const {
+Hud::FieldLayout Hud::LayoutField() const {
   // Compacto: miniatura à esquerda (só a ilustração da carta; sem ela, a carta inteira);
   // nome e, em uma linha cada, buff e nerf à direita. A largura cresce com o texto.
+  FieldLayout layout;
   const float thumb_h = kFieldPanelHeight - 2 * kPadding;
-  const bool art = has_field_ && field_.art != nullptr;
-  const float thumb_w = thumb_h * (art ? kArtAspect : kCardAspect);
-  std::string buff, nerf;
+  layout.art = has_field_ && field_.art != nullptr;
+  const float thumb_w = thumb_h * (layout.art ? kArtAspect : kCardAspect);
   float width = kFieldPanelWidth;
   if (has_field_) {
-    buff = std::string("+") + std::to_string(field_.buff) + " " + CategoryName(field_.favored);
-    nerf = std::string("-") + std::to_string(field_.nerf) + " " +
-           CategoryName(Other(field_.favored));
+    layout.buff =
+        std::string("+") + std::to_string(field_.buff) + " " + CategoryName(field_.favored);
+    layout.nerf = std::string("-") + std::to_string(field_.nerf) + " " +
+                  CategoryName(Other(field_.favored));
     const float text_w = std::max({text::Width(field_.name.c_str(), kLineScale),
-                                   text::Width(buff.c_str(), kDetailScale),
-                                   text::Width(nerf.c_str(), kDetailScale)});
+                                   text::Width(layout.buff.c_str(), kDetailScale),
+                                   text::Width(layout.nerf.c_str(), kDetailScale)});
     width = std::max(width, ui::SnapUp(3 * kPadding + thumb_w + text_w));
   }
-  const SDL_FRect panel{kMargin, kMargin, width, kFieldPanelHeight};
+  layout.panel = SDL_FRect{kMargin, kMargin, width, kFieldPanelHeight};
+  layout.thumb = SDL_FRect{kMargin + kPadding, kMargin + kPadding, thumb_w, thumb_h};
+  return layout;
+}
+
+SDL_FRect Hud::ZoomRect() const {
+  return SDL_FRect{kMargin + kPadding, kMargin + kFieldPanelHeight + ui::Grid(1) + kPadding,
+                   kZoomWidth, kZoomHeight};
+}
+
+void Hud::RenderFieldZoom(SDL_Renderer* r) const {
+  if (zoom_t_ <= 0.0f || !has_field_ || field_.art == nullptr) return;
+  // Cresce da miniatura até ZoomRect (suavizado), clareando; placa de janela em volta.
+  const float t = zoom_t_ * zoom_t_ * (3.0f - 2.0f * zoom_t_);
+  const SDL_FRect from = LayoutField().thumb;
+  const SDL_FRect to = ZoomRect();
+  const SDL_FRect rect{from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t,
+                       from.w + (to.w - from.w) * t, from.h + (to.h - from.h) * t};
+  const float pad = kPadding * t;
+  const SDL_FRect plate{rect.x - pad, rect.y - pad, rect.w + 2 * pad, rect.h + 2 * pad};
+  if (frame::Ready()) {
+    frame::Draw(r, plate, frame::Kind::kWindow, 1.0f, 0.0f, t);
+  } else {
+    SDL_Color fill = colors::Get("panel.fill");
+    fill.a = static_cast<Uint8>(fill.a * t);
+    FillRect(r, plate, fill);
+  }
+  SDL_Texture* texture = field_.art_large != nullptr ? field_.art_large : field_.art;
+  SDL_SetTextureAlphaMod(texture, static_cast<Uint8>(255.0f * std::min(1.0f, 0.4f + t)));
+  SDL_RenderTexture(r, texture, nullptr, &rect);
+  SDL_SetTextureAlphaMod(texture, 255);
+  StrokeRect(r, rect, colors::Get("panel.border"));
+}
+
+void Hud::RenderFieldPanel(SDL_Renderer* r) const {
+  const FieldLayout layout = LayoutField();
+  const SDL_FRect& panel = layout.panel;
+  const std::string& buff = layout.buff;
+  const std::string& nerf = layout.nerf;
   Panel(r, panel);
 
   if (!has_field_) {
@@ -127,8 +184,8 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
     return;
   }
 
-  const SDL_FRect card{panel.x + kPadding, panel.y + kPadding, thumb_w, thumb_h};
-  SDL_Texture* thumb = art ? field_.art : field_.image;
+  const SDL_FRect card = layout.thumb;
+  SDL_Texture* thumb = layout.art ? field_.art : field_.image;
   if (thumb != nullptr) {
     SDL_RenderTexture(r, thumb, nullptr, &card);
   } else {

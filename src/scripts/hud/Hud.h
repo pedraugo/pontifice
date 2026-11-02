@@ -15,6 +15,7 @@ struct FieldCardInfo {
   int nerf = 0;
   SDL_Texture* image = nullptr;  // frente da carta (não é dono): só sem a ilustração
   SDL_Texture* art = nullptr;    // ilustração da carta (não é dono): preferida no painel
+  SDL_Texture* art_large = nullptr;  // ilustração em resolução cheia, para a ampliação
 };
 
 // HUD da batalha (docs/hud.md): camada 2D fixa por cima do campo.
@@ -49,10 +50,24 @@ class Hud {
   // para a direita do botão de som.
   void SetDeckPanelLeft(float x) { deck_panel_left_ = x; }
 
+  // Mouse em px lógicos: com o mouse sobre a ilustração do painel de campo, ela cresce da
+  // miniatura até o tamanho nativo logo abaixo do painel (animação de kZoomSeconds).
+  void Update(float dt, float mouse_x, float mouse_y);
+
   void Render(SDL_Renderer* r, int width, int height) const;
 
  private:
+  // Retângulos do painel de campo (a largura cresce com o texto) e da miniatura.
+  struct FieldLayout {
+    SDL_FRect panel{};
+    SDL_FRect thumb{};
+    bool art = false;  // miniatura é a ilustração (senão, a frente inteira)
+    std::string buff, nerf;
+  };
+  FieldLayout LayoutField() const;
+  SDL_FRect ZoomRect() const;  // ilustração ampliada (tamanho nativo), abaixo do painel
   void RenderFieldPanel(SDL_Renderer* r) const;
+  void RenderFieldZoom(SDL_Renderer* r) const;
   void RenderLifePanel(SDL_Renderer* r, int width) const;
   void RenderDeckPanel(SDL_Renderer* r, int height) const;
   void RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const;
@@ -66,4 +81,6 @@ class Hud {
   int deck_remaining_ = kDeckSize;
   int graveyard_ = 0;
   float deck_panel_left_ = -1.0f;  // < 0: margem padrão
+  float zoom_t_ = 0.0f;            // 0 miniatura .. 1 ilustração ampliada
+  bool zoom_hover_ = false;
 };
