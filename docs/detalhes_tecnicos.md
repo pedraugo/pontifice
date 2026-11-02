@@ -316,7 +316,7 @@ Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMod
 - **Estrelas**: brilhos em cruz que piscam em pontos sorteados, mais fortes inclinando.
 - **Aura** (`scripts/aura/CardAura.*`, `Gpu::DrawMode::kAura`): grade 4x4 no espaço local da carta, no plano do meio da espessura, desenhada logo antes da carta; UV = distância além da borda. Energia que flui (ruído animado) e pulsa, branco-dourada junto à borda e em arco-íris para fora, com a borda externa irregular. Mais fraca em carta que já atacou e some junto no descarte.
 
-Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. Cartas neutras já têm ilustração (`sprites/neutral/`); as outras categorias ficam com a janela em branco até terem os arquivos.
+Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. Cartas neutras (`sprites/neutral/`) e malignas (`sprites/evil/`) já têm ilustração; bondosas e de campo ficam com a janela em branco até terem os arquivos.
 
 ## Ajustes em JSON
 
