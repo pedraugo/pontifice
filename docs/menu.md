@@ -29,7 +29,7 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 | Título | Topo, à direita do ícone | Logotipo `sprites/Logo.png` (letras de pedra, 640 px de largura); sem o arquivo, texto `PONTIFICE` em fonte grande no mesmo lugar |
 | Botão Jogar | Centro, em cima | Texto `Jogar` |
 | Botão Nível | Centro, no meio | Texto `Nível: Fácil`, `Médio`, `Difícil` ou `Impossível`; cada clique passa ao próximo |
-| Botão Sair | Centro, embaixo | Texto `Sair` |
+| Botão Sair | Centro, embaixo | Texto `Sair`, placa vermelha (`sprites/UiFrameButtonDanger.png`), por ser ação destrutiva |
 | Rodapé | Base, centralizado | Texto `Criado por pedraugo`, fonte pequena |
 
 Não há mais nada na tela: sem créditos extras, sem imagem de fundo nesta versão.

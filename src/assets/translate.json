@@ -4,7 +4,7 @@
     "{0}, {1}... são substituídos em tempo de execução (i18n::Format).",
     "Cartas: card.<code>.name e card.<code>.description, um par por carta de assets/Cards*.json.",
     "Hierarquias: hierarchy.<categoryName>.<hierarchy>. Sem chave, o jogo usa o texto do JSON da carta.",
-    "A fonte (PirataOne) cobre ASCII e Latin-1 (0xC0..0xFF): evitar ¿ e ¡, que viram '?'."
+    "A fonte (PirataOne) cobre ASCII e Latin-1 (0xA0..0xFF): acentos, ñ, ç, ¿ e ¡ funcionam."
   ],
   "languages": [
     {
@@ -168,6 +168,21 @@
       "pt": "(já atacou)",
       "en": "(already attacked)",
       "es": "(ya atacó)"
+    },
+    "battle.abandon.question": {
+      "pt": "Deseja realmente abandonar essa batalha?",
+      "en": "Do you really want to abandon this battle?",
+      "es": "¿Realmente deseas abandonar esta batalla?"
+    },
+    "battle.abandon.no": {
+      "pt": "Não",
+      "en": "No",
+      "es": "No"
+    },
+    "battle.abandon.yes": {
+      "pt": "Sim",
+      "en": "Yes",
+      "es": "Sí"
     },
     "hud.noField": {
       "pt": "Sem campo",

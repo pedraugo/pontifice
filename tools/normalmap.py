@@ -22,8 +22,9 @@ MAX_SIZE = 1024
 
 # ----------------------------------------------------------------------------- PNG
 
-def read_png_bytes(data):
-    """PNG 8 bits (cinza, cinza+alfa, RGB, RGBA), sem interlace. Devolve (w, h, bytes RGB)."""
+def read_png_bytes(data, keep_alpha=False):
+    """PNG 8 bits (cinza, cinza+alfa, RGB, RGBA), sem interlace. Devolve (w, h, bytes RGB), ou
+    (w, h, bytes RGBA) com keep_alpha (alfa 255 se o PNG não tem)."""
     assert data[:8] == b"\x89PNG\r\n\x1a\n", "nao e PNG"
     pos = 8
     idat = []
@@ -72,6 +73,19 @@ def read_png_bytes(data):
                 line[i] = (line[i] + pred) & 255
         rows.append(line)
         prev = line
+    if keep_alpha:
+        rgba = bytearray(width * height * 4)
+        o = 0
+        for line in rows:
+            for x in range(width):
+                i = x * channels
+                if channels >= 3:
+                    rgba[o:o + 3] = line[i:i + 3]
+                else:
+                    rgba[o] = rgba[o + 1] = rgba[o + 2] = line[i]
+                rgba[o + 3] = line[i + channels - 1] if channels in (2, 4) else 255
+                o += 4
+        return width, height, rgba
     rgb = bytearray(width * height * 3)
     o = 0
     for line in rows:

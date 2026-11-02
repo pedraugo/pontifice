@@ -5,9 +5,10 @@
 #include <string>
 
 // Placa de pedra com moldura de metal e estrelas nos cantos (gerada de art/ui.jpg por
-// tools/make_ui_frame.py) em duas variantes: sprites/UiFrameButton.png (como na arte, para
-// botões) e sprites/UiFrameWindow.png (mais escura e cinza, tom de metal, para janelas,
-// painéis do HUD e tooltips).
+// tools/make_ui_frame.py) em três variantes: sprites/UiFrameButton.png (como na arte, para
+// botões), sprites/UiFrameWindow.png (mais escura e cinza, tom de metal, para janelas,
+// painéis do HUD e tooltips) e sprites/UiFrameButtonDanger.png (pedra em vermelho escuro,
+// para botões de ação destrutiva: Sair do menu, confirmar abandono da batalha).
 // A folha é dividida em 9 TILES IGUAIS (terços):
 //   tl t  tr
 //   ml m  mr
@@ -18,10 +19,12 @@
 // com tiles quase quadrados. O centro da folha é simétrico, então os tiles repetem sem emenda.
 namespace frame {
 
-// Qual placa: botão (azulada, como na arte) ou janela (escura, metálica).
-enum class Kind { kButton, kWindow };
+// Qual placa: botão (azulada, como na arte), janela (escura, metálica) ou botão de perigo
+// (vermelho escuro).
+enum class Kind { kButton, kWindow, kButtonDanger };
 
-// `dir` é a pasta sprites/ (com UiFrameButton.png e UiFrameWindow.png).
+// `dir` é a pasta sprites/ (UiFrameButton.png, UiFrameWindow.png e UiFrameButtonDanger.png).
+// Sem a de perigo, kButtonDanger usa a de botão.
 bool Init(SDL_Renderer* r, const std::string& dir);
 void Shutdown();
 bool Ready();

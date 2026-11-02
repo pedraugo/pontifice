@@ -7,7 +7,7 @@
 #include "scripts/image/Image.h"
 
 // Texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: um atlas de glifos
-// (ASCII e Latin-1) em três tamanhos (16, 32 e 64 px) numa SDL_Texture, desenhado escalado
+// (ASCII e Latin-1, 0xA0..0xFF) em três tamanhos (16, 32 e 64 px) numa SDL_Texture, desenhado escalado
 // para o tamanho pedido. `scale` mantém a convenção antiga da fonte de depuração: altura da
 // linha = 8 px * scale (scale 2 = 16 px, 6 = 48 px). Codepoints que a fonte não tem são
 // desenhados sem acento. Se Init falhar, cai na fonte de depuração do SDL.

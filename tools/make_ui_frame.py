@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Gera src/sprites/UiFrameButton.png e src/sprites/UiFrameWindow.png a partir de
+"""Gera src/sprites/UiFrameButton.png, UiFrameWindow.png e UiFrameButtonDanger.png a partir de
 src/art/ui.jpg: a placa de pedra com moldura usada como fundo de botões (Button, como na
-arte) e de janelas, painéis e tooltips (Window: mais escura e cinza, puxada para metal).
-Ver scripts/frame/Frame.*.
+arte), de janelas, painéis e tooltips (Window: mais escura e cinza, puxada para metal) e de
+botões de ação destrutiva, como Sair e confirmar abandono (Danger: mesma moldura de metal e
+estrelas, pedra em vermelho escuro). Ver scripts/frame/Frame.*.
 
 1. Converte o JPG para PNG com `sips` (macOS) e lê os pixels (só biblioteca padrão).
 2. Fundo branco fora da placa arredondada vira transparente (preenchimento a partir das
@@ -17,7 +18,12 @@ O jogo (scripts/frame) divide a folha em 3x3 tiles iguais: tl t tr / ml m mr / b
 monta cada botão ou painel com tl + N vezes t + tr na linha de cima, bl + N vezes b + br na
 de baixo e, se alto, linhas ml + N vezes m + mr no meio.
 
+Variante Danger: dentro da borda interna da moldura, cada pixel de pedra (escuro e saturado)
+vira vermelho escuro com a mesma luminância relativa, mantendo veios e textura; o metal
+(claro e pouco saturado: moldura, filete interno e estrelas) fica como está.
+
 Uso: python3 tools/make_ui_frame.py [--size N]   (N: lado final, múltiplo de 3; padrão 768)
+     python3 tools/make_ui_frame.py --danger-only (só a Danger, a partir do UiFrameButton.png)
 """
 
 import os
@@ -31,10 +37,19 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src", "art", "ui.jpg")
 OUT_BUTTON = os.path.join(ROOT, "src", "sprites", "UiFrameButton.png")
 OUT_WINDOW = os.path.join(ROOT, "src", "sprites", "UiFrameWindow.png")
+OUT_DANGER = os.path.join(ROOT, "src", "sprites", "UiFrameButtonDanger.png")
 # Variante Window: dessatura (mistura com a luminância) e escurece, com leve tom de aço frio.
 WINDOW_DESATURATE = 0.75
 WINDOW_DARKEN = 0.68
 WINDOW_TINT = (0.96, 0.98, 1.04)
+# Variante Danger: cor da pedra = luminância vezes DANGER_TINT. Só dentro de DANGER_INSET
+# (fração do lado: borda interna da moldura). Peso da troca: pixels escuros (luminância até
+# DANGER_LUM_FULL, nada a partir de DANGER_LUM_NONE) e saturados (saturação a partir de
+# DANGER_SAT_FULL, nada abaixo de DANGER_SAT_NONE), o que deixa o metal intacto.
+DANGER_TINT = (1.55, 0.30, 0.28)
+DANGER_INSET = 41.0 / 768.0
+DANGER_LUM_FULL, DANGER_LUM_NONE = 70.0, 115.0
+DANGER_SAT_NONE, DANGER_SAT_FULL = 0.15, 0.35
 CORNER_FRACTION = 130.0 / 888.0  # cantos com as estrelas, em fração do lado da placa
 WHITE = 232                      # mínimo de r, g, b para contar como fundo branco
 
@@ -161,7 +176,45 @@ def window_variant(rgba):
     return out
 
 
+def smoothstep(e0, e1, x):
+    t = max(0.0, min(1.0, (x - e0) / (e1 - e0)))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def danger_variant(size, rgba):
+    out = bytearray(rgba)
+    inset = DANGER_INSET * size
+    for y in range(size):
+        for x in range(size):
+            # Fora da borda interna (moldura de metal): intacto; 1 px de transição.
+            edge = min(x - inset, y - inset, size - 1 - inset - x, size - 1 - inset - y)
+            region = max(0.0, min(1.0, edge + 1.0))
+            if region <= 0.0:
+                continue
+            i = (y * size + x) * 4
+            r, g, b = out[i], out[i + 1], out[i + 2]
+            lum = 0.299 * r + 0.587 * g + 0.114 * b
+            top = max(r, g, b)
+            sat = (top - min(r, g, b)) / top if top > 0 else 0.0
+            weight = region * (1.0 - smoothstep(DANGER_LUM_FULL, DANGER_LUM_NONE, lum)) * \
+                smoothstep(DANGER_SAT_NONE, DANGER_SAT_FULL, sat)
+            if weight <= 0.0:
+                continue
+            for c, tint in enumerate(DANGER_TINT):
+                red = min(255.0, lum * tint)
+                out[i + c] = max(0, min(255, int(out[i + c] + (red - out[i + c]) * weight + 0.5)))
+    return out
+
+
 def main():
+    if "--danger-only" in sys.argv:
+        with open(OUT_BUTTON, "rb") as f:
+            w, h, rgba = read_png_bytes(f.read(), keep_alpha=True)
+        if w != h:
+            sys.exit("UiFrameButton.png precisa ser quadrado")
+        write_png_rgba(OUT_DANGER, w, h, danger_variant(w, rgba))
+        print(f"gravado {OUT_DANGER} ({w}x{h})")
+        return
     size = 768
     if "--size" in sys.argv:
         size = int(sys.argv[sys.argv.index("--size") + 1])
@@ -175,7 +228,9 @@ def main():
     mirror_center(size, rgba)
     write_png_rgba(OUT_BUTTON, size, size, rgba)
     write_png_rgba(OUT_WINDOW, size, size, window_variant(rgba))
-    print(f"gravados {OUT_BUTTON} e {OUT_WINDOW} ({size}x{size}, tiles de {size // 3} px)")
+    write_png_rgba(OUT_DANGER, size, size, danger_variant(size, rgba))
+    print(f"gravados {OUT_BUTTON}, {OUT_WINDOW} e {OUT_DANGER} ({size}x{size}, tiles de "
+          f"{size // 3} px)")
 
 
 if __name__ == "__main__":

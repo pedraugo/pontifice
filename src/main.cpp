@@ -203,6 +203,31 @@ int main(int /*argc*/, char** /*argv*/) {
       pos = end + 1;
     }
   }
+  // PONTIFICE_KEYS: teclas separadas por ';', "nome,t" = aperta a tecla (nome do SDL, ex.:
+  // Escape, Return, Left) em t s.
+  struct KeyPress {
+    SDL_Keycode key = SDLK_UNKNOWN;
+    float t = 0.0f;
+    bool done = false;
+  };
+  std::vector<KeyPress> key_presses;
+  if (const char* env_keys = std::getenv("PONTIFICE_KEYS")) {
+    std::string spec = env_keys;
+    size_t pos = 0;
+    while (pos < spec.size()) {
+      size_t end = spec.find(';', pos);
+      if (end == std::string::npos) end = spec.size();
+      const std::string item = spec.substr(pos, end - pos);
+      const size_t comma = item.find(',');
+      if (comma != std::string::npos) {
+        KeyPress k;
+        k.key = SDL_GetKeyFromName(item.substr(0, comma).c_str());
+        k.t = static_cast<float>(std::atof(item.c_str() + comma + 1));
+        if (k.key != SDLK_UNKNOWN) key_presses.push_back(k);
+      }
+      pos = end + 1;
+    }
+  }
   const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
   const char* env_shot_frame = std::getenv("PONTIFICE_SCREENSHOT_FRAME");
   const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
@@ -236,6 +261,15 @@ int main(int /*argc*/, char** /*argv*/) {
       fake.type = SDL_EVENT_MOUSE_MOTION;
       std::sscanf(env_mouse, "%f,%f", &fake.motion.x, &fake.motion.y);
       scenes.HandleEvent(fake);
+    }
+    for (KeyPress& k : key_presses) {
+      const double t = static_cast<double>(SDL_GetTicksNS() - start) / 1e9;
+      if (k.done || t < k.t) continue;
+      SDL_Event fake{};
+      fake.type = SDL_EVENT_KEY_DOWN;
+      fake.key.key = k.key;
+      scenes.HandleEvent(fake);
+      k.done = true;
     }
     for (Gesture& g : gestures) {
       const double t = static_cast<double>(SDL_GetTicksNS() - start) / 1e9;

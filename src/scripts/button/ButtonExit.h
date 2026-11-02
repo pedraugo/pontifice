@@ -2,7 +2,7 @@
 
 #include "scripts/button/Button.h"
 
-// Botão "Sair": encerra o jogo.
+// Botão "Sair": encerra o jogo. Placa vermelha (Button::SetDanger).
 class ButtonExit : public Button {
  public:
   ButtonExit();

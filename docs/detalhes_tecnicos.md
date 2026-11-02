@@ -36,7 +36,7 @@ src/
     ui/
       Ui.h            escala de texto (ui::Px) e grade de 16 px da interface (ui::Grid, ui::SnapUp)
     frame/
-      Frame.*         moldura da interface: UiFrameButton.png (botões) e UiFrameWindow.png (janelas, painéis, tooltip) em 9 tiles iguais montados por elemento
+      Frame.*         moldura da interface: UiFrameButton.png (botões), UiFrameWindow.png (janelas, painéis, tooltip) e UiFrameButtonDanger.png (botões de ação destrutiva, pedra vermelha) em 9 tiles iguais montados por elemento
     text/
       Text.*          texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: atlas 16/32/64 px, ASCII e Latin-1; sem a fonte, cai na de depuração do SDL
     button/
@@ -45,6 +45,8 @@ src/
       ButtonExit.*    botão Sair
       ButtonAction.*  botão genérico com rótulo e ação (Passar turno, Nível do menu)
       ButtonLanguage.* botão da cena de idioma: bandeira + nome, define o idioma
+    dialog/
+      ConfirmDialog.* janela modal de confirmação com [Não] e [Sim] (pausa da batalha)
     flag/
       Flag.*          bandeiras (EUA, Espanha, Brasil) com primitivas do renderer
     i18n/
@@ -351,6 +353,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia |
 | `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |
 | `PONTIFICE_DRAG=...` | Sequência de gestos separados por `;`: `x0,y0,x1,y1,t` arrasta o botão esquerdo de (x0,y0) a (x1,y1) a partir de `t` s (mesmo ponto = clique); `w,dy,t` gira a roda. Testa seleção, inspeção, virar e zoom |
+| `PONTIFICE_KEYS=Escape,4;Return,6` | Aperta teclas (nomes do SDL) nos instantes dados, em segundos. Testa a pausa e os diálogos |
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
 | `PONTIFICE_SCREENSHOT_FRAME=n` | Número do quadro salvo por `PONTIFICE_SCREENSHOT` |
 | `PONTIFICE_SCREENSHOT_TIME=s` | Em vez do quadro, salva o primeiro quadro depois de `s` segundos (sem vsync a taxa de quadros varia; use isto para animações) |

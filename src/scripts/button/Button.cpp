@@ -62,15 +62,16 @@ void Button::Render(SDL_Renderer* r) const {
   const bool highlight = hovered_ || focused_;
   if (frame::Ready()) {
     // Placa de pedra: normal um pouco escurecida, destaque na cor cheia, pressionado escuro.
-    frame::Draw(r, rect_, frame::Kind::kButton, pressed_ ? 0.6f : highlight ? 1.0f : 0.8f);
+    frame::Draw(r, rect_, danger_ ? frame::Kind::kButtonDanger : frame::Kind::kButton,
+                pressed_ ? 0.6f : highlight ? 1.0f : 0.8f);
     if (focused_) StrokeRect(r, rect_, colors::Get("button.focusBorder"), kBorderThin);
   } else {
     if (pressed_) {
-      FillRect(r, rect_, colors::Get("button.pressedFill"));
+      FillRect(r, rect_, colors::Get(danger_ ? "button.dangerPressedFill" : "button.pressedFill"));
     } else if (highlight) {
-      FillRect(r, rect_, colors::Get("button.hoverFill"));
+      FillRect(r, rect_, colors::Get(danger_ ? "button.dangerHoverFill" : "button.hoverFill"));
     } else {
-      FillRect(r, rect_, colors::Get("button.fill"));
+      FillRect(r, rect_, colors::Get(danger_ ? "button.dangerFill" : "button.fill"));
     }
     const char* border = focused_ ? "button.focusBorder"
                          : hovered_ ? "button.hoverBorder"

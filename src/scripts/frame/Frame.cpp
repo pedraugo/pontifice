@@ -13,7 +13,7 @@ struct Sheet {
   SDL_Texture* texture = nullptr;
   float tile_src = 0.0f;  // lado de cada um dos 9 tiles na textura (um terço)
 };
-Sheet sheets[2];  // Kind::kButton, Kind::kWindow
+Sheet sheets[3];  // na ordem de Kind: kButton, kWindow, kButtonDanger
 
 bool Load(SDL_Renderer* r, const std::string& path, Sheet& sheet) {
   Image img = Image::LoadFile(path);
@@ -37,8 +37,12 @@ bool Init(SDL_Renderer* r, const std::string& dir) {
   Shutdown();
   const bool button = Load(r, dir + "UiFrameButton.png", sheets[0]);
   const bool window = Load(r, dir + "UiFrameWindow.png", sheets[1]);
-  if (!button || !window) Shutdown();
-  return button && window;
+  if (!button || !window) {
+    Shutdown();
+    return false;
+  }
+  Load(r, dir + "UiFrameButtonDanger.png", sheets[2]);  // opcional: cai na de botão
+  return true;
 }
 
 void Shutdown() {
@@ -52,7 +56,9 @@ bool Ready() { return sheets[0].texture != nullptr && sheets[1].texture != nullp
 
 void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, float brightness,
           float ideal_tile, float alpha) {
-  const Sheet& sheet = sheets[kind == Kind::kButton ? 0 : 1];
+  const Sheet* chosen = &sheets[static_cast<int>(kind)];
+  if (kind == Kind::kButtonDanger && chosen->texture == nullptr) chosen = &sheets[0];
+  const Sheet& sheet = *chosen;
   SDL_Texture* texture = sheet.texture;
   if (texture == nullptr || rect.w <= 0.0f || rect.h <= 0.0f) return;
   if (ideal_tile <= 0.0f) ideal_tile = kIdealTile;

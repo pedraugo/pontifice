@@ -72,3 +72,26 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 - Cartas da categoria **prejudicada** recebem **nerf** no ataque e na defesa.
 - Cartas **Neutras** não são afetadas por cartas de campo.
 - O buff e o nerf são aplicados antes de qualquer cálculo de dano.
+
+## Pausa
+
+`Esc` durante a batalha pausa o jogo e abre uma janela de confirmação:
+
+```
++-----------------------------------------------+
+|   Deseja realmente abandonar essa batalha?    |
+|                                               |
+|   [ Não ]                         [ Sim ]     |
++-----------------------------------------------+
+```
+
+- **Pausa**: abertura, câmera, turno do computador e animações congelam. Um véu escuro cobre a batalha e só a janela recebe cliques e teclas.
+- **Música**: a trilha de batalha sai em fade out e a do menu entra no volume do menu.
+- **Não** (ou `Esc` de novo): fecha a janela, a batalha continua de onde parou e a música de batalha volta em fade in no ponto em que foi pausada.
+- **Sim**: abandona a batalha e volta ao menu, que segue com a música que já está tocando. O botão usa a placa vermelha (`sprites/UiFrameButtonDanger.png`), por ser ação destrutiva.
+- **Teclado**: setas esquerda e direita (ou `Tab`) trocam o foco, `Enter` ou `Espaço` confirmam. O foco começa no Não.
+- Se uma carta estiver em inspeção, o primeiro `Esc` só sai da inspeção.
+- Com a partida encerrada (vitória ou derrota), `Esc` volta direto ao menu, sem pergunta.
+
+Implementação: `scripts/dialog/ConfirmDialog.*` (janela reutilizável), `BattleScene::Pause`/`Resume` e `Music::SetCategory(nome, resume)`, que guarda a faixa e a posição de cada categoria ao sair dela. Textos em `assets/translate.json` (`battle.abandon.*`).
+

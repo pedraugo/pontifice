@@ -803,15 +803,61 @@ void BattleScene::UpdateCamera() {
   arena_atmosphere_.camera_pos = eye;
 }
 
+void BattleScene::Pause(SceneContext& ctx) {
+  paused_ = true;
+  // Solta o que estava em andamento com o mouse (arrasto de ataque).
+  attack_from_ = -1;
+  attack_drag_ = false;
+  press_ = {-1.0f, -1.0f};
+  if (ctx.music != nullptr) {
+    ctx.music->SetScene("menu");
+    ctx.music->SetCategory("ost");
+  }
+  // Sim = abandonar: ação destrutiva, placa vermelha.
+  abandon_dialog_.Open(i18n::Get("battle.abandon.question"), i18n::Get("battle.abandon.no"),
+                       i18n::Get("battle.abandon.yes"), ctx.logical_width, ctx.logical_height,
+                       /*yes_danger=*/true);
+}
+
+void BattleScene::Resume(SceneContext& ctx) {
+  paused_ = false;
+  abandon_dialog_.Close();
+  if (ctx.music != nullptr) {
+    ctx.music->SetScene("battle");
+    ctx.music->SetCategory("battle", /*resume=*/true);  // continua a faixa de onde parou
+  }
+}
+
 void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
+  // Pausado: só a janela de confirmação recebe eventos.
+  if (paused_) {
+    switch (abandon_dialog_.HandleEvent(event)) {
+      case ConfirmDialog::Result::kNo:
+        Resume(ctx);
+        break;
+      case ConfirmDialog::Result::kYes:
+        abandon_dialog_.Close();
+        ctx.next_scene = SceneId::kMenu;  // o menu já toca a trilha dele
+        break;
+      case ConfirmDialog::Result::kNone:
+        break;
+    }
+    return;
+  }
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_ESCAPE:
-        if (hand_.Inspecting()) {  // primeiro sai da inspeção; só depois volta ao menu
+        if (hand_.Inspecting()) {  // primeiro sai da inspeção; só depois pausa
           hand_.StopInspect();
           return;
         }
-        ctx.next_scene = SceneId::kMenu;
+        // Batalha encerrada (vitória/derrota): Esc volta direto ao menu. Em andamento: pausa
+        // e pergunta se abandona.
+        if (hud_.Over()) {
+          ctx.next_scene = SceneId::kMenu;
+        } else {
+          Pause(ctx);
+        }
         return;
       case SDLK_SPACE:  // vira a carta inspecionada
         hand_.Flip();
@@ -928,7 +974,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 }
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
-  if (!ready_) return;
+  if (!ready_ || paused_) return;  // pausa: abertura, câmera, IA e animações congelam
   UpdateIntro(dt_seconds);
   // Virada de campo.
   if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
@@ -1221,5 +1267,6 @@ void BattleScene::Render(SceneContext& ctx) {
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
   sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
-  RenderTooltip(r, ctx.logical_width, ctx.logical_height);
+  if (!paused_) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
+  abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);
 }

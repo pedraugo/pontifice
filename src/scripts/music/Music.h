@@ -44,8 +44,12 @@ class Music {
   bool Muted() const { return muted_.load(); }
   void ToggleMuted() { muted_.store(!muted_.load()); }
   // Troca a categoria de faixas ("ost", "battle"): a atual sai em fade out (kSwitchSeconds)
-  // e a primeira da nova entra em fade in. Mesma categoria ou desconhecida: nada.
-  void SetCategory(const std::string& name);
+  // e a primeira da nova entra em fade in. Mesma categoria ou desconhecida: nada. A faixa e a
+  // posição de onde a categoria que sai parou ficam guardadas: com `resume`, a nova categoria
+  // continua de onde parou da última vez (em fade in), como uma pausa; sem histórico, começa
+  // da primeira faixa. Pedir a categoria atual durante o fade out de uma troca cancela a
+  // troca e a faixa volta em fade in.
+  void SetCategory(const std::string& name, bool resume = false);
 
  private:
   struct Decoder;  // esconde dr_mp3 do header
@@ -70,8 +74,20 @@ class Music {
   std::string base_;
   std::vector<Category> categories_;
   size_t active_ = 0;                  // categoria em uso (thread de áudio)
-  std::atomic<int> pending_category_{-1};  // pedido da thread principal (índice) ou -1
+  // Pedido da thread principal: índice * 2 + (1 se retoma), ou -1. Um só atômico para o
+  // índice e a retomada chegarem juntos à thread de áudio.
+  std::atomic<int> pending_category_{-1};
   int switching_to_ = -1;              // troca em andamento: categoria destino
+  bool switch_resume_ = false;         // a troca em andamento retoma a categoria destino
+  // Onde cada categoria parou quando saiu (para SetCategory com resume).
+  struct Saved {
+    size_t track = 0;
+    uint64_t position = 0;  // quadros
+    bool valid = false;
+  };
+  std::vector<Saved> saved_;
+  uint64_t fade_in_left_ = 0;          // fade in de retomada (quadros restantes / total)
+  uint64_t fade_in_total_ = 0;
   uint64_t switch_left_ = 0;           // quadros restantes do fade out da troca
   uint64_t switch_total_ = 0;
   std::vector<Track> tracks_;          // faixas da categoria ativa

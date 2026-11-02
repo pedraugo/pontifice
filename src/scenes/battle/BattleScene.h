@@ -16,6 +16,7 @@
 #include "scripts/button/ButtonAction.h"
 #include "scripts/cards/Cards.h"
 #include "scripts/deck/Deck.h"
+#include "scripts/dialog/ConfirmDialog.h"
 #include "scripts/gpu/Gpu.h"
 #include "scripts/hand/Hand.h"
 #include "scripts/hud/Hud.h"
@@ -44,7 +45,8 @@
 // (scripts/ai) joga em passos com pausas: compra, troca posições, carta de campo, invoca e
 // ataca; depois a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram.
 //
-// Esc sai da inspeção ou volta ao menu. Teclas de depuração: F alterna uma carta de campo de
+// Esc sai da inspeção; senão pausa e pergunta se abandona a batalha (com a partida
+// encerrada, volta direto ao menu). Teclas de depuração: F alterna uma carta de campo de
 // exemplo; 1 e 2 tiram 700 pontos de vida do oponente e de você; D compra; G soma 1 ao
 // cemitério. PONTIFICE_STARTER=player|enemy força quem começa.
 class BattleScene : public Scene {
@@ -156,6 +158,12 @@ class BattleScene : public Scene {
   std::unordered_map<std::string, SDL_Texture*> hud_faces_;  // frentes no HUD por código
   std::unique_ptr<ButtonAction> end_turn_;
   SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
+  // Pausa (Esc): a batalha congela, a trilha troca para a do menu e a janela pergunta se
+  // abandona. Não (ou Esc) retoma a batalha e a música dela de onde parou; Sim volta ao menu.
+  ConfirmDialog abandon_dialog_;
+  bool paused_ = false;
+  void Pause(SceneContext& ctx);
+  void Resume(SceneContext& ctx);
 
   // Partida.
   bool started_ = false;             // sorteio feito, primeiro turno começou

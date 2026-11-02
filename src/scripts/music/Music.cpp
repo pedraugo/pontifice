@@ -83,6 +83,7 @@ bool Music::Init(const std::string& base_path) {
     if (categories_[i].name == "ost") active_ = i;
   }
   tracks_ = categories_[active_].tracks;
+  saved_.assign(categories_.size(), Saved{});
   if (SDL_getenv("PONTIFICE_AUDIO_ANALYZE") != nullptr) Analyze();
 
   decoder_ = new Decoder;
@@ -157,6 +158,7 @@ bool Music::OpenTrack(size_t index) {
   decoder_->open = true;
   current_ = index;
   position_ = 0;
+  fade_in_left_ = fade_in_total_ = 0;
   // Duração: varre os cabeçalhos do arquivo (rápido, arquivo já em memória) e volta ao início.
   total_frames_ = drmp3_get_pcm_frame_count(&decoder_->mp3);
   drmp3_seek_to_pcm_frame(&decoder_->mp3, 0);
@@ -211,10 +213,10 @@ bool Music::OpenNextTrack() {
 
 void Music::SetVolume(float volume) { target_volume_.store(SDL_clamp(volume, 0.0f, 1.0f)); }
 
-void Music::SetCategory(const std::string& name) {
+void Music::SetCategory(const std::string& name, bool resume) {
   for (size_t i = 0; i < categories_.size(); ++i) {
     if (categories_[i].name == name) {
-      pending_category_.store(static_cast<int>(i));
+      pending_category_.store(static_cast<int>(i) * 2 + (resume ? 1 : 0));
       return;
     }
   }
@@ -229,7 +231,8 @@ void Music::SetScene(const std::string& key) {
 }
 
 // Ganho por quadro: sobe de 0 a 1 em kFadeSeconds no início e desce a 0 no fim da faixa,
-// vezes o volume, que caminha em rampa até o alvo (troca de cena).
+// vezes o volume, que caminha em rampa até o alvo (troca de cena). Numa retomada (faixa
+// aberta no meio), o fade in vem de fade_in_left_/fade_in_total_.
 void Music::ApplyFade(float* samples, size_t frames, int channels) {
   const float rate = static_cast<float>(decoder_->mp3.sampleRate);
   const float fade_frames = kFadeSeconds * rate;
@@ -241,6 +244,10 @@ void Music::ApplyFade(float* samples, size_t frames, int channels) {
     if (total_frames_ > 0) {
       const float remaining = static_cast<float>(total_frames_ - SDL_min(position_ + i, total_frames_));
       gain = SDL_min(gain, remaining / fade_frames);
+    }
+    if (fade_in_left_ > 0) {
+      gain *= 1.0f - static_cast<float>(fade_in_left_) / static_cast<float>(fade_in_total_);
+      --fade_in_left_;
     }
     if (volume_ < target) volume_ = SDL_min(volume_ + step, target);
     if (volume_ > target) volume_ = SDL_max(volume_ - step, target);
@@ -261,22 +268,50 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
   self->buffer_.resize(static_cast<size_t>(frames_wanted) * channels);
 
   // Pedido de troca de categoria: começa o fade out da faixa atual.
-  const int pending = self->pending_category_.exchange(-1);
-  if (pending >= 0 && pending != static_cast<int>(self->active_) && self->switching_to_ < 0) {
-    self->switching_to_ = pending;
-    self->switch_total_ = self->switch_left_ =
-        static_cast<uint64_t>(kSwitchSeconds * dec->mp3.sampleRate);
+  const int request = self->pending_category_.exchange(-1);
+  if (request >= 0) {
+    const int pending = request / 2;
+    if (pending == static_cast<int>(self->active_) && self->switching_to_ >= 0) {
+      // Voltou atrás no meio do fade out: cancela a troca e a faixa volta em fade in a
+      // partir do ganho em que estava.
+      self->fade_in_total_ = self->switch_total_;
+      self->fade_in_left_ = self->switch_total_ - self->switch_left_;
+      self->switching_to_ = -1;
+    } else if (pending != static_cast<int>(self->active_) && self->switching_to_ < 0) {
+      self->switching_to_ = pending;
+      self->switch_resume_ = (request % 2) == 1;
+      self->switch_total_ = self->switch_left_ =
+          static_cast<uint64_t>(kSwitchSeconds * dec->mp3.sampleRate);
+    }
   }
 
   while (frames_wanted > 0) {
-    // Fade out da troca terminou: entra a primeira faixa da nova categoria (em fade in).
+    // Fade out da troca terminou: guarda onde a categoria que sai parou (antes do fade out,
+    // para a retomada continuar do ponto do pedido) e entra a nova, do começo ou de onde
+    // parou (retomada), em fade in.
     if (self->switching_to_ >= 0 && self->switch_left_ == 0) {
+      const uint64_t faded = self->switch_total_;
+      self->saved_[self->active_] = {self->current_,
+                                     self->position_ > faded ? self->position_ - faded : 0, true};
       self->active_ = static_cast<size_t>(self->switching_to_);
       self->switching_to_ = -1;
       self->tracks_ = self->categories_[self->active_].tracks;
-      SDL_Log("Musica: categoria \"%s\"", self->categories_[self->active_].name.c_str());
-      self->current_ = self->tracks_.size() - 1;  // OpenNextTrack começa na faixa 0
-      if (!self->OpenNextTrack()) return;
+      const Saved saved = self->saved_[self->active_];
+      bool resumed = false;
+      if (self->switch_resume_ && saved.valid && saved.track < self->tracks_.size() &&
+          self->OpenTrack(saved.track)) {
+        drmp3_seek_to_pcm_frame(&dec->mp3, saved.position);
+        self->position_ = saved.position;
+        self->fade_in_total_ = self->fade_in_left_ =
+            static_cast<uint64_t>(kSwitchSeconds * dec->mp3.sampleRate);
+        resumed = true;
+      }
+      SDL_Log("Musica: categoria \"%s\"%s", self->categories_[self->active_].name.c_str(),
+              resumed ? " (retomada)" : "");
+      if (!resumed) {
+        self->current_ = self->tracks_.size() - 1;  // OpenNextTrack começa na faixa 0
+        if (!self->OpenNextTrack()) return;
+      }
       const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->mp3.channels),
                                static_cast<int>(dec->mp3.sampleRate)};
       SDL_SetAudioStreamFormat(stream, &spec, nullptr);

@@ -18,6 +18,9 @@ class Button {
   void SetRect(const SDL_FRect& rect) { rect_ = rect; }
   void SetLabel(std::string label) { label_ = std::move(label); }
   void SetFocused(bool focused) { focused_ = focused; }
+  // Ação destrutiva (Sair, confirmar abandono): placa vermelha (frame::Kind::kButtonDanger;
+  // sem as placas, cores "button.danger*" de colors.json).
+  void SetDanger(bool danger) { danger_ = danger; }
 
   // Retorna true quando um clique completo (pressionar e soltar dentro) acontece.
   bool HandleEvent(const SDL_Event& event);
@@ -41,4 +44,5 @@ class Button {
   bool hovered_ = false;
   bool pressed_ = false;
   bool focused_ = false;
+  bool danger_ = false;
 };

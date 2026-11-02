@@ -16,11 +16,12 @@ constexpr float kCellPx = 8.0f;  // altura da linha por unidade de scale (fonte 
 // em, então o em é ampliado para o texto manter o tamanho visual com os mesmos `scale`.
 constexpr float kEmBoost = 1.6f;
 constexpr int kAtlasSize = 2048;
-// Dois intervalos de codepoints no atlas: ASCII imprimível e Latin-1 (letras acentuadas).
+// Dois intervalos de codepoints no atlas: ASCII imprimível e Latin-1 (sinais como ¿ ¡ º e
+// letras acentuadas).
 constexpr int kFirstChar = 32;
 constexpr int kNumChars = 95;  // 32..126
-constexpr int kFirstLatin = 0xC0;
-constexpr int kNumLatin = 64;  // 0xC0..0xFF
+constexpr int kFirstLatin = 0xA0;
+constexpr int kNumLatin = 96;  // 0xA0..0xFF
 constexpr int kNumGlyphs = kNumChars + kNumLatin;
 constexpr float kSizes[] = {16.0f, 32.0f, 64.0f};
 constexpr int kNumSizes = 3;
@@ -55,6 +56,8 @@ int GlyphSlot(Uint32 ch) {
 // letras acentuadas pela base ("Dilúvio" vira "Diluvio"); o resto vira '?'.
 char FoldChar(Uint32 ch) {
   if (ch < 0x80) return static_cast<char>(ch);
+  if (ch == 0xA1) return '!';
+  if (ch == 0xBF) return '?';
   if (ch >= 0xC0 && ch <= 0xC5) return 'A';
   if (ch == 0xC7) return 'C';
   if (ch >= 0xC8 && ch <= 0xCB) return 'E';
