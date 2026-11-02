@@ -225,7 +225,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Carga**: as 65 ilustrações são decodificadas e ajustadas em paralelo (até 8 threads) no `Preload`, e `Image.cpp`, `Text.cpp` e `CardFace.cpp` são compilados com `-O2` mesmo em Debug (stb_image, stb_truetype e composição das frentes); o log mostra o tempo (`Ilustracoes de cartas: 65 (… ms)`).
 
-**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|enemy` força); se é o oponente, a sua mão fica recolhida desde o início. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
+**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|enemy` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
 
 **Seu turno** (botão **Passar turno** no centro superior da tela, logo abaixo da dica, visível sempre que você pode agir):
 

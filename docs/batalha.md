@@ -84,7 +84,7 @@ Quando uma carta é destruída em combate, de qualquer lado, a arena treme por m
 
 ## Quem começa
 
-O sorteio de quem começa acontece na entrada da batalha. Se o oponente começa, a sua mão não aparece: assim que as tochas acendem a arena vira para o lado dele e o turno dele começa; a sua mão só sobe no seu primeiro turno.
+O sorteio de quem começa acontece na entrada da batalha. Se o oponente começa, é a mão dele (com as cartas ocultas) que aparece na entrada, distribuída carta a carta, e a sua não aparece: a arena já emerge da névoa vista do lado dele e, assim que as tochas acendem, o turno dele começa, sem giro; a sua mão só sobe no seu primeiro turno.
 
 ## Mão do oponente
 

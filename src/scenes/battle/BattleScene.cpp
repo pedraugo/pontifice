@@ -672,8 +672,10 @@ void BattleScene::StartMatch() {
   } else {
     hand_.SetAway(true);
     enemy_hand_view_.SetAway(false);  // a mão dele aparece no turno dele
+    // A câmera já está do lado dele desde a abertura (OnEnter): sem giro, o turno começa logo.
+    const bool turned = orbit_ >= 1.0f;
     orbit_target_ = 1.0f;
-    Schedule(kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
+    Schedule(turned ? 0.2f : kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
   }
 }
 
@@ -1063,24 +1065,34 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil, face.info);
   initial_hand_.clear();
   // Sorteio de quem começa (PONTIFICE_STARTER força, para depuração). Feito já na entrada: se
-  // o oponente começa, a sua mão fica recolhida desde o início e só aparece no seu turno.
+  // o oponente começa, a mão dele aparece no lugar da sua, que fica recolhida desde o início e
+  // só sobe no seu turno.
   starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kEnemy;
   if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
     if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
     if (std::strcmp(env, "enemy") == 0) starter_ = Side::kEnemy;
   }
-  if (starter_ == Side::kEnemy) hand_.SetAwayNow(true);
+  if (starter_ == Side::kEnemy) {
+    hand_.SetAwayNow(true);
+    // A arena emerge já virada para o oponente: a câmera começa do lado dele.
+    orbit_ = orbit_target_ = 1.0f;
+  } else {
+    orbit_ = orbit_target_ = 0.0f;
+  }
   // Mão do oponente: mesmas cartas 3D, frente oculta, um pouco mais à vista (sem o mouse ela
-  // não sobe); começa recolhida e aparece no turno dele.
+  // não sobe). Se ele começa, é ela que aparece na entrada, distribuída carta a carta como a
+  // sua (e a sua fica recolhida); senão começa recolhida e aparece no turno dele.
   enemy_hand_view_.SetModel(card_model_.get());
   enemy_hand_view_.SetBack(back_);
   enemy_hand_view_.SetNormalMaps(front_normal_, back_normal_);
   enemy_hand_view_.GetLayout().hidden_drop = 0.35f;
   enemy_hand_view_.Clear();
+  const bool enemy_first = starter_ == Side::kEnemy;
+  if (enemy_first) enemy_hand_view_.DelayDeal(0.8f);
   for (size_t i = 0; i < enemy_hand_.size() && hidden_face_ != nullptr; ++i) {
     enemy_hand_view_.Add(hidden_face_, false, nullptr);
   }
-  enemy_hand_view_.SetAwayNow(true);
+  enemy_hand_view_.SetAwayNow(!enemy_first);
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   arena_world_ = math::Mat4::Scale(kArenaScale);
 
@@ -1162,7 +1174,13 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   }
   arena_atmosphere_.point_intensity = torch_light_ * ignite_;
   arena_atmosphere_.point2_intensity = torch_light_ * ignite_;
-  const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
+  math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
+  // Oponente começa: a abertura já acontece do lado dele (mesmo giro da virada de campo).
+  if (orbit_ > 0.0f) {
+    const float angle = math::kPi * SmoothStep(orbit_);
+    const float c = std::cos(angle), s = std::sin(angle);
+    eye = math::Vec3{eye.x * c + eye.z * s, eye.y, -eye.x * s + eye.z * c};
+  }
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
 }
