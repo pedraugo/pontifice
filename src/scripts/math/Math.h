@@ -15,6 +15,24 @@ struct Vec2 {
   float x = 0, y = 0;
 };
 
+// Ponto dentro de um quadrilátero convexo (qualquer orientação). Usado nos testes de mouse
+// sobre cartas e slots projetados na tela.
+inline bool PointInConvexQuad(Vec2 p, const Vec2 q[4]) {
+  float sign = 0.0f;
+  for (int i = 0; i < 4; ++i) {
+    const Vec2 a = q[i];
+    const Vec2 b = q[(i + 1) % 4];
+    const float cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+    if (cross < 1e-6f && cross > -1e-6f) continue;
+    if (sign == 0.0f) {
+      sign = cross;
+    } else if ((cross > 0) != (sign > 0)) {
+      return false;
+    }
+  }
+  return sign != 0.0f;
+}
+
 struct Vec3 {
   float x = 0, y = 0, z = 0;
 

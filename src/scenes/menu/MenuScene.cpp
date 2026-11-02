@@ -1,5 +1,10 @@
 #include "scenes/menu/MenuScene.h"
 
+#include <algorithm>
+#include <string>
+
+#include "scripts/ai/Ai.h"
+#include "scripts/button/ButtonAction.h"
 #include "scripts/button/ButtonExit.h"
 #include "scripts/button/ButtonPlay.h"
 #include "scripts/colors/Colors.h"
@@ -14,14 +19,29 @@ constexpr float kButtonGap = ui::Px(24.0f);
 constexpr float kTitleScale = 6.0f * ui::kScale;
 constexpr float kFooterScale = 2.0f * ui::kScale;
 
+std::string DifficultyLabel(int level) {
+  return std::string("Nível: ") +
+         ai::DifficultyName(static_cast<ai::Difficulty>(std::clamp(level, 0, 3)));
+}
+
 }  // namespace
 
 MenuScene::MenuScene() {
   buttons_.push_back(std::make_unique<ButtonPlay>());
+  // Nível do oponente (docs/menu.md): cada clique passa ao próximo; vale para a próxima batalha.
+  auto difficulty = std::make_unique<ButtonAction>(
+      DifficultyLabel(kDefaultDifficulty), [this](SceneContext& ctx) {
+        ctx.difficulty = static_cast<int>(
+            ai::NextDifficulty(static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3))));
+        difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
+      });
+  difficulty_button_ = difficulty.get();
+  buttons_.push_back(std::move(difficulty));
   buttons_.push_back(std::make_unique<ButtonExit>());
 }
 
 void MenuScene::OnEnter(SceneContext& ctx) {
+  difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
   LayoutButtons(ctx);
   clouds_ready_ = clouds_.Init(ctx.renderer, ctx.logical_width, ctx.logical_height);
   focused_ = 0;

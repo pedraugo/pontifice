@@ -23,6 +23,7 @@ class MenuScene : public Scene {
   void ActivateFocused(SceneContext& ctx);
 
   std::vector<std::unique_ptr<Button>> buttons_;
+  Button* difficulty_button_ = nullptr;  // "Nível: Fácil/Médio/Difícil/Impossível", cicla
   Clouds clouds_;  // nuvens atrás do texto e névoa na frente
   bool clouds_ready_ = false;
   int focused_ = 0;

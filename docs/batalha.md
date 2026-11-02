@@ -16,25 +16,23 @@ Cada turno é dividido em fases, nesta ordem:
 
 1. **Fase de Compra**: o jogador compra 1 carta do monte. O primeiro jogador da batalha não compra no primeiro turno.
 2. **Fase de Espera**: resolvem-se efeitos que ocorrem "no início do turno".
-3. **Fase Principal 1**: o jogador pode invocar ou baixar cartas, trocar posição de batalha, jogar cartas de campo e ativar efeitos.
+3. **Fase Principal 1**: o jogador pode invocar cartas, trocar posição de batalha, jogar cartas de campo e ativar efeitos.
 4. **Fase de Batalha**: o jogador declara ataques com suas cartas. Pode ser pulada.
 5. **Fase Principal 2**: igual à Fase Principal 1, exceto que não é permitida uma nova invocação normal se ela já foi usada na Fase Principal 1.
 6. **Fase Final**: encerra o turno. Se o jogador tiver mais de **6 cartas na mão**, descarta até ficar com 6.
 
 ## Invocação de cartas
 
-- O jogador tem direito a **uma invocação normal por turno** (invocar virada para cima ou baixar virada para baixo).
+- O jogador tem direito a **uma invocação normal por turno**.
 - **Invocar** coloca a carta virada para cima em **modo de ataque**.
-- **Baixar** coloca a carta virada para baixo em **modo de defesa**. O oponente não vê qual carta é.
 - Qualquer carta pode ser invocada diretamente da mão, independentemente da hierarquia. Não existe sacrifício.
-- Uma carta invocada ou baixada neste turno **não pode trocar de posição** no mesmo turno.
+- Uma carta invocada neste turno **não pode trocar de posição** no mesmo turno.
 
 ## Posições de batalha
 
 - **Ataque (virada para cima)**: a carta usa seu valor de **ataque**. Só cartas nesta posição podem atacar.
-- **Defesa (virada para baixo ou para cima)**: a carta usa seu valor de **defesa**. Não pode atacar.
+- **Defesa**: a carta usa seu valor de **defesa**. Não pode atacar.
 - Cada carta pode trocar de posição **uma vez por turno**, somente na Fase Principal, e somente se não tiver sido invocada neste turno nem tiver atacado neste turno.
-- Uma carta virada para baixo que é atacada **vira para cima** antes de calcular o dano. Isso é chamado de **virar (flip)**.
 
 ## Declaração de ataque
 

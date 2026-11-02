@@ -81,6 +81,10 @@ add_executable(pontifice
   src/scripts/button/Button.cpp
   src/scripts/button/ButtonPlay.cpp
   src/scripts/button/ButtonExit.cpp
+  src/scripts/button/ButtonAction.cpp
+  src/scripts/board/Board.cpp
+  src/scripts/rules/Rules.cpp
+  src/scripts/ai/Ai.cpp
   src/scripts/image/Image.cpp
   src/scripts/gpu/Gpu.cpp
   src/scripts/model/Model.cpp
@@ -114,6 +118,10 @@ add_executable(deck_test tests/deck_test.cpp src/scripts/deck/Deck.cpp)
 target_include_directories(deck_test PRIVATE src)
 target_compile_options(deck_test PRIVATE -Wall -Wextra)
 add_test(NAME deck_test COMMAND deck_test)
+add_executable(rules_test tests/rules_test.cpp src/scripts/rules/Rules.cpp src/scripts/ai/Ai.cpp)
+target_include_directories(rules_test PRIVATE src)
+target_compile_options(rules_test PRIVATE -Wall -Wextra)
+add_test(NAME rules_test COMMAND rules_test)
 
 # macOS: alguns Command Line Tools deixam um diretório libc++ antigo e incompleto em
 # /Library/Developer/CommandLineTools/usr/include/c++/v1, que esconde o libc++ do SDK.
@@ -124,7 +132,7 @@ if(APPLE)
     execute_process(COMMAND xcrun --show-sdk-path
                     OUTPUT_VARIABLE _sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "libc++ incompleto em ${_stale_libcxx}; usando ${_sdk_path}/usr/include/c++/v1")
-    foreach(_target pontifice deck_test)
+    foreach(_target pontifice deck_test rules_test)
       target_compile_options(${_target} PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>
         $<$<COMPILE_LANGUAGE:CXX>:-isystem${_sdk_path}/usr/include/c++/v1>)

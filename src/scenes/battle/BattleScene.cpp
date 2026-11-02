@@ -1,10 +1,10 @@
 #include "scenes/battle/BattleScene.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <string>
 #include <utility>
-
-#include <random>
 
 #include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
@@ -18,10 +18,6 @@ std::string BasePath() {
   const char* base = SDL_GetBasePath();
   return base != nullptr ? std::string(base) : std::string("./");
 }
-
-}  // namespace
-
-namespace {
 
 // A arena é um prisma trapezoidal: topo 1,9 x 1,9 (tabuleiro), base 2,5 x 2,5, altura 0,36 unidades no
 // modelo (um ladrilho); escalada para caber na câmera.
@@ -57,6 +53,7 @@ constexpr float kTorchIntroStart = 1.1f;   // s depois da entrada
 constexpr float kTorchIntroSeconds = 1.2f;
 constexpr float kTorchIntroDrop = 4.5f;    // começam bem abaixo do chão
 constexpr float kIgniteSeconds = 0.6f;     // o fogo acende depois de a tocha ter surgido
+constexpr float kMatchStart = 3.2f;        // s: sorteio e primeiro turno, com as tochas acesas
 constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};  // câmera longe e alta
 constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
 struct IntroMistLayer {
@@ -68,17 +65,51 @@ constexpr IntroMistLayer kIntroMistLayers[] = {
     {kArenaTopY + 0.2f, 0.6f},  {kArenaTopY + 0.8f, 0.45f},
 };
 
+// Virada de campo (docs/detalhes_tecnicos.md): a câmera orbita 180° em torno do centro da
+// arena no turno do computador e volta no seu.
+constexpr float kOrbitSeconds = 1.0f;
+
+// Botão "Passar turno": à direita, acima do painel do cemitério, fora da mão.
+constexpr float kButtonWidth = ui::Px(220.0f);
+constexpr float kButtonHeight = ui::Px(52.0f);
+constexpr float kButtonMargin = ui::Px(16.0f);
+constexpr float kButtonBottom = ui::Px(120.0f);  // distância do rodapé (painel do cemitério)
+constexpr float kHintScale = 2.0f * ui::kScale;
+// Tooltip da carta no campo: medidas em 1280x720 (ui::Px), como o HUD.
+constexpr float kTipScale = 2.0f * ui::kScale;        // 16 px em 720p
+constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 12 px
+constexpr float kTipPadding = ui::Px(8.0f);
+constexpr float kTipGap = ui::Px(5.0f);
+constexpr float kTipOffset = ui::Px(14.0f);  // distância do cursor
+constexpr float kStatusScale = 2.0f * ui::kScale;
+constexpr float kClickSlop = 6.0f;      // px lógicos: até aqui um arrasto conta como clique
+constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ataque
+constexpr int kHandLimit = 6;
+// Pausas do turno do computador (s), para o jogador acompanhar cada jogada.
+constexpr float kEnemyPause = 0.7f;
+constexpr float kAttackHit = 0.25f;  // momento do impacto dentro da investida
+
 float SmoothStep(float t) {
   t = math::Clamp(t, 0.0f, 1.0f);
   return t * t * (3.0f - 2.0f * t);
+}
+
+const char* SlotName(int slot, char* buffer) {
+  buffer[0] = slot < Board::kCols ? 'A' : 'B';
+  buffer[1] = static_cast<char>('1' + slot % Board::kCols);
+  buffer[2] = '\0';
+  return buffer;
 }
 
 }  // namespace
 
 BattleScene::~BattleScene() {
   if (field_front_2d_ != nullptr) SDL_DestroyTexture(field_front_2d_);
+  for (auto& [code, texture] : hud_faces_) SDL_DestroyTexture(texture);
   if (gpu_ == nullptr) return;
   hand_.Clear();
+  board_.Destroy(*gpu_);
+  enemy_board_.Destroy(*gpu_);
   card_model_.reset();
   arena_model_.reset();
   torch_.reset();
@@ -110,18 +141,43 @@ void BattleScene::Preload(const PreloadInfo& info) {
   back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
   front_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardFrontNormalMap.png"));
   back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.png"));
+  for (Board* board : {&board_, &enemy_board_}) {
+    board->GetLayout().arena_scale = kArenaScale;
+    board->SetModel(card_model_.get());
+    board->SetBack(back_);
+    board->SetNormalMaps(front_normal_, back_normal_);
+    board->Init(*gpu_);
+  }
+  enemy_board_.SetSide(-1.0f);
   // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
   // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.png").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
 
-  // Monte: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) ANTES de qualquer carta
-  // aparecer; as 5 da mão inicial são compradas e compostas já aqui.
+  // Montes: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) para cada lado, ANTES de
+  // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
+  // computador também compra 5 (só os dados; a frente é composta quando a carta entra).
   cards_ = cards::LoadAll(base);
-  std::mt19937 rng{std::random_device{}()};
-  deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng));
+  rng_.seed(std::random_device{}());
+  deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_));
   deck_.Shuffle();
+  // Monte do computador conforme o nível (menu; PONTIFICE_DIFFICULTY=easy|medium|hard|impossible
+  // força, para depuração).
+  int level = info.difficulty;
+  if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
+    if (std::strcmp(env, "easy") == 0) level = 0;
+    if (std::strcmp(env, "medium") == 0) level = 1;
+    if (std::strcmp(env, "hard") == 0) level = 2;
+    if (std::strcmp(env, "impossible") == 0) level = 3;
+  }
+  difficulty_ = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
+  enemy_deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_,
+                                            [this](const CardInfo& card) {
+                                              return ai::DeckWeight(card, difficulty_);
+                                            }));
+  enemy_deck_.Shuffle();
+  SDL_Log("Nivel do oponente: %s", ai::DifficultyName(difficulty_));
   // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial (o monte continua
   // embaralhado; essas cartas não saem dele).
   std::vector<std::string> forced;
@@ -146,6 +202,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
     const Face face = MakeCardFace(*code);
     if (face.texture != nullptr) initial_hand_.push_back(face);
   }
+  for (int i = 0; i < 5; ++i) EnemyDraw();
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
     SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
@@ -183,16 +240,16 @@ SDL_Texture* BattleScene::UploadHudSprite(SDL_Renderer* renderer, const Image& i
 void BattleScene::ToggleSampleFieldCard() {
   if (hud_.HasFieldCard()) {
     hud_.ClearFieldCard();
+    field_ = rules::Field{};
     return;
   }
-  // Primeira carta de assets/CardsField.json; o conteúdo real virá do slot de campo.
-  FieldCardInfo card;
-  card.name = "Dilúvio";
-  card.favored = Category::kEvil;
-  card.buff = 300;
-  card.nerf = 300;
-  card.image = field_front_2d_;
-  hud_.SetFieldCard(card);
+  // Primeira carta de assets/CardsField.json.
+  for (const CardInfo& card : cards_) {
+    if (card.IsField()) {
+      PlayField(Side::kPlayer, card);
+      return;
+    }
+  }
 }
 
 BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
@@ -202,7 +259,19 @@ BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
                        : card->category == 'E' ? frames_[1]
                                                : frames_[2];
   // Hierarquia 1 (Divindades, Soberanos): carta foil.
-  return {UploadSprite(cardface::Compose(frame, *card)), card->hierarchy == 1};
+  return {UploadSprite(cardface::Compose(frame, *card)), card->hierarchy == 1, card};
+}
+
+SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
+  if (renderer_ == nullptr) return field_front_2d_;
+  auto it = hud_faces_.find(card.code);
+  if (it != hud_faces_.end()) return it->second;
+  // Composta na moldura reduzida 2x e reduzida mais 2x: o HUD mostra ~120 px de altura.
+  if (!frames_[2].Valid()) return field_front_2d_;
+  SDL_Texture* texture = UploadHudSprite(renderer_, cardface::Compose(frames_[2], card).Downscaled(2));
+  if (texture == nullptr) return field_front_2d_;
+  hud_faces_[card.code] = texture;
+  return texture;
 }
 
 void BattleScene::DrawCard() {
@@ -210,12 +279,353 @@ void BattleScene::DrawCard() {
   if (!code) return;
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   const Face face = MakeCardFace(*code);
-  if (face.texture != nullptr) hand_.Add(face.texture, face.foil);
+  if (face.texture != nullptr) hand_.Add(face.texture, face.foil, face.info);
 }
+
+void BattleScene::EnemyDraw() {
+  const std::optional<std::string> code = enemy_deck_.Draw();
+  if (!code) return;
+  if (const CardInfo* info = cards::Find(cards_, *code)) enemy_hand_.push_back(info);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Fluxo da partida
+
+void BattleScene::Schedule(float delay, std::function<void()> fn) {
+  steps_.emplace_back(delay, std::move(fn));
+}
+
+bool BattleScene::Busy() const {
+  return !steps_.empty() || board_.Animating() || enemy_board_.Animating() ||
+         std::fabs(orbit_ - orbit_target_) > 0.001f;
+}
+
+bool BattleScene::AttacksAllowed(Side side) const {
+  return !(starter_ == side && turns_played_[Index(side)] == 0);
+}
+
+void BattleScene::StartMatch() {
+  started_ = true;
+  // Sorteio de quem começa (PONTIFICE_STARTER força, para depuração).
+  starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kEnemy;
+  if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
+    if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
+    if (std::strcmp(env, "enemy") == 0) starter_ = Side::kEnemy;
+  }
+  SDL_Log("Sorteio: %s", starter_ == Side::kPlayer ? "voce comeca" : "o oponente comeca");
+  if (starter_ == Side::kPlayer) {
+    BeginPlayerTurn();
+  } else {
+    hand_.SetAway(true);
+    orbit_target_ = 1.0f;
+    Schedule(kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
+  }
+}
+
+void BattleScene::BeginPlayerTurn() {
+  if (hud_.Over()) return;
+  turn_side_ = Side::kPlayer;
+  player_turn_ = true;
+  summoned_ = false;
+  attack_from_ = -1;
+  attack_drag_ = false;
+  board_.ResetAttacks();
+  hand_.SetAway(false);
+  orbit_target_ = 0.0f;
+  // Fase de compra: quem começou não compra no primeiro turno.
+  if (!(starter_ == Side::kPlayer && turns_played_[0] == 0)) DrawCard();
+  SDL_Log("Turno %d: sua vez", turn_);
+}
+
+void BattleScene::EndTurn() {
+  if (!player_turn_ || Busy() || hud_.Over()) return;
+  player_turn_ = false;
+  ++turns_played_[0];
+  hand_.Deselect();
+  attack_from_ = -1;
+  attack_drag_ = false;
+  DiscardExtraCards();
+  // Virada de campo e turno do computador.
+  hand_.SetAway(true);
+  orbit_target_ = 1.0f;
+  Schedule(kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
+}
+
+void BattleScene::DiscardExtraCards() {
+  // Fase final: com mais de 6 cartas, descarta até 6 (aqui, as de menor ataque).
+  while (hand_.Size() > static_cast<size_t>(kHandLimit)) {
+    size_t worst = 0;
+    int worst_value = 1 << 30;
+    for (size_t i = 0; i < hand_.Size(); ++i) {
+      const CardInfo* info = hand_.CardAt(i).info;
+      const int value = info == nullptr ? 0 : (info->IsField() ? 0 : info->attack);
+      if (value < worst_value) {
+        worst_value = value;
+        worst = i;
+      }
+    }
+    hand_.Remove(worst);
+    hud_.SetGraveyard(hud_.Graveyard() + 1);
+  }
+}
+
+void BattleScene::RunEnemyTurn() {
+  if (hud_.Over()) return;
+  turn_side_ = Side::kEnemy;
+  enemy_board_.ResetAttacks();
+  if (!(starter_ == Side::kEnemy && turns_played_[1] == 0)) EnemyDraw();
+  SDL_Log("Turno %d: oponente (%zu na mao, %zu no monte)", turn_, enemy_hand_.size(),
+          enemy_deck_.Size());
+  // Fase principal: trocas de posição, carta de campo e invocação, com pausas.
+  Schedule(kEnemyPause, [this] {
+    for (int slot : ai::ChoosePositionChanges(BuildEnemyView())) {
+      enemy_board_.TogglePosition(slot);
+    }
+  });
+  Schedule(kEnemyPause, [this] {
+    const int index = ai::ChooseFieldCard(BuildEnemyView());
+    if (index < 0) return;
+    const CardInfo* card = enemy_hand_[static_cast<size_t>(index)];
+    enemy_hand_.erase(enemy_hand_.begin() + index);
+    PlayField(Side::kEnemy, *card);
+  });
+  Schedule(kEnemyPause, [this] {
+    const std::optional<ai::Summon> summon = ai::ChooseSummon(BuildEnemyView());
+    if (summon) EnemySummon(summon->hand_index, summon->defense);
+  });
+  // Fase de batalha: um ataque por passo, reavaliando o campo a cada vez.
+  Schedule(kEnemyPause + 0.3f, [this] { EnemyAttackStep(); });
+}
+
+void BattleScene::EnemyAttackStep() {
+  if (hud_.Over()) return;
+  const std::optional<ai::Attack> attack = ai::ChooseAttack(BuildEnemyView());
+  if (!attack) {
+    Schedule(kEnemyPause, [this] { FinishEnemyTurn(); });
+    return;
+  }
+  PerformAttack(Side::kEnemy, attack->slot, attack->target_slot);
+  Schedule(0.9f, [this] { EnemyAttackStep(); });
+}
+
+void BattleScene::FinishEnemyTurn() {
+  ++turns_played_[1];
+  // Fase final do computador: mão com mais de 6 cartas descarta as de menor ataque.
+  while (enemy_hand_.size() > static_cast<size_t>(kHandLimit)) {
+    auto worst = std::min_element(enemy_hand_.begin(), enemy_hand_.end(),
+                                  [](const CardInfo* a, const CardInfo* b) {
+                                    return a->attack < b->attack;
+                                  });
+    enemy_hand_.erase(worst);
+  }
+  ++turn_;
+  orbit_target_ = 0.0f;
+  Schedule(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
+}
+
+ai::View BattleScene::BuildEnemyView() const {
+  ai::View view;
+  view.hand = enemy_hand_;
+  for (int slot : enemy_board_.Occupied()) {
+    const Board::Card* c = enemy_board_.At(slot);
+    view.mine.push_back(ai::FieldCard{slot, c->info, c->defense,
+                                      !c->defense && !c->attacked, c->summoned_turn == turn_});
+  }
+  for (int slot : board_.Occupied()) {
+    const Board::Card* c = board_.At(slot);
+    view.theirs.push_back(
+        ai::FieldCard{slot, c->info, c->defense, false, c->summoned_turn == turn_});
+  }
+  view.field = field_;
+  view.my_life = hud_.OpponentLife();
+  view.their_life = hud_.PlayerLife();
+  view.can_summon = true;  // uma invocação por turno: ChooseSummon é chamado uma vez
+  view.can_attack = AttacksAllowed(Side::kEnemy);
+  view.free_slots = static_cast<int>(enemy_board_.Free().size());
+  return view;
+}
+
+void BattleScene::EnemySummon(int hand_index, bool defense) {
+  if (hand_index < 0 || hand_index >= static_cast<int>(enemy_hand_.size())) return;
+  const CardInfo* info = enemy_hand_[static_cast<size_t>(hand_index)];
+  std::vector<int> free = enemy_board_.Free();
+  int slot;
+  if (free.empty()) {
+    // Campo cheio: substitui a carta de menor ataque.
+    slot = -1;
+    int worst = 1 << 30;
+    for (int s : enemy_board_.Occupied()) {
+      const Board::Card* c = enemy_board_.At(s);
+      const int value = c->info != nullptr ? c->info->attack : 0;
+      if (value < worst) {
+        worst = value;
+        slot = s;
+      }
+    }
+    if (slot < 0) return;
+    enemy_board_.Discard(slot);
+  } else {
+    slot = ai::ChooseSlot(free, Board::kCols);
+  }
+  enemy_hand_.erase(enemy_hand_.begin() + hand_index);
+  const Face face = MakeCardFace(info->code);
+  if (face.texture == nullptr) return;
+  enemy_board_.Place(slot, face.texture, face.foil, defense, info, turn_);
+  char name[3];
+  SDL_Log("Oponente invocou %s em %s (%s)", info->name.c_str(), SlotName(slot, name),
+          defense ? "defesa" : "ataque");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Ações do jogador
+
+bool BattleScene::CanAct() const {
+  return ready_ && started_ && player_turn_ && !hud_.Over() && !hand_.Inspecting() && !Busy();
+}
+
+bool BattleScene::CanSummon() const {
+  if (!CanAct() || hand_.Candidate() < 0) return false;
+  // Carta de campo não gasta a invocação normal do turno.
+  return CandidateIsField() || !summoned_;
+}
+
+bool BattleScene::CandidateIsField() const {
+  const int index = hand_.Candidate();
+  if (index < 0) return false;
+  const CardInfo* info = hand_.CardAt(static_cast<size_t>(index)).info;
+  return info != nullptr && info->IsField();
+}
+
+void BattleScene::PlayField(Side owner, const CardInfo& card) {
+  // Só uma carta de campo ativa: a anterior vai para o cemitério do dono.
+  if (field_.active && field_owner_ == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  field_ = rules::Field::From(card);
+  field_owner_ = owner;
+  FieldCardInfo info;
+  info.name = card.name;
+  info.favored = field_.favored == 'E' ? Category::kEvil : Category::kGood;
+  info.buff = card.buff;
+  info.nerf = card.nerf;
+  info.image = HudFace(card);
+  hud_.SetFieldCard(info);
+  SDL_Log("%s ativou a carta de campo %s", owner == Side::kPlayer ? "Voce" : "Oponente",
+          card.name.c_str());
+}
+
+void BattleScene::Summon(int slot) {
+  const int index = hand_.Candidate();
+  if (index < 0 || slot < 0 || slot >= Board::kSlots) return;
+  const Hand::Card card = hand_.Remove(static_cast<size_t>(index));
+  if (card.info != nullptr && card.info->IsField()) {
+    PlayField(Side::kPlayer, *card.info);
+    return;
+  }
+  // Slot ocupado: a carta anterior é descartada para o cemitério (docs/campo.md).
+  if (!board_.Empty(slot) && board_.Discard(slot)) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  // Entra virada para cima, em modo de ataque (docs/batalha.md).
+  if (!board_.Place(slot, card.front, card.foil, false, card.info, turn_)) return;
+  summoned_ = true;
+  board_.SetHighlight(false);
+  board_.SetHoverSlot(-1);
+  char name[3];
+  SDL_Log("Turno %d: carta invocada em %s", turn_, SlotName(slot, name));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Combate
+
+void BattleScene::PerformAttack(Side attacker, int slot, int target_slot) {
+  Board& mine = BoardOf(attacker);
+  Board& theirs = BoardOf(Other(attacker));
+  Board::Card* card = mine.At(slot);
+  if (card == nullptr || card->attacked || card->defense) return;
+  if (target_slot >= 0 && theirs.Empty(target_slot)) return;
+  if (target_slot < 0 && theirs.Count() > 0) return;  // direto só com o campo vazio
+  card->attacked = true;
+  // Investida até a carta alvo ou, no ataque direto, até o meio do lado do oponente.
+  const math::Vec3 target = target_slot >= 0
+                                ? theirs.CardPosition(target_slot)
+                                : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
+  mine.Lunge(slot, target);
+  Schedule(kAttackHit, [this, attacker, slot, target_slot] {
+    ResolveAttack(attacker, slot, target_slot);
+  });
+}
+
+void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
+  Board& mine = BoardOf(attacker);
+  Board& theirs = BoardOf(Other(attacker));
+  const Board::Card* card = mine.At(slot);
+  if (card == nullptr || card->info == nullptr) return;
+  const int attack = rules::EffectiveAttack(*card->info, field_);
+  rules::Outcome outcome;
+  char a_name[3], d_name[3];
+  if (target_slot < 0) {
+    outcome = rules::ResolveDirect(attack);
+    SDL_Log("%s: ataque direto de %s (%d)", attacker == Side::kPlayer ? "Voce" : "Oponente",
+            card->info->name.c_str(), attack);
+  } else {
+    Board::Card* target = theirs.At(target_slot);
+    if (target == nullptr || target->info == nullptr) return;
+    outcome = rules::Resolve(attack, target->defense,
+                             rules::EffectiveAttack(*target->info, field_),
+                             rules::EffectiveDefense(*target->info, field_));
+    SDL_Log("%s: %s (%s, %d) ataca %s (%s, %s)", attacker == Side::kPlayer ? "Voce" : "Oponente",
+            card->info->name.c_str(), SlotName(slot, a_name), attack,
+            target->info->name.c_str(), SlotName(target_slot, d_name),
+            target->defense ? "defesa" : "ataque");
+  }
+  if (outcome.defender_destroyed) Destroy(Other(attacker), target_slot);
+  if (outcome.attacker_destroyed) Destroy(attacker, slot);
+  if (outcome.defender_damage > 0) ApplyDamage(Other(attacker), outcome.defender_damage);
+  if (outcome.attacker_damage > 0) ApplyDamage(attacker, outcome.attacker_damage);
+  if (hud_.Over()) {
+    // Fim da batalha: nada mais acontece; o HUD mostra o resultado.
+    steps_.clear();
+    player_turn_ = false;
+    hand_.SetAway(true);
+    SDL_Log("Fim: %s", hud_.PlayerLife() > 0 ? "vitoria" : "derrota");
+  }
+}
+
+void BattleScene::Destroy(Side owner, int slot) {
+  if (!BoardOf(owner).Discard(slot)) return;
+  if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+}
+
+void BattleScene::ApplyDamage(Side side, int damage) {
+  if (side == Side::kPlayer) {
+    hud_.SetLife(hud_.OpponentLife(), hud_.PlayerLife() - damage);
+  } else {
+    hud_.SetLife(hud_.OpponentLife() - damage, hud_.PlayerLife());
+  }
+}
+
+math::Vec2 BattleScene::ScreenOf(const math::Vec3& world, int width, int height) const {
+  const math::Vec4 clip = arena_view_proj_ * math::Vec4{world.x, world.y, world.z, 1.0f};
+  const float w = clip.w > 1e-6f ? clip.w : 1e-6f;
+  return {(clip.x / w * 0.5f + 0.5f) * width, (1.0f - (clip.y / w * 0.5f + 0.5f)) * height};
+}
+
+// ---------------------------------------------------------------------------------------------
+// Cena
 
 void BattleScene::OnEnter(SceneContext& ctx) {
   // Sem Preload antes (entrada direta na batalha), carrega tudo aqui mesmo.
   if (!preloaded_) Preload(ctx.Preload());
+  renderer_ = ctx.renderer;
+
+  end_turn_ = std::make_unique<ButtonAction>("Passar turno", [this](SceneContext&) { EndTurn(); });
+  SDL_FRect rect{ctx.logical_width - kButtonMargin - kButtonWidth,
+                 ctx.logical_height - kButtonBottom - kButtonHeight, kButtonWidth, kButtonHeight};
+  end_turn_->SetRect(rect);
+  started_ = false;
+  player_turn_ = false;
+  summoned_ = false;
+  turn_ = 1;
+  turns_played_[0] = turns_played_[1] = 0;
+  steps_.clear();
+  field_ = rules::Field{};
 
   // HUD (docs/hud.md): vida cheia, sem carta de campo, cemitério vazio e monte com a mão
   // inicial já comprada. Não depende do render 3D.
@@ -242,7 +652,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
   // Entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
   hand_.DelayDeal(0.8f);
-  for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil);
+  for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil, face.info);
   initial_hand_.clear();
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   arena_world_ = math::Mat4::Scale(kArenaScale);
@@ -290,8 +700,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 }
 
 void BattleScene::UpdateIntro(float dt_seconds) {
-  if (intro_ >= 1.0f && torch_intro_ >= 1.0f && ignite_ >= 1.0f) return;
   intro_time_ += dt_seconds;
+  if (intro_ >= 1.0f && torch_intro_ >= 1.0f && ignite_ >= 1.0f) return;
   intro_ = SmoothStep(intro_time_ / kIntroSeconds);
   torch_intro_ = SmoothStep((intro_time_ - kTorchIntroStart) / kTorchIntroSeconds);
   ignite_ = SmoothStep((intro_time_ - kTorchIntroStart - kTorchIntroSeconds) / kIgniteSeconds);
@@ -317,6 +727,17 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   arena_atmosphere_.point_intensity = kTorchLight * ignite_;
   arena_atmosphere_.point2_intensity = kTorchLight * ignite_;
   const math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
+  arena_atmosphere_.camera_pos = eye;
+}
+
+void BattleScene::UpdateCamera() {
+  // Virada de campo: a câmera gira em torno do eixo vertical pelo centro da arena.
+  if (intro_ < 1.0f) return;
+  const float angle = math::kPi * SmoothStep(orbit_);
+  const float c = std::cos(angle), s = std::sin(angle);
+  const math::Vec3 e = eye_final_;
+  const math::Vec3 eye{e.x * c + e.z * s, e.y, -e.x * s + e.z * c};
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
 }
@@ -355,12 +776,78 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if (event.type == SDL_EVENT_MOUSE_MOTION) {
     mouse_ = {event.motion.x, event.motion.y};
+    if (attack_from_ >= 0 && !attack_drag_ && press_.x >= 0) {
+      const float moved = std::fabs(mouse_.x - press_.x) + std::fabs(mouse_.y - press_.y);
+      if (moved >= kAttackDragPx) attack_drag_ = true;
+    }
+  }
+  // "Passar turno" (visível no seu turno) fica com os eventos de mouse sobre ele.
+  if (CanAct()) {
+    if (end_turn_->HandleEvent(event)) {
+      end_turn_->OnClick(ctx);
+      return;
+    }
+    if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+        end_turn_->Contains(event.button.x, event.button.y)) {
+      return;
+    }
   }
   if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-    hand_.MouseDown({event.button.x, event.button.y}, event.button.button == SDL_BUTTON_LEFT);
+    const math::Vec2 pos{event.button.x, event.button.y};
+    if (event.button.button == SDL_BUTTON_LEFT) {
+      press_ = pos;
+      attack_from_ = -1;
+      attack_drag_ = false;
+      // Pressionar uma carta sua em ataque que ainda não atacou: começa um arrasto de ataque.
+      if (CanAct() && AttacksAllowed(Side::kPlayer) && hand_.Hovered() < 0) {
+        const int slot = board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
+                                         ctx.logical_height);
+        const Board::Card* card = board_.At(slot);
+        if (card != nullptr && !card->defense && !card->attacked) {
+          attack_from_ = slot;
+        }
+      }
+    }
+    hand_.MouseDown(pos, event.button.button == SDL_BUTTON_LEFT);
   }
   if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT) {
-    hand_.MouseUp({event.button.x, event.button.y});
+    const math::Vec2 pos{event.button.x, event.button.y};
+    const bool inspecting = hand_.Inspecting();
+    hand_.MouseUp(pos);
+    const float moved = std::fabs(pos.x - press_.x) + std::fabs(pos.y - press_.y);
+    if (attack_from_ >= 0 && attack_drag_) {
+      // Soltar sobre uma carta do oponente a ataca; sobre o lado vazio dele, ataque direto.
+      if (CanAct()) {
+        const int target = enemy_board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
+                                                 ctx.logical_height);
+        if (target >= 0 && !enemy_board_.Empty(target)) {
+          PerformAttack(Side::kPlayer, attack_from_, target);
+        } else if (target >= 0 && enemy_board_.Count() == 0) {
+          PerformAttack(Side::kPlayer, attack_from_, -1);
+        }
+      }
+    } else if (!inspecting && press_.x >= 0 && moved < kClickSlop && hand_.Hovered() < 0 &&
+               CanAct()) {
+      // Clique (sem arrasto) num slot do seu lado: com carta selecionada, invoca (num slot
+      // ocupado a carta anterior é descartada); sem seleção, numa carta sua, alterna ataque e
+      // defesa. Com o mouse sobre uma carta da mão o clique é dela, não do slot atrás.
+      const int slot =
+          board_.PickSlot(pos, arena_view_proj_, ctx.logical_width, ctx.logical_height);
+      if (CanSummon()) {
+        const bool field = CandidateIsField();
+        // Carta de campo: qualquer slot da arena serve (o slot de campo não está modelado).
+        const int enemy_slot = enemy_board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
+                                                     ctx.logical_height);
+        if (slot >= 0 || (field && enemy_slot >= 0)) Summon(field ? 0 : slot);
+      } else if (slot >= 0 && board_.TogglePosition(slot)) {
+        char name[3];
+        SDL_Log("Turno %d: carta de %s em modo de %s", turn_, SlotName(slot, name),
+                board_.At(slot)->defense ? "defesa" : "ataque");
+      }
+    }
+    press_ = {-1, -1};
+    attack_from_ = -1;
+    attack_drag_ = false;
   }
   if (event.type == SDL_EVENT_MOUSE_WHEEL) {
     hand_.Wheel(event.wheel.y);
@@ -373,7 +860,118 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (!ready_) return;
   UpdateIntro(dt_seconds);
+  // Virada de campo.
+  if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
+  if (orbit_ > orbit_target_) orbit_ = std::max(orbit_target_, orbit_ - dt_seconds / kOrbitSeconds);
+  UpdateCamera();
+  // Partida começa quando as tochas já estão acesas.
+  if (!started_ && intro_time_ >= kMatchStart) StartMatch();
+  // Passos agendados (turno do computador, impacto dos ataques): um por vez, com pausa.
+  if (!steps_.empty()) {
+    step_timer_ += dt_seconds;
+    if (step_timer_ >= steps_.front().first) {
+      step_timer_ = 0.0f;
+      auto fn = std::move(steps_.front().second);
+      steps_.pop_front();
+      fn();
+    }
+  } else {
+    step_timer_ = 0.0f;
+  }
+
   hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
+  // Destaques do campo: slots vazios em modo de invocação; moldura amarela no slot sob o
+  // mouse quando dá para invocar nele, trocar a posição da carta ou, num arrasto de ataque,
+  // no alvo do oponente.
+  const bool summoning = CanSummon();
+  board_.SetHighlight(summoning);
+  int hover = -1;
+  int enemy_hover = -1;
+  if (attack_from_ >= 0 && attack_drag_) {
+    hover = attack_from_;
+    const int target = enemy_board_.PickSlot(mouse_, arena_view_proj_, ctx.logical_width,
+                                             ctx.logical_height);
+    if (target >= 0 && (!enemy_board_.Empty(target) || enemy_board_.Count() == 0)) {
+      enemy_hover = target;
+    }
+  } else if (CanAct() && hand_.Hovered() < 0) {
+    hover = board_.PickSlot(mouse_, arena_view_proj_, ctx.logical_width, ctx.logical_height);
+    if (!summoning && board_.Empty(hover)) hover = -1;
+  }
+  board_.SetHoverSlot(hover);
+  enemy_board_.SetHoverSlot(enemy_hover);
+  board_.Update(dt_seconds);
+  enemy_board_.Update(dt_seconds);
+  // Tooltip e ampliação: carta de qualquer lado sob o mouse (fora da mão e sem inspeção).
+  tooltip_slot_ = -1;
+  if (intro_ >= 1.0f && hand_.Hovered() < 0 && !hand_.Inspecting() && mouse_.x >= 0) {
+    for (Side side : {Side::kPlayer, Side::kEnemy}) {
+      const Board& board = side == Side::kPlayer ? board_ : enemy_board_;
+      const int slot =
+          board.PickSlot(mouse_, arena_view_proj_, ctx.logical_width, ctx.logical_height);
+      if (slot >= 0 && !board.Empty(slot)) {
+        tooltip_slot_ = slot;
+        tooltip_side_ = side;
+        break;
+      }
+    }
+  }
+  board_.SetHoverCard(tooltip_slot_ >= 0 && tooltip_side_ == Side::kPlayer ? tooltip_slot_ : -1);
+  enemy_board_.SetHoverCard(tooltip_slot_ >= 0 && tooltip_side_ == Side::kEnemy ? tooltip_slot_
+                                                                                : -1);
+}
+
+void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
+  if (tooltip_slot_ < 0) return;
+  const Board& board = tooltip_side_ == Side::kPlayer ? board_ : enemy_board_;
+  const Board::Card* card = board.At(tooltip_slot_);
+  if (card == nullptr || card->info == nullptr) return;
+  const CardInfo& info = *card->info;
+  const int attack = rules::EffectiveAttack(info, field_);
+  const int defense = rules::EffectiveDefense(info, field_);
+  const std::string atk = "ATK " + std::to_string(attack);
+  const std::string def = "DEF " + std::to_string(defense);
+  std::string detail = tooltip_side_ == Side::kPlayer ? "Sua carta" : "Carta do oponente";
+  detail += card->defense ? " - em defesa" : " - em ataque";
+  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) detail += " (ja atacou)";
+
+  // Tamanho do painel pelo texto: nome, "ATK n   DEF n" e a linha de detalhe.
+  const float gap_atk_def = ui::Px(20.0f);
+  const float line_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kTipScale;
+  const float detail_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kTipDetailScale;
+  const float w_name = text::Width(info.name.c_str(), kTipScale);
+  const float w_stats = text::Width(atk.c_str(), kTipScale) + gap_atk_def +
+                        text::Width(def.c_str(), kTipScale);
+  const float w_detail = text::Width(detail.c_str(), kTipDetailScale);
+  const float w = std::max({w_name, w_stats, w_detail}) + 2 * kTipPadding;
+  const float h = 2 * kTipPadding + 2 * line_h + detail_h + 2 * kTipGap;
+  // Perto do cursor, sem sair da tela.
+  float x = mouse_.x + kTipOffset;
+  float y = mouse_.y + kTipOffset;
+  if (x + w > width) x = mouse_.x - kTipOffset - w;
+  if (y + h > height) y = mouse_.y - kTipOffset - h;
+  const SDL_FRect panel{x, y, w, h};
+  SDL_Color c = colors::Get("panel.fill");
+  SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+  SDL_RenderFillRect(r, &panel);
+  c = colors::Get("panel.border");
+  SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+  SDL_RenderRect(r, &panel);
+
+  float ty = y + kTipPadding;
+  text::Draw(r, info.name.c_str(), x + kTipPadding, ty, kTipScale, colors::Get("panel.title"));
+  ty += line_h + kTipGap;
+  // Valores alterados pela carta de campo saem na cor de buff/nerf.
+  auto stat_color = [&](int effective, int base) {
+    return effective > base ? colors::Get("status.buff")
+           : effective < base ? colors::Get("status.nerf")
+                              : colors::Get("panel.value");
+  };
+  text::Draw(r, atk.c_str(), x + kTipPadding, ty, kTipScale, stat_color(attack, info.attack));
+  text::Draw(r, def.c_str(), x + kTipPadding + text::Width(atk.c_str(), kTipScale) + gap_atk_def,
+             ty, kTipScale, stat_color(defense, info.defense));
+  ty += line_h + kTipGap;
+  text::Draw(r, detail.c_str(), x + kTipPadding, ty, kTipDetailScale, colors::Get("panel.label"));
 }
 
 void BattleScene::Render(SceneContext& ctx) {
@@ -383,13 +981,16 @@ void BattleScene::Render(SceneContext& ctx) {
   const float cx = ctx.logical_width / 2.0f;
 
   if (ready_) {
-    // Passes de sombra (um por tocha): arena e corpos das tochas são os ocultadores.
+    // Passes de sombra (um por tocha): arena, corpos das tochas e cartas em campo são os
+    // ocultadores.
     for (int k = 0; k < 2; ++k) {
       if (!gpu_->BeginShadowPass(k, torch_light_vp_[k])) break;
       if (arena_model_ != nullptr) arena_model_->DrawDepth(*gpu_, arena_world_);
       if (torch_ != nullptr) {
         for (const math::Mat4& world : torch_world_) torch_->DrawBodyDepth(*gpu_, world);
       }
+      board_.RenderDepth(*gpu_);
+      enemy_board_.RenderDepth(*gpu_);
       gpu_->EndShadowPass();
     }
   }
@@ -403,6 +1004,9 @@ void BattleScene::Render(SceneContext& ctx) {
         torch_->DrawBody(*gpu_, world, arena_view_proj_);
       }
     }
+    // Cartas dos dois lados do campo e destaques dos slots.
+    board_.Render(*gpu_, arena_view_proj_);
+    enemy_board_.Render(*gpu_, arena_view_proj_);
     // Névoa depois da arena (transparente): de baixo para cima.
     for (const MistLayer& layer : kMistLayers) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
@@ -449,5 +1053,48 @@ void BattleScene::Render(SceneContext& ctx) {
   }
 
   text::DrawCentered(r, "BATALHA", cx, ui::Px(40.0f), 4.0f * ui::kScale, colors::Get("text.title"));
+  // Situação do turno sob o título.
+  if (started_ && !hud_.Over()) {
+    std::string status = "Turno " + std::to_string(turn_) + " - ";
+    status += turn_side_ == Side::kPlayer && player_turn_ ? "sua vez" : "oponente";
+    status += " - oponente (" + std::string(ai::DifficultyName(difficulty_)) + ") com " +
+              std::to_string(enemy_hand_.size()) + " cartas na mao";
+    text::DrawCentered(r, status.c_str(), cx, ui::Px(72.0f), kStatusScale,
+                       colors::Get("text.secondary"));
+  }
+  // Arrasto de ataque: linha da carta atacante até o mouse.
+  if (attack_from_ >= 0 && attack_drag_ && mouse_.x >= 0) {
+    const math::Vec2 from =
+        ScreenOf(board_.CardPosition(attack_from_), ctx.logical_width, ctx.logical_height);
+    const SDL_Color line = colors::Get("board.slotHover");
+    SDL_SetRenderDrawColor(r, line.r, line.g, line.b, line.a);
+    for (int k = -1; k <= 1; ++k) {
+      SDL_RenderLine(r, from.x + k, from.y, mouse_.x + k, mouse_.y);
+      SDL_RenderLine(r, from.x, from.y + k, mouse_.x, mouse_.y + k);
+    }
+  }
+  // Dicas do seu turno.
+  const char* hint = nullptr;
+  if (attack_from_ >= 0 && attack_drag_) {
+    hint = enemy_board_.Count() == 0 ? "Solte no lado do oponente: ataque direto"
+                                     : "Solte sobre uma carta do oponente para atacar";
+  } else if (CanSummon()) {
+    hint = CandidateIsField() ? "Clique na arena para ativar a carta de campo"
+                              : "Clique em um slot do seu lado para invocar a carta";
+  } else if (CanAct() && AttacksAllowed(Side::kPlayer)) {
+    for (int slot : board_.Occupied()) {
+      const Board::Card* card = board_.At(slot);
+      if (!card->defense && !card->attacked) {
+        hint = "Arraste uma carta sua em ataque até o oponente para atacar";
+        break;
+      }
+    }
+  }
+  if (hint != nullptr) {
+    text::DrawCentered(r, hint, cx, ctx.logical_height * 0.66f, kHintScale,
+                       colors::Get("board.hint"));
+  }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
+  if (CanAct()) end_turn_->Render(r);
+  RenderTooltip(r, ctx.logical_width, ctx.logical_height);
 }

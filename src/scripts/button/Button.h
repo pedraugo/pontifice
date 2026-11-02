@@ -14,6 +14,7 @@ class Button {
   virtual ~Button() = default;
 
   void SetRect(const SDL_FRect& rect) { rect_ = rect; }
+  void SetLabel(std::string label) { label_ = std::move(label); }
   void SetFocused(bool focused) { focused_ = focused; }
 
   // Retorna true quando um clique completo (pressionar e soltar dentro) acontece.
@@ -22,8 +23,10 @@ class Button {
 
   virtual void OnClick(SceneContext& ctx) = 0;
 
- private:
   bool Contains(float x, float y) const;
+  const SDL_FRect& Rect() const { return rect_; }
+
+ private:
 
   std::string label_;
   SDL_FRect rect_{};

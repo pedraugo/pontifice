@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <random>
 #include <string>
 #include <vector>
@@ -32,8 +33,11 @@ std::vector<CardInfo> LoadAll(const std::string& base);
 
 const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code);
 
-// Monta um monte de `size` códigos sorteando por peso `odds`, com no máximo 2 cópias de cada
-// carta e 1 das de hierarquia 1. A ordem já sai embaralhada (deck::Shuffle).
-std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size, std::mt19937& rng);
+// Monta um monte de `size` códigos sorteando por peso (`odds`, ou `weight` se dado; peso 0 não
+// entra), com no máximo 2 cópias de cada carta e 1 das de hierarquia 1. A ordem já sai
+// embaralhada (deck::Shuffle).
+using Weight = std::function<int(const CardInfo&)>;
+std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size, std::mt19937& rng,
+                                   const Weight& weight = Weight());
 
 }  // namespace cards

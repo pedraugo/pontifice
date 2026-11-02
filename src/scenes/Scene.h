@@ -6,6 +6,9 @@
 #include <optional>
 
 enum class SceneId { kMenu, kLoading, kBattle };
+// Nível do oponente (ver scripts/ai/Ai.h, ai::Difficulty): 0 fácil, 1 médio, 2 difícil,
+// 3 impossível. Inteiro aqui para o cabeçalho das cenas não depender da IA.
+constexpr int kDefaultDifficulty = 1;
 
 class Scene;
 
@@ -16,6 +19,7 @@ struct PreloadInfo {
   SDL_GPUDevice* gpu_device = nullptr;  // nulo se o renderer não é GPU
   int logical_width = 0;
   int logical_height = 0;
+  int difficulty = kDefaultDifficulty;
 };
 
 // Estado compartilhado entre o loop principal e a cena ativa.
@@ -26,7 +30,10 @@ struct SceneContext {
   int logical_width = 0;
   int logical_height = 0;
 
-  PreloadInfo Preload() const { return {gpu_device, logical_width, logical_height}; }
+  int difficulty = kDefaultDifficulty;  // escolhido no menu, lido pela batalha
+  PreloadInfo Preload() const {
+    return {gpu_device, logical_width, logical_height, difficulty};
+  }
   bool quit = false;
   std::optional<SceneId> next_scene;
   // Cena que a tela de loading (SceneId::kLoading) prepara e abre em seguida.

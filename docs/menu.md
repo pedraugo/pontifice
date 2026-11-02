@@ -15,6 +15,8 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 |                                                            |
 |                      [   Jogar   ]                         |
 |                                                            |
+|                   [ Nível: Médio ]                         |
+|                                                            |
 |                      [    Sair   ]                         |
 |                                                            |
 |                                                            |
@@ -26,15 +28,17 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 | Elemento | Posição | Conteúdo |
 |---|---|---|
 | Título | Topo, centralizado | Texto `PONTIFICE`, fonte grande |
-| Botão Jogar | Centro, acima de Sair | Texto `Jogar` |
-| Botão Sair | Centro, abaixo de Jogar | Texto `Sair` |
+| Botão Jogar | Centro, em cima | Texto `Jogar` |
+| Botão Nível | Centro, no meio | Texto `Nível: Fácil`, `Médio`, `Difícil` ou `Impossível`; cada clique passa ao próximo |
+| Botão Sair | Centro, embaixo | Texto `Sair` |
 | Rodapé | Base, centralizado | Texto `Criado por pedraugo`, fonte pequena |
 
-Não há mais nada na tela: sem opções, sem créditos extras, sem imagem de fundo nesta versão.
+Não há mais nada na tela: sem créditos extras, sem imagem de fundo nesta versão.
 
 ## Comportamento
 
 - **Jogar**: abre a tela de loading (docs/loading.md), que carrega a batalha e entra nela.
+- **Nível**: escolhe a força do oponente (Vs PC) para a próxima batalha; começa em Médio. Fácil: cartas dele inferiores às suas; Médio: equivalentes; Difícil: na maioria das vezes mais fortes; Impossível: nitidamente mais fortes. Detalhes em docs/detalhes_tecnicos.md ("Níveis").
 - **Sair**: encerra o jogo.
 - **Mouse**: passar o cursor sobre um botão destaca a borda e o texto. Clicar com o botão esquerdo ativa.
 - **Teclado**: setas para cima e para baixo movem o foco entre os botões. `Enter` ou `Espaço` ativa o botão focado. `Esc` sai do jogo.

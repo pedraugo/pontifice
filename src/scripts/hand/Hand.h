@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "scripts/cards/Cards.h"
 #include "scripts/math/Math.h"
-
 #include "scripts/model/Model.h"
 
 class Gpu;
@@ -15,8 +15,9 @@ class Gpu;
 // Em repouso a mão fica recolhida (parcialmente fora da tela) para não esconder a arena;
 // quando o mouse chega até ela, a mão inteira sobe. Passar o mouse sobre uma carta a
 // levanta, aproxima da câmera e afasta as vizinhas.
-// Gestos (clicar numa carta e arrastar): para CIMA seleciona/desseleciona a carta (várias
-// podem ficar selecionadas, erguidas); para BAIXO inspeciona (uma por vez): a carta vai
+// Gestos (clicar numa carta e arrastar): para CIMA seleciona/desseleciona a carta (uma por
+// vez, erguida: é a candidata à invocação, ver Candidate); para BAIXO inspeciona (uma por
+// vez): a carta vai
 // ampliada para o centro da tela; arrastar na horizontal gira a carta em Y (360°, mostra o
 // verso) e na vertical a inclina um pouco em X (volta sozinha); um clique na carta a vira
 // (meia-volta em Y, animada); clique fora dela, botão direito ou Esc encerra a inspeção.
@@ -25,6 +26,7 @@ class Hand {
   struct Card {
     SDL_GPUTexture* front = nullptr;
     bool foil = false;   // carta rara (hierarquia 1): frente com brilho iridescente
+    const CardInfo* info = nullptr;  // dados da carta
     float hover = 0.0f;  // 0 = em repouso, 1 = totalmente destacada (animado)
     float shift = 0.0f;  // deslocamento lateral causado pela carta destacada (animado)
     float tilt_x = 0.0f; // inclinação em X (rad) conforme o mouse sobe/desce na carta (animado)
@@ -54,6 +56,7 @@ class Hand {
     float tilt_max = 0.3f;        // inclinação máxima (rad) com o mouse na quina da carta
     float tilt_speed = 12.0f;     // velocidade da inclinação
     float hidden_drop = 1.0f;     // quanto a mão inteira desce quando o mouse está longe
+    float away_drop = 3.5f;       // quanto desce a mais quando recolhida (turno do oponente)
     float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
     float select_lift = 0.5f;     // quanto a carta selecionada sobe
     float select_forward = 0.15f; // quanto se aproxima da câmera
@@ -87,7 +90,11 @@ class Hand {
 
   // A carta entra deslizando da esquerda da tela até o seu lugar; cartas adicionadas em
   // sequência entram uma depois da outra (deal_stagger).
-  void Add(SDL_GPUTexture* front, bool foil = false);
+  void Add(SDL_GPUTexture* front, bool foil = false, const CardInfo* info = nullptr);
+  // Recolhe a mão para fora da tela (turno do oponente) e a traz de volta; sem interação
+  // enquanto recolhida.
+  void SetAway(bool away) { away_ = away; }
+  bool Away() const { return away_; }
   // Atrasa a entrada das próximas cartas em pelo menos `seconds` (ex.: esperar o fade in).
   void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
   void Clear() { cards_.clear(); }
@@ -109,8 +116,15 @@ class Hand {
   void Flip();  // vira a carta inspecionada (meia-volta em Y, animada)
   // Roda do mouse durante a inspeção: aproxima/afasta entre zoom_min e zoom_max da altura.
   void Wheel(float dy);
+  const Card& CardAt(size_t i) const { return cards_[i]; }
   bool IsSelected(size_t i) const { return i < cards_.size() && cards_[i].selected; }
   std::vector<size_t> Selected() const;
+  // Carta selecionada (candidata à invocação) ou -1.
+  int Candidate() const;
+  void Deselect();
+  // Tira a carta da mão (ex.: invocada no campo) e devolve seus dados; as demais deslizam
+  // para fechar o espaço. Índices de hover/inspeção são ajustados.
+  Card Remove(size_t index);
 
  private:
   int PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const;
@@ -133,6 +147,8 @@ class Hand {
   int hovered_ = -1;
   bool raised_ = false;  // alvo: mão levantada (mouse sobre ela) ou recolhida
   float raise_ = 0.0f;   // 0 = recolhida, 1 = levantada (animado)
+  bool away_ = false;    // fora da tela (turno do oponente)
+  float away_t_ = 0.0f;  // idem, animado
   float pending_delay_ = 0.0f;  // atraso que a próxima carta adicionada vai receber
 
   // Arrasto: carta pressionada e onde; -1 quando nada está pressionado.

@@ -38,6 +38,7 @@ src/
       Button.*        botão base (hover, foco, clique)
       ButtonPlay.*    botão Jogar
       ButtonExit.*    botão Sair
+      ButtonAction.*  botão genérico com rótulo e ação (Passar turno, Nível do menu)
     math/
       Math.h          Vec2/3/4, Mat4 (perspectiva, lookAt, rotação, escala)
     image/
@@ -47,7 +48,13 @@ src/
     model/
       Model.*         carrega .glb (cgltf): Parse (CPU, qualquer thread) e Upload (GPU); separa frente, verso e borda; lê baseColor e normalTexture
     hand/
-      Hand.*          mão em dock: layout em arco, hover, animação
+      Hand.*          mão em dock: layout em arco, hover, animação, seleção e inspeção
+    board/
+      Board.*         um lado do campo (jogador ou oponente): 10 slots alinhados aos ladrilhos, destaque, cartas em 3D, investida e descarte
+    rules/
+      Rules.*         regras de combate sem SDL: carta de campo ativa, ataque/defesa efetivos, cálculo de dano
+    ai/
+      Ai.*            oponente (Vs PC): níveis (peso do monte por hierarquia) e decisões por heurística
     hud/
       Hud.*           HUD da batalha (docs/hud.md): carta de campo ativa e pontos de vida
     json/
@@ -113,6 +120,7 @@ cmake/
   embed.cmake         converte arquivo texto em array de bytes C
 tests/                testes automatizados (ctest --test-dir build)
   deck_test.cpp       monte: embaralhar preserva cartas, é determinístico por semente, compra tira do topo
+  rules_test.cpp      regras de dano, carta de campo, decisões da IA e pesos dos níveis
 ```
 
 ## Dados das cartas
@@ -143,7 +151,7 @@ O campo é um **elemento 3D**, não uma imagem plana.
 
 - É uma malha (mesa ou arena) posicionada no plano horizontal, com os **22 slots** modelados como regiões demarcadas na superfície: 10 slots de carta e 1 slot de campo para cada lado.
 - Cada slot tem uma **posição e rotação no espaço 3D**. Uma carta colocada no slot é um objeto 3D posicionado nessas coordenadas.
-- As cartas em campo são **quads texturizados com dupla face**: frente com o sprite da carta, verso com `CardBackBase.png`. Carta virada para baixo é renderizada com rotação de 180° no eixo longitudinal.
+- As cartas em campo são **quads texturizados com dupla face**: frente com o sprite da carta, verso com `CardBackBase.png`. Toda carta em campo fica virada para cima.
 - Carta em **modo de defesa** fica girada 90° no plano da mesa (deitada), carta em **modo de ataque** fica em pé em relação ao jogador.
 - A câmera fica em **perspectiva**, atrás e acima do lado do jogador, olhando para o centro do campo. Toda a arena é visível sem rolagem.
 - O monte é renderizado como uma **pilha 3D** cuja altura diminui conforme as cartas são compradas.
@@ -185,16 +193,49 @@ As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementad
 - **Detecção**: os quatro cantos da carta são projetados para a tela com a matriz do quadro anterior e testados contra o cursor (ponto em quadrilátero convexo). Entre cartas sobrepostas vence a de centro mais próximo do cursor.
 - Parâmetros (altura, espaçamento, arco, escala, elevação, velocidade) ficam em `Hand::Layout`.
 
-Pendente: arrastar carta para um slot (a seleção é o primeiro passo), animação ao descartar, mão do oponente com verso para a câmera.
+Pendente: mão do oponente com verso para a câmera.
+
+## Partida contra o computador
+
+Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado), `scripts/rules/Rules.*` (regras puras) e `scripts/ai/Ai.*` (oponente). Segue docs/batalha.md e docs/campo.md.
+
+**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Quando as tochas acendem (3,2 s), um sorteio decide quem começa (`PONTIFICE_STARTER=player|enemy` força). Quem começa não compra nem ataca no primeiro turno.
+
+**Seu turno** (botão **Passar turno** sempre visível à direita):
+
+1. **Selecionar a carta**: arrastar uma carta da mão para cima a seleciona (uma por vez). Os slots vazios do seu lado ficam levemente destacados (quad translúcido pulsando) e aparece a dica do que fazer. Toda carta entra **virada para cima, em modo de ataque**; não existe carta virada para baixo.
+2. **Escolher o slot**: o slot sob o mouse recebe uma **moldura quadrada amarela** (`board.slotHover`). A detecção projeta os quatro cantos do ladrilho na tela com a câmera da arena (`math::PointInConvexQuad`). Um clique sobre uma carta da mão nunca conta como clique no slot atrás dela.
+3. **Carta vai para a arena**: `Hand::Remove` tira a carta da mão (as outras deslizam para fechar o espaço) e `Board::Place` a coloca no slot: desce animada (0,45 s) de cima e à frente do slot até deitar sobre o ladrilho, topo para o lado do oponente. Uma invocação normal por turno.
+4. **Slot ocupado**: invocar sobre um slot com carta descarta a anterior (`Board::Discard`: sobe e encolhe até sumir; cemitério +1).
+5. **Carta de campo** selecionada: clicar em qualquer ladrilho da arena a ativa (`PlayField`): vai para o painel do HUD (frente composta pelo `cardface`), substitui a anterior (a sua vai para o cemitério) e passa a valer o buff/nerf em todo cálculo (`rules::EffectiveAttack/Defense`). Não gasta a invocação do turno.
+6. **Trocar posição**: sem carta selecionada, clicar numa carta sua no campo alterna **ataque <-> defesa** (`Board::TogglePosition`, giro animado de 90° no plano da mesa). (A regra "não troca de posição no turno em que entrou" vale para a IA; para o jogador a troca é livre no seu turno, por decisão de design.)
+7. **Atacar**: **arrastar** uma carta sua em ataque (que ainda não atacou neste turno) até uma carta do oponente a ataca; se o lado dele está vazio, soltar sobre qualquer ladrilho dele é **ataque direto**. Durante o arrasto uma linha amarela liga a carta ao mouse e o alvo ganha a moldura. A carta faz uma **investida** em arco (`Board::Lunge`, 0,5 s) e no impacto (0,25 s) `rules::Resolve` aplica as tabelas de dano: destruição vai para o cemitério, dano para o HUD.
+8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor com nome, **ATK** e **DEF** efetivos (verde/vermelho quando a carta de campo altera), dono e posição (`RenderTooltip`).
+9. **Passar turno**: com mais de 6 cartas na mão, as de menor ataque são descartadas. A câmera orbita 180° (1 s), a mão se recolhe e começa o turno do computador.
+
+**Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se bate o campo do jogador, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
+
+**Níveis** (`ai::Difficulty`, escolhidos no menu, `PONTIFICE_DIFFICULTY=easy|medium|hard|impossible` força): mudam só o **monte do computador**, por peso de sorteio por hierarquia (`ai::DeckWeight`; os limites de 2 cópias e 1 de hierarquia 1 continuam):
+
+| Nível | Hierarquia 1 | 2 | 3 | 4 | Efeito |
+|---|---|---|---|---|---|
+| Fácil | 0 | 0 | 40% | 100% | cartas inferiores às suas |
+| Médio | 100% | 100% | 100% | 100% | igual ao seu monte |
+| Difícil | 6x | 15x | 4x | 30% | na maioria das vezes mais fortes |
+| Impossível | todas | todas | completa | 0 | nitidamente mais fortes |
+
+A tomada de decisão da IA é a mesma em todos os níveis.
+
+Os slots ficam em `Board::SlotPosition`: colunas em x = (col − 2) × ladrilho, linha A em z = meia canaleta + meio ladrilho e linha B um ladrilho além, no topo da plataforma (constantes `ARENA_*` de `tools/texture_arena.py` vezes `kArenaScale`); o lado do oponente (`SetSide(-1)`) espelha x e z e vira as cartas para ele. `Board::Layout` guarda escala da carta, durações e trajetos das animações.
 
 ## Virada de campo no turno do computador
 
-Quando o turno passa para o computador, a **câmera orbita 180°** em torno do centro do campo, de modo que o jogador passa a ver a arena pelo ponto de vista do oponente.
+Quando o turno passa para o computador, a **câmera orbita 180°** em torno do centro do campo (`UpdateCamera`, 1 s com smoothstep), de modo que o jogador passa a ver a arena pelo ponto de vista do oponente.
 
 - A rotação é uma **animação contínua** (cerca de 1 segundo, com easing), não um corte.
 - Durante a animação, a entrada do jogador fica **bloqueada**.
 - Ao final, o lado do computador aparece na parte de baixo da tela e o lado do jogador na parte de cima. As cartas viradas para baixo do jogador continuam mostrando o verso.
-- O dock do computador aparece na parte inferior, com o verso das cartas. O dock do jogador fica no topo, também com verso.
+- A mão do jogador se recolhe para fora da tela (`Hand::SetAway`). O dock do computador com o verso das cartas ainda não é desenhado; a quantidade de cartas na mão dele aparece na linha de situação sob o título.
 - O **HUD não gira**: carta de campo ativa segue no canto superior esquerdo e os pontos de vida no canto superior direito, com os nomes "Você" e "Oponente" inalterados.
 - Quando o turno volta ao jogador, a câmera orbita os 180° de volta, com a mesma animação.
 

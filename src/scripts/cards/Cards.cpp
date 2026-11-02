@@ -72,23 +72,24 @@ const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code) 
 }
 
 std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
-                                   std::mt19937& rng) {
+                                   std::mt19937& rng, const Weight& weight) {
   std::vector<std::string> deck;
   if (all.empty()) return deck;
   std::map<std::string, int> copies;
   auto limit = [](const CardInfo& card) { return card.hierarchy == 1 ? 1 : 2; };
+  auto w = [&weight](const CardInfo& card) { return weight ? weight(card) : card.odds; };
   // Sorteio por peso entre as cartas que ainda podem entrar; para quando não há mais nenhuma.
   while (static_cast<int>(deck.size()) < size) {
-    int total = 0;
+    long total = 0;
     for (const CardInfo& card : all) {
-      if (copies[card.code] < limit(card)) total += card.odds;
+      if (copies[card.code] < limit(card)) total += w(card);
     }
     if (total <= 0) break;
-    std::uniform_int_distribution<int> pick(1, total);
-    int roll = pick(rng);
+    std::uniform_int_distribution<long> pick(1, total);
+    long roll = pick(rng);
     for (const CardInfo& card : all) {
       if (copies[card.code] >= limit(card)) continue;
-      roll -= card.odds;
+      roll -= w(card);
       if (roll <= 0) {
         deck.push_back(card.code);
         ++copies[card.code];
