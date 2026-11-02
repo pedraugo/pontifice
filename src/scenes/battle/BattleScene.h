@@ -229,6 +229,9 @@ class BattleScene : public Scene {
   math::Mat4 proj_;
   math::Vec3 eye_final_;
   float orbit_ = 0.0f;         // 0 = vista do jogador, 1 = do oponente (animado)
+  // Tremor da arena quando uma carta é abatida: segundos restantes e tempo corrido (fase).
+  float shake_left_ = 0.0f;
+  float shake_time_ = 0.0f;
   float orbit_target_ = 0.0f;
   float intro_time_ = 0.0f;
   float intro_ = 0.0f;

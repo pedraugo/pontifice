@@ -74,6 +74,10 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 - Cartas **Neutras** não são afetadas por cartas de campo.
 - O buff e o nerf são aplicados antes de qualquer cálculo de dano.
 
+## Carta abatida
+
+Quando uma carta é destruída em combate, de qualquer lado, a arena treme por menos de meio segundo, forte no golpe e sumindo em seguida. A mão e o HUD não tremem.
+
 ## Jogadas do oponente
 
 Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no centro da tela por 2 segundos antes de ir para a arena. A legenda diz o que ele está fazendo e, na invocação, em que posição a carta entra. Assim o jogador lê nome, ATK, DEF e descrição antes de a carta descer na mesa. A carta aparece em 3D, igual às da sua mão: cartas foil (hierarquia 1) brilham com a aura e mostram o arco-íris enquanto balançam.

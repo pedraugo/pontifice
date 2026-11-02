@@ -128,6 +128,10 @@ constexpr float kRevealCardH = ui::Grid(35);  // 560 px
 constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
 constexpr float kRevealDetailScale = 2.5f * ui::kScale;
 constexpr float kAttackHit = 0.25f;  // momento do impacto dentro da investida
+// Tremor da arena ao abater uma carta: duração e deslocamento máximo da câmera (unidades do
+// mundo), que cai com o quadrado do tempo restante.
+constexpr float kShakeSeconds = 0.45f;
+constexpr float kShakeAmplitude = 0.16f;
 
 // Normal map da carta pronto para a GPU: pixels transparentes (fora dos cantos arredondados)
 // viram normal plana (128, 128, 255), na proporção da transparência, para o filtro linear
@@ -812,6 +816,8 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
 void BattleScene::Destroy(Side owner, int slot) {
   if (!BoardOf(owner).Discard(slot)) return;
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  // Carta abatida: a arena treme (as duas destruídas no mesmo golpe não somam).
+  shake_left_ = kShakeSeconds;
 }
 
 void BattleScene::ApplyDamage(Side side, int damage) {
@@ -974,8 +980,20 @@ void BattleScene::UpdateCamera() {
   const float angle = math::kPi * SmoothStep(orbit_);
   const float c = std::cos(angle), s = std::sin(angle);
   const math::Vec3 e = eye_final_;
-  const math::Vec3 eye{e.x * c + e.z * s, e.y, -e.x * s + e.z * c};
-  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
+  math::Vec3 eye{e.x * c + e.z * s, e.y, -e.x * s + e.z * c};
+  math::Vec3 target = kArenaTarget;
+  // Tremor (carta abatida): câmera e alvo sacodem juntos em três senos de frequências
+  // diferentes, forte no início e sumindo. Só a arena treme: mão e HUD ficam parados.
+  if (shake_left_ > 0.0f) {
+    const float k = shake_left_ / kShakeSeconds;
+    const float a = kShakeAmplitude * k * k;
+    const float t = shake_time_;
+    const math::Vec3 offset{a * std::sin(t * 57.0f), a * 0.8f * std::sin(t * 43.0f + 1.3f),
+                            a * 0.6f * std::sin(t * 67.0f + 2.1f)};
+    eye = eye + offset;
+    target = target + offset * 0.6f;
+  }
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, target, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
 }
 
@@ -1155,6 +1173,10 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
   // Virada de campo.
+  if (shake_left_ > 0.0f) {
+    shake_left_ = std::max(0.0f, shake_left_ - dt_seconds);
+    shake_time_ += dt_seconds;
+  }
   if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
   if (orbit_ > orbit_target_) orbit_ = std::max(orbit_target_, orbit_ - dt_seconds / kOrbitSeconds);
   UpdateCamera();
