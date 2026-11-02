@@ -119,6 +119,14 @@ constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ata
 constexpr int kHandLimit = 6;
 // Pausas do turno do computador (s), para o jogador acompanhar cada jogada.
 constexpr float kEnemyPause = 0.7f;
+// Revelação da carta jogada pelo oponente: tempo total no centro da tela (com entrada e saída
+// em fade), altura da carta (perto dos 557 px nativos da frente do HUD) e escala de entrada.
+constexpr float kRevealSeconds = 2.0f;
+constexpr float kRevealFadeIn = 0.2f;
+constexpr float kRevealFadeOut = 0.25f;
+constexpr float kRevealCardH = ui::Grid(35);  // 560 px
+constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
+constexpr float kRevealDetailScale = 2.5f * ui::kScale;
 constexpr float kAttackHit = 0.25f;  // momento do impacto dentro da investida
 
 float SmoothStep(float t) {
@@ -336,6 +344,14 @@ void BattleScene::Schedule(float delay, std::function<void()> fn) {
   steps_.emplace_back(delay, std::move(fn));
 }
 
+void BattleScene::ScheduleNext(float delay, std::function<void()> fn) {
+  steps_.emplace_front(delay, std::move(fn));
+}
+
+void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::string detail) {
+  reveal_ = Reveal{&card, HudFace(card), std::move(caption), std::move(detail), 0.0f};
+}
+
 bool BattleScene::Busy() const {
   return !steps_.empty() || board_.Animating() || enemy_board_.Animating() || sword_.Active() ||
          std::fabs(orbit_ - orbit_target_) > 0.001f;
@@ -423,16 +439,34 @@ void BattleScene::RunEnemyTurn() {
       enemy_board_.TogglePosition(slot);
     }
   });
+  // Carta de campo e invocação: a carta sai da mão dele, aparece no centro da tela por
+  // kRevealSeconds e só então vai para a arena (passo agendado logo em seguida).
   Schedule(kEnemyPause, [this] {
     const int index = ai::ChooseFieldCard(BuildEnemyView());
     if (index < 0) return;
     const CardInfo* card = enemy_hand_[static_cast<size_t>(index)];
     enemy_hand_.erase(enemy_hand_.begin() + index);
-    PlayField(Side::kEnemy, *card);
+    StartReveal(*card, i18n::Get("battle.reveal.field"), "");
+    ScheduleNext(kRevealSeconds, [this, card] {
+      reveal_ = Reveal{};
+      PlayField(Side::kEnemy, *card);
+    });
   });
   Schedule(kEnemyPause, [this] {
     const std::optional<ai::Summon> summon = ai::ChooseSummon(BuildEnemyView());
-    if (summon) EnemySummon(summon->hand_index, summon->defense);
+    if (!summon || summon->hand_index < 0 ||
+        summon->hand_index >= static_cast<int>(enemy_hand_.size())) {
+      return;
+    }
+    const CardInfo* card = enemy_hand_[static_cast<size_t>(summon->hand_index)];
+    const bool defense = summon->defense;
+    enemy_hand_.erase(enemy_hand_.begin() + summon->hand_index);
+    StartReveal(*card, i18n::Get("battle.reveal.summon"),
+                i18n::Get(defense ? "battle.reveal.defense" : "battle.reveal.attack"));
+    ScheduleNext(kRevealSeconds, [this, card, defense] {
+      reveal_ = Reveal{};
+      EnemySummon(card, defense);
+    });
   });
   // Fase de batalha: um ataque por passo, reavaliando o campo a cada vez.
   Schedule(kEnemyPause + 0.3f, [this] { EnemyAttackStep(); });
@@ -486,9 +520,8 @@ ai::View BattleScene::BuildEnemyView() const {
   return view;
 }
 
-void BattleScene::EnemySummon(int hand_index, bool defense) {
-  if (hand_index < 0 || hand_index >= static_cast<int>(enemy_hand_.size())) return;
-  const CardInfo* info = enemy_hand_[static_cast<size_t>(hand_index)];
+void BattleScene::EnemySummon(const CardInfo* info, bool defense) {
+  if (info == nullptr) return;
   std::vector<int> free = enemy_board_.Free();
   int slot;
   if (free.empty()) {
@@ -508,7 +541,6 @@ void BattleScene::EnemySummon(int hand_index, bool defense) {
   } else {
     slot = ai::ChooseSlot(free, Board::kCols);
   }
-  enemy_hand_.erase(enemy_hand_.begin() + hand_index);
   const Face face = MakeCardFace(info->code);
   if (face.texture == nullptr) return;
   enemy_board_.Place(slot, face.texture, face.foil, defense, info, turn_);
@@ -629,6 +661,7 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   if (hud_.Over()) {
     // Fim da batalha: nada mais acontece; o HUD mostra o resultado.
     steps_.clear();
+    reveal_ = Reveal{};
     player_turn_ = false;
     hand_.SetAway(true);
     SDL_Log("Fim: %s", hud_.PlayerLife() > 0 ? "vitoria" : "derrota");
@@ -676,6 +709,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   turn_ = 1;
   turns_played_[0] = turns_played_[1] = 0;
   steps_.clear();
+  reveal_ = Reveal{};
   field_ = rules::Field{};
 
   // HUD (docs/hud.md): vida cheia, sem carta de campo, cemitério vazio e monte com a mão
@@ -975,6 +1009,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (!ready_ || paused_) return;  // pausa: abertura, câmera, IA e animações congelam
+  if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
   // Virada de campo.
   if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
@@ -1036,6 +1071,47 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   board_.SetHoverCard(tooltip_slot_ >= 0 && tooltip_side_ == Side::kPlayer ? tooltip_slot_ : -1);
   enemy_board_.SetHoverCard(tooltip_slot_ >= 0 && tooltip_side_ == Side::kEnemy ? tooltip_slot_
                                                                                 : -1);
+}
+
+void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
+  if (reveal_.card == nullptr || reveal_.face == nullptr) return;
+  // Entrada: cresce de 85% e clareia; saída: encolhe um pouco e some, logo antes de a carta
+  // descer na arena.
+  const float in = SmoothStep(reveal_.time / kRevealFadeIn);
+  const float out =
+      1.0f - SmoothStep((reveal_.time - (kRevealSeconds - kRevealFadeOut)) / kRevealFadeOut);
+  const float alpha = std::min(in, out);
+  const float scale = (0.85f + 0.15f * in) * (0.92f + 0.08f * out);
+  const auto with_alpha = [alpha](SDL_Color c) {
+    c.a = static_cast<Uint8>(c.a * alpha);
+    return c;
+  };
+
+  SDL_BlendMode previous = SDL_BLENDMODE_NONE;
+  SDL_GetRenderDrawBlendMode(r, &previous);
+  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+  // Véu leve: a arena continua visível atrás.
+  const SDL_Color veil = with_alpha(colors::Get("background.overlay"));
+  SDL_SetRenderDrawColor(r, veil.r, veil.g, veil.b, veil.a);
+  const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
+  SDL_RenderFillRect(r, &full);
+
+  const float h = kRevealCardH * scale;
+  const float w = h * kCardAspect;
+  const float cx = width / 2.0f;
+  const float cy = height / 2.0f + ui::Grid(1);
+  const SDL_FRect card{cx - w / 2.0f, cy - h / 2.0f, w, h};
+  SDL_SetTextureAlphaMod(reveal_.face, static_cast<Uint8>(alpha * 255.0f));
+  SDL_RenderTexture(r, reveal_.face, nullptr, &card);
+  SDL_SetTextureAlphaMod(reveal_.face, 255);  // textura compartilhada com HUD e tooltip
+
+  text::DrawCentered(r, reveal_.caption.c_str(), cx, card.y - ui::Grid(3), kRevealCaptionScale,
+                     with_alpha(colors::Get("panel.title")));
+  if (!reveal_.detail.empty()) {
+    text::DrawCentered(r, reveal_.detail.c_str(), cx, card.y + card.h + ui::Grid(3),
+                       kRevealDetailScale, with_alpha(colors::Get("text.secondary")));
+  }
+  SDL_SetRenderDrawBlendMode(r, previous);
 }
 
 void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
@@ -1267,6 +1343,7 @@ void BattleScene::Render(SceneContext& ctx) {
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
   sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
-  if (!paused_) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
+  RenderReveal(r, ctx.logical_width, ctx.logical_height);
+  if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);
 }

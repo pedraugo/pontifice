@@ -93,6 +93,9 @@ class BattleScene : public Scene {
 
   // Agenda de passos com pausa (turno do computador, resolução de ataques).
   void Schedule(float delay, std::function<void()> fn);
+  // Como Schedule, mas logo depois do passo em execução (frente da fila), antes dos que já
+  // estavam agendados. Usado para colocar na arena a carta revelada pelo oponente.
+  void ScheduleNext(float delay, std::function<void()> fn);
   bool Busy() const;  // passos pendentes, animações no campo ou câmera orbitando
 
   // Fluxo da partida.
@@ -121,7 +124,21 @@ class BattleScene : public Scene {
   // Computador.
   ai::View BuildEnemyView() const;
   void EnemyDraw();
-  void EnemySummon(int hand_index, bool defense);
+  void EnemySummon(const CardInfo* info, bool defense);  // a carta já saiu da mão dele
+
+  // Revelação da carta do oponente: antes de ir à arena, a carta que ele joga (invocação ou
+  // carta de campo) aparece grande no centro da tela por kRevealSeconds, com a legenda da
+  // jogada, para o jogador ler os dados dela.
+  struct Reveal {
+    const CardInfo* card = nullptr;
+    SDL_Texture* face = nullptr;  // frente composta (HudFace, em cache; não é dono)
+    std::string caption;          // "O oponente invoca"
+    std::string detail;           // "Em ataque"; vazio para carta de campo
+    float time = 0.0f;            // segundos desde o início
+  };
+  Reveal reveal_;
+  void StartReveal(const CardInfo& card, std::string caption, std::string detail);
+  void RenderReveal(SDL_Renderer* r, int width, int height) const;
   void DiscardExtraCards();  // fim de turno: mão com mais de 6 cartas
 
   // Projeção de um ponto do mundo na tela (câmera da arena).

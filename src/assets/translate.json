@@ -184,6 +184,26 @@
       "en": "Yes",
       "es": "Sí"
     },
+    "battle.reveal.summon": {
+      "pt": "O oponente invoca",
+      "en": "The opponent summons",
+      "es": "El oponente invoca"
+    },
+    "battle.reveal.field": {
+      "pt": "O oponente ativa a carta de campo",
+      "en": "The opponent activates a field card",
+      "es": "El oponente activa la carta de campo"
+    },
+    "battle.reveal.attack": {
+      "pt": "Em ataque",
+      "en": "In attack position",
+      "es": "En ataque"
+    },
+    "battle.reveal.defense": {
+      "pt": "Em defesa",
+      "en": "In defense position",
+      "es": "En defensa"
+    },
     "hud.noField": {
       "pt": "Sem campo",
       "en": "No field",

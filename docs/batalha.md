@@ -73,6 +73,10 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 - Cartas **Neutras** não são afetadas por cartas de campo.
 - O buff e o nerf são aplicados antes de qualquer cálculo de dano.
 
+## Jogadas do oponente
+
+Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no centro da tela por 2 segundos antes de ir para a arena. A legenda diz o que ele está fazendo e, na invocação, em que posição a carta entra. Assim o jogador lê nome, ATK, DEF e descrição antes de a carta descer na mesa.
+
 ## Pausa
 
 `Esc` durante a batalha pausa o jogo e abre uma janela de confirmação:
