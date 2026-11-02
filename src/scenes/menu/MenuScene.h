@@ -6,6 +6,7 @@
 #include "scenes/Scene.h"
 #include "scripts/button/Button.h"
 #include "scripts/clouds/Clouds.h"
+#include "scripts/soundbutton/SoundButton.h"
 
 // Primeira cena do jogo. Layout descrito em docs/menu.md.
 class MenuScene : public Scene {
@@ -25,6 +26,7 @@ class MenuScene : public Scene {
   std::vector<std::unique_ptr<Button>> buttons_;
   Button* difficulty_button_ = nullptr;  // "Nível: Fácil/Médio/Difícil/Impossível", cicla
   Clouds clouds_;  // nuvens atrás do texto e névoa na frente
+  SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
   bool clouds_ready_ = false;
   int focused_ = 0;
 };

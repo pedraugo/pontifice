@@ -139,6 +139,7 @@ int main(int /*argc*/, char** /*argv*/) {
   // Trilha sonora (assets/ost.json) toca em loop durante todo o jogo, em qualquer cena.
   Music music;
   music.Init(base);
+  ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
   SceneManager scenes(std::move(ctx));
 
   // Depuração: PONTIFICE_SCENE=battle abre direto na batalha e =loading na tela de loading

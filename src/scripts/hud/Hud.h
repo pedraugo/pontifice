@@ -43,6 +43,10 @@ class Hud {
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }
 
+  // Borda esquerda do painel do monte (px lógicos); por padrão a margem. A batalha a empurra
+  // para a direita do botão de som.
+  void SetDeckPanelLeft(float x) { deck_panel_left_ = x; }
+
   void Render(SDL_Renderer* r, int width, int height) const;
 
  private:
@@ -59,4 +63,5 @@ class Hud {
   int deck_used_ = 0;
   int deck_remaining_ = kDeckSize;
   int graveyard_ = 0;
+  float deck_panel_left_ = -1.0f;  // < 0: margem padrão
 };

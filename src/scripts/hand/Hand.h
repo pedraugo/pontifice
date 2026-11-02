@@ -48,10 +48,10 @@ class Hand {
     float arc = 0.045f;           // curvatura: y cai com o quadrado da distância ao centro
     float tilt_per_unit = 0.06f;  // rotação em Z por unidade de distância ao centro (rad)
     float scale = 0.5f;           // escala da carta em repouso
-    float hover_scale = 0.62f;    // escala da carta destacada
-    float hover_lift = 0.55f;     // quanto sobe
-    float hover_forward = 0.9f;   // quanto se aproxima da câmera
-    float neighbor_push = 0.38f;  // quanto as vizinhas se afastam
+    float hover_scale = 0.82f;    // escala da carta destacada (1,64x o repouso)
+    float hover_lift = 0.85f;     // quanto sobe
+    float hover_forward = 1.0f;   // quanto se aproxima da câmera
+    float neighbor_push = 0.6f;   // quanto as vizinhas se afastam
     float anim_speed = 14.0f;     // velocidade da animação (maior = mais rápida)
     float tilt_max = 0.3f;        // inclinação máxima (rad) com o mouse na quina da carta
     float tilt_speed = 12.0f;     // velocidade da inclinação

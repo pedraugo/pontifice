@@ -1,9 +1,17 @@
 {
-  "volume": 0.3,
-  "tracks": [
-    "sounds/HowlsOfTheNight.mp3",
-    "sounds/RuinsOfYore.mp3",
-    "sounds/DecayTemples.mp3",
-    "sounds/ForgottenDungeons.mp3"
-  ]
+  "volume": {"menu": 0.15, "battle": 0.25},
+  "categories": {
+    "ost": [
+      {"file": "sounds/HowlsOfTheNight.mp3", "gain": 0.66},
+      {"file": "sounds/RuinsOfYore.mp3", "gain": 0.80},
+      {"file": "sounds/DecayTemples.mp3", "gain": 0.59},
+      {"file": "sounds/ForgottenDungeons.mp3", "gain": 0.79}
+    ],
+    "battle": [
+      {"file": "sounds/FastBattle.mp3", "gain": 0.74},
+      {"file": "sounds/ShoutSword.mp3", "gain": 0.72},
+      {"file": "sounds/StartedFight.mp3", "gain": 0.64},
+      {"file": "sounds/GloryAndVictory.mp3", "gain": 0.72}
+    ]
+  }
 }

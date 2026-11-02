@@ -40,6 +40,7 @@ Não há mais nada na tela: sem créditos extras, sem imagem de fundo nesta vers
 - **Jogar**: abre a tela de loading (docs/loading.md), que carrega a batalha e entra nela.
 - **Nível**: escolhe a força do oponente (Vs PC) para a próxima batalha; começa em Médio. Fácil: cartas dele inferiores às suas; Médio: equivalentes; Difícil: na maioria das vezes mais fortes; Impossível: nitidamente mais fortes. Detalhes em docs/detalhes_tecnicos.md ("Níveis").
 - **Sair**: encerra o jogo.
+- **Som** (ícone de alto-falante no canto inferior esquerdo): liga/desliga a música; vale para todas as cenas.
 - **Mouse**: passar o cursor sobre um botão destaca a borda e o texto. Clicar com o botão esquerdo ativa.
 - **Teclado**: setas para cima e para baixo movem o foco entre os botões. `Enter` ou `Espaço` ativa o botão focado. `Esc` sai do jogo.
 - O botão focado pelo teclado recebe o mesmo destaque do hover.

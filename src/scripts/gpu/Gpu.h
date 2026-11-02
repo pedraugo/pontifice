@@ -106,6 +106,8 @@ class Gpu {
 
   // Vale para os Draws seguintes (pode trocar entre camadas).
   void SetAtmosphere(const Atmosphere& atmosphere) { atmosphere_ = atmosphere; }
+  // Dessaturação dos Draws seguintes: 0 = cor normal, 1 = preto e branco (ex.: carta usada).
+  void SetDesaturate(float amount) { desaturate_ = amount; }
 
   SDL_Texture* Target() const { return target_; }
   int Width() const { return width_; }
@@ -140,6 +142,7 @@ class Gpu {
   int width_ = 0;
   int height_ = 0;
   Atmosphere atmosphere_;
+  float desaturate_ = 0.0f;
   float time_ = 0.0f;  // segundos desde o início, atualizado em BeginFrame
 
   bool BeginPass(SDL_GPULoadOp color_load, SDL_FColor clear);

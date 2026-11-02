@@ -9,6 +9,7 @@
 #include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
+#include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -75,12 +76,41 @@ constexpr float kButtonHeight = ui::Px(52.0f);
 constexpr float kButtonMargin = ui::Px(16.0f);
 constexpr float kButtonBottom = ui::Px(120.0f);  // distância do rodapé (painel do cemitério)
 constexpr float kHintScale = 2.0f * ui::kScale;
-// Tooltip da carta no campo: medidas em 1280x720 (ui::Px), como o HUD.
+// Botão de som: quadrado no canto inferior esquerdo; o painel do monte fica à direita dele.
+constexpr float kSoundButtonSize = ui::Px(40.0f);
+constexpr float kSoundButtonGap = ui::Px(10.0f);
+// Tooltip da carta no campo: medidas em 1280x720 (ui::Px), como o HUD. Imagem da carta à
+// esquerda, textos à direita.
 constexpr float kTipScale = 2.0f * ui::kScale;        // 16 px em 720p
 constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 12 px
-constexpr float kTipPadding = ui::Px(8.0f);
+constexpr float kTipPadding = ui::Px(10.0f);
 constexpr float kTipGap = ui::Px(5.0f);
-constexpr float kTipOffset = ui::Px(14.0f);  // distância do cursor
+constexpr float kTipOffset = ui::Px(14.0f);   // distância do cursor
+constexpr float kTipImageH = ui::Px(220.0f);  // altura da frente da carta
+constexpr float kTipTextW = ui::Px(250.0f);   // largura da coluna de texto (quebra da descrição)
+constexpr float kCardAspect = 1600.0f / 2230.0f;
+
+// Quebra `str` em linhas de até `max_w` px na escala dada (por palavras).
+std::vector<std::string> WrapText(const std::string& str, float max_w, float scale) {
+  std::vector<std::string> lines;
+  std::string line;
+  size_t pos = 0;
+  while (pos < str.size()) {
+    size_t end = str.find(' ', pos);
+    if (end == std::string::npos) end = str.size();
+    const std::string word = str.substr(pos, end - pos);
+    const std::string candidate = line.empty() ? word : line + " " + word;
+    if (!line.empty() && text::Width(candidate.c_str(), scale) > max_w) {
+      lines.push_back(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+    pos = end + 1;
+  }
+  if (!line.empty()) lines.push_back(line);
+  return lines;
+}
 constexpr float kStatusScale = 2.0f * ui::kScale;
 constexpr float kClickSlop = 6.0f;      // px lógicos: até aqui um arrasto conta como clique
 constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ataque
@@ -110,6 +140,7 @@ BattleScene::~BattleScene() {
   hand_.Clear();
   board_.Destroy(*gpu_);
   enemy_board_.Destroy(*gpu_);
+  sword_.Destroy(*gpu_);
   card_model_.reset();
   arena_model_.reset();
   torch_.reset();
@@ -149,6 +180,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
     board->Init(*gpu_);
   }
   enemy_board_.SetSide(-1.0f);
+  sword_.Init(*gpu_);
   // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
   // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
@@ -266,9 +298,13 @@ SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
   if (renderer_ == nullptr) return field_front_2d_;
   auto it = hud_faces_.find(card.code);
   if (it != hud_faces_.end()) return it->second;
-  // Composta na moldura reduzida 2x e reduzida mais 2x: o HUD mostra ~120 px de altura.
-  if (!frames_[2].Valid()) return field_front_2d_;
-  SDL_Texture* texture = UploadHudSprite(renderer_, cardface::Compose(frames_[2], card).Downscaled(2));
+  // Composta na moldura da categoria reduzida 2x e reduzida mais 2x (400x557): o HUD e o
+  // tooltip mostram de 120 a 300 px de altura.
+  const Image& frame = card.category == 'G' ? frames_[0]
+                       : card.category == 'E' ? frames_[1]
+                                              : frames_[2];
+  if (!frame.Valid()) return field_front_2d_;
+  SDL_Texture* texture = UploadHudSprite(renderer_, cardface::Compose(frame, card).Downscaled(2));
   if (texture == nullptr) return field_front_2d_;
   hud_faces_[card.code] = texture;
   return texture;
@@ -296,7 +332,7 @@ void BattleScene::Schedule(float delay, std::function<void()> fn) {
 }
 
 bool BattleScene::Busy() const {
-  return !steps_.empty() || board_.Animating() || enemy_board_.Animating() ||
+  return !steps_.empty() || board_.Animating() || enemy_board_.Animating() || sword_.Active() ||
          std::fabs(orbit_ - orbit_target_) > 0.001f;
 }
 
@@ -560,6 +596,12 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   const int attack = rules::EffectiveAttack(*card->info, field_);
   rules::Outcome outcome;
   char a_name[3], d_name[3];
+  // Golpe de espada no alvo (carta ou, no ataque direto, o meio do lado do oponente).
+  const math::Vec3 hit = target_slot >= 0
+                             ? theirs.CardPosition(target_slot)
+                             : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
+  sword_.Play(hit, mine.CardPosition(slot));
+  if (target_slot >= 0) theirs.Flash(target_slot);
   if (target_slot < 0) {
     outcome = rules::ResolveDirect(attack);
     SDL_Log("%s: ataque direto de %s (%d)", attacker == Side::kPlayer ? "Voce" : "Oponente",
@@ -619,6 +661,9 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   SDL_FRect rect{ctx.logical_width - kButtonMargin - kButtonWidth,
                  ctx.logical_height - kButtonBottom - kButtonHeight, kButtonWidth, kButtonHeight};
   end_turn_->SetRect(rect);
+  sound_button_.SetRect(SDL_FRect{kButtonMargin, ctx.logical_height - kButtonMargin - kSoundButtonSize,
+                                  kSoundButtonSize, kSoundButtonSize});
+  hud_.SetDeckPanelLeft(kButtonMargin + kSoundButtonSize + kSoundButtonGap);
   started_ = false;
   player_turn_ = false;
   summoned_ = false;
@@ -781,6 +826,15 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       if (moved >= kAttackDragPx) attack_drag_ = true;
     }
   }
+  // Botão de som: sempre disponível; fica com os eventos de mouse sobre ele.
+  if (sound_button_.HandleEvent(event)) {
+    if (ctx.music != nullptr) ctx.music->ToggleMuted();
+    return;
+  }
+  if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+      sound_button_.Contains(event.button.x, event.button.y)) {
+    return;
+  }
   // "Passar turno" (visível no seu turno) fica com os eventos de mouse sobre ele.
   if (CanAct()) {
     if (end_turn_->HandleEvent(event)) {
@@ -902,6 +956,7 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   enemy_board_.SetHoverSlot(enemy_hover);
   board_.Update(dt_seconds);
   enemy_board_.Update(dt_seconds);
+  sword_.Update(dt_seconds);
   // Tooltip e ampliação: carta de qualquer lado sob o mouse (fora da mão e sem inspeção).
   tooltip_slot_ = -1;
   if (intro_ >= 1.0f && hand_.Hovered() < 0 && !hand_.Inspecting() && mouse_.x >= 0) {
@@ -929,27 +984,61 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const CardInfo& info = *card->info;
   const int attack = rules::EffectiveAttack(info, field_);
   const int defense = rules::EffectiveDefense(info, field_);
-  const std::string atk = "ATK " + std::to_string(attack);
-  const std::string def = "DEF " + std::to_string(defense);
-  std::string detail = tooltip_side_ == Side::kPlayer ? "Sua carta" : "Carta do oponente";
-  detail += card->defense ? " - em defesa" : " - em ataque";
-  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) detail += " (ja atacou)";
 
-  // Tamanho do painel pelo texto: nome, "ATK n   DEF n" e a linha de detalhe.
-  const float gap_atk_def = ui::Px(20.0f);
-  const float line_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kTipScale;
-  const float detail_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kTipDetailScale;
-  const float w_name = text::Width(info.name.c_str(), kTipScale);
-  const float w_stats = text::Width(atk.c_str(), kTipScale) + gap_atk_def +
-                        text::Width(def.c_str(), kTipScale);
-  const float w_detail = text::Width(detail.c_str(), kTipDetailScale);
-  const float w = std::max({w_name, w_stats, w_detail}) + 2 * kTipPadding;
-  const float h = 2 * kTipPadding + 2 * line_h + detail_h + 2 * kTipGap;
+  // Linhas de texto: nome; categoria e hierarquia; ATK/DEF efetivos (e base, se alterados);
+  // descrição quebrada; dono e posição.
+  struct Line {
+    std::string text;
+    float scale;
+    SDL_Color color;
+    float gap_after;
+  };
+  std::vector<Line> lines;
+  const SDL_Color title = colors::Get("panel.title");
+  const SDL_Color label = colors::Get("panel.label");
+  const SDL_Color value = colors::Get("panel.value");
+  lines.push_back({info.name, kTipScale, title, kTipGap});
+  std::string kind = info.CategoryLabel();
+  if (info.hierarchy > 0) {
+    kind += " - Hierarquia " + std::to_string(info.hierarchy);
+    if (!info.hierarchy_name.empty()) kind += " (" + info.hierarchy_name + ")";
+  }
+  lines.push_back({kind, kTipDetailScale, label, kTipGap * 2});
+  auto stat_color = [&](int effective, int base) {
+    return effective > base ? colors::Get("status.buff")
+           : effective < base ? colors::Get("status.nerf")
+                              : value;
+  };
+  std::string atk = "ATK " + std::to_string(attack);
+  if (attack != info.attack) atk += " (base " + std::to_string(info.attack) + ")";
+  std::string def = "DEF " + std::to_string(defense);
+  if (defense != info.defense) def += " (base " + std::to_string(info.defense) + ")";
+  lines.push_back({atk, kTipScale, stat_color(attack, info.attack), kTipGap});
+  lines.push_back({def, kTipScale, stat_color(defense, info.defense), kTipGap * 2});
+  for (const std::string& part : WrapText(info.description, kTipTextW, kTipDetailScale)) {
+    lines.push_back({part, kTipDetailScale, colors::Get("text.secondary"), kTipGap * 0.6f});
+  }
+  if (!info.description.empty()) lines.back().gap_after = kTipGap * 2;
+  std::string owner = tooltip_side_ == Side::kPlayer ? "Sua carta" : "Carta do oponente";
+  owner += card->defense ? " - em defesa" : " - em ataque";
+  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) owner += " (ja atacou)";
+  lines.push_back({owner, kTipDetailScale, label, 0.0f});
+
+  // Tamanho: imagem à esquerda (kTipImageH de altura), coluna de texto à direita.
+  float text_w = 0.0f;
+  float text_h = 0.0f;
+  for (const Line& line : lines) {
+    text_w = std::max(text_w, text::Width(line.text.c_str(), line.scale));
+    text_h += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
+  }
+  const float image_w = kTipImageH * kCardAspect;
+  const float w = 3 * kTipPadding + image_w + std::max(text_w, kTipTextW * 0.6f);
+  const float h = 2 * kTipPadding + std::max(kTipImageH, text_h);
   // Perto do cursor, sem sair da tela.
   float x = mouse_.x + kTipOffset;
   float y = mouse_.y + kTipOffset;
   if (x + w > width) x = mouse_.x - kTipOffset - w;
-  if (y + h > height) y = mouse_.y - kTipOffset - h;
+  if (y + h > height) y = std::max(0.0f, mouse_.y - kTipOffset - h);
   const SDL_FRect panel{x, y, w, h};
   SDL_Color c = colors::Get("panel.fill");
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -958,20 +1047,26 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   SDL_RenderRect(r, &panel);
 
+  // Imagem: frente composta da carta (mesma do HUD), em cache por código.
+  const SDL_FRect image{x + kTipPadding, y + kTipPadding, image_w, kTipImageH};
+  SDL_Texture* face = const_cast<BattleScene*>(this)->HudFace(info);
+  if (face != nullptr) {
+    SDL_RenderTexture(r, face, nullptr, &image);
+  } else {
+    c = colors::Get("border.subtle");
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderFillRect(r, &image);
+  }
+  c = colors::Get("panel.border");
+  SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+  SDL_RenderRect(r, &image);
+
+  const float tx = image.x + image.w + kTipPadding;
   float ty = y + kTipPadding;
-  text::Draw(r, info.name.c_str(), x + kTipPadding, ty, kTipScale, colors::Get("panel.title"));
-  ty += line_h + kTipGap;
-  // Valores alterados pela carta de campo saem na cor de buff/nerf.
-  auto stat_color = [&](int effective, int base) {
-    return effective > base ? colors::Get("status.buff")
-           : effective < base ? colors::Get("status.nerf")
-                              : colors::Get("panel.value");
-  };
-  text::Draw(r, atk.c_str(), x + kTipPadding, ty, kTipScale, stat_color(attack, info.attack));
-  text::Draw(r, def.c_str(), x + kTipPadding + text::Width(atk.c_str(), kTipScale) + gap_atk_def,
-             ty, kTipScale, stat_color(defense, info.defense));
-  ty += line_h + kTipGap;
-  text::Draw(r, detail.c_str(), x + kTipPadding, ty, kTipDetailScale, colors::Get("panel.label"));
+  for (const Line& line : lines) {
+    text::Draw(r, line.text.c_str(), tx, ty, line.scale, line.color);
+    ty += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
+  }
 }
 
 void BattleScene::Render(SceneContext& ctx) {
@@ -1007,6 +1102,7 @@ void BattleScene::Render(SceneContext& ctx) {
     // Cartas dos dois lados do campo e destaques dos slots.
     board_.Render(*gpu_, arena_view_proj_);
     enemy_board_.Render(*gpu_, arena_view_proj_);
+    sword_.Render(*gpu_, arena_view_proj_);
     // Névoa depois da arena (transparente): de baixo para cima.
     for (const MistLayer& layer : kMistLayers) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
@@ -1052,14 +1148,13 @@ void BattleScene::Render(SceneContext& ctx) {
                        2.0f * ui::kScale, fg);
   }
 
-  text::DrawCentered(r, "BATALHA", cx, ui::Px(40.0f), 4.0f * ui::kScale, colors::Get("text.title"));
-  // Situação do turno sob o título.
+  // Topo: situação do turno e, abaixo, a dica do que fazer.
   if (started_ && !hud_.Over()) {
     std::string status = "Turno " + std::to_string(turn_) + " - ";
     status += turn_side_ == Side::kPlayer && player_turn_ ? "sua vez" : "oponente";
     status += " - oponente (" + std::string(ai::DifficultyName(difficulty_)) + ") com " +
               std::to_string(enemy_hand_.size()) + " cartas na mao";
-    text::DrawCentered(r, status.c_str(), cx, ui::Px(72.0f), kStatusScale,
+    text::DrawCentered(r, status.c_str(), cx, ui::Px(26.0f), kStatusScale,
                        colors::Get("text.secondary"));
   }
   // Arrasto de ataque: linha da carta atacante até o mouse.
@@ -1091,10 +1186,10 @@ void BattleScene::Render(SceneContext& ctx) {
     }
   }
   if (hint != nullptr) {
-    text::DrawCentered(r, hint, cx, ctx.logical_height * 0.66f, kHintScale,
-                       colors::Get("board.hint"));
+    text::DrawCentered(r, hint, cx, ui::Px(54.0f), kHintScale, colors::Get("board.hint"));
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
+  sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
   RenderTooltip(r, ctx.logical_width, ctx.logical_height);
 }

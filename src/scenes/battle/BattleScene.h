@@ -22,6 +22,8 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 #include "scripts/rules/Rules.h"
+#include "scripts/soundbutton/SoundButton.h"
+#include "scripts/sword/Sword.h"
 #include "scripts/torch/Torch.h"
 
 // Cena de batalha: você contra o computador (docs/batalha.md, docs/campo.md).
@@ -70,7 +72,9 @@ class BattleScene : public Scene {
   SDL_GPUTexture* UploadSprite(const Image& image);
   SDL_Texture* UploadHudSprite(SDL_Renderer* renderer, const Image& image);
   Face MakeCardFace(const std::string& code);
-  SDL_Texture* HudFace(const CardInfo& card);  // frente para o HUD (carta de campo ativa)
+  // Frente da carta como SDL_Texture (renderer 2D), para o HUD e o tooltip; composta uma vez
+  // por código e guardada.
+  SDL_Texture* HudFace(const CardInfo& card);
   void ToggleSampleFieldCard();
   void DrawCard();  // você compra do monte para a mão
   void UpdateIntro(float dt_seconds);
@@ -136,11 +140,13 @@ class BattleScene : public Scene {
   Hand hand_;
   Board board_;        // seu lado do campo
   Board enemy_board_;  // lado do computador
+  Sword sword_;        // efeito de golpe nos ataques
   Hud hud_;
   SDL_Renderer* renderer_ = nullptr;
   SDL_Texture* field_front_2d_ = nullptr;
   std::unordered_map<std::string, SDL_Texture*> hud_faces_;  // frentes no HUD por código
   std::unique_ptr<ButtonAction> end_turn_;
+  SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
 
   // Partida.
   bool started_ = false;             // sorteio feito, primeiro turno começou

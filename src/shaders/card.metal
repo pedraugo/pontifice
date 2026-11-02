@@ -35,7 +35,7 @@ struct FragmentUniforms {
   float4 fog_color;    // rgb cor da névoa, w = densidade da névoa por distância
   float4 fog_height;   // x = y névoa total, y = y sem névoa, z = força máx., w = dist. inicial
   float4 camera;       // xyz posição da câmera no mundo
-  float4 resolution;   // xy tamanho do alvo em pixels
+  float4 resolution;   // xy tamanho do alvo em pixels; z dessaturação (0 cor, 1 preto e branco)
   float4 mist;         // x, y = raios onde a névoa de chão começa a sumir e some; z = escala do
                        // ruído; w = densidade (desloca o limiar do ruído para baixo)
   float4 shadow;       // x = força (0 = sem sombra), y = bias, z = 1 / tamanho do mapa
@@ -225,6 +225,12 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
       const float sparkle = 0.55 + 0.45 * Noise(in.uv * 60.0 + float2(t * 0.3, -t * 0.2));
       rgb += rainbow * (0.06 + 0.38 * fres) * sparkle;
     }
+  }
+
+  // Dessaturação (ex.: carta que já atacou no turno): mistura com a luminância.
+  if (u.resolution.z > 0.0) {
+    const float luma = dot(rgb, float3(0.299, 0.587, 0.114));
+    rgb = mix(rgb, float3(luma), u.resolution.z);
   }
 
   // Névoa de altura (base da arena) combinada com névoa por distância (fundo).

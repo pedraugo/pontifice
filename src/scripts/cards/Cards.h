@@ -11,7 +11,9 @@ struct CardInfo {
   std::string name;
   std::string description;
   char category = 'N';      // 'G' bondosa, 'E' maligna, 'N' neutra, 'F' campo
+  std::string category_name;   // "good", "evil", "neutral", "field"
   int hierarchy = 0;        // 1 (mais rara) a 4; 0 para cartas de campo
+  std::string hierarchy_name;  // ex.: "Arcanjos"; vazio em cartas de campo
   int attack = 0;
   int defense = 0;
   int odds = 1;             // peso no sorteio do monte (maior = mais comum)
@@ -22,6 +24,10 @@ struct CardInfo {
   int nerf = 0;
 
   bool IsField() const { return category == 'F'; }
+  // Nome da categoria em português, para a interface.
+  const char* CategoryLabel() const {
+    return category == 'G' ? "Bondosa" : category == 'E' ? "Maligna" : category == 'N' ? "Neutra" : "Campo";
+  }
   // Moldura da frente em sprites/: Good, Evil ou Field (neutras e de campo usam a prateada).
   const char* FrameSprite() const;
 };

@@ -173,6 +173,12 @@ void main() {
     }
   }
 
+  // Dessaturação (ex.: carta que já atacou no turno): mistura com a luminância.
+  if (u.resolution.z > 0.0) {
+    float luma = dot(rgb, vec3(0.299, 0.587, 0.114));
+    rgb = mix(rgb, vec3(luma), u.resolution.z);
+  }
+
   float dist = length(v_world_pos - u.camera.xyz);
   float df = 1.0 - exp(-max(dist - u.fog_height.w, 0.0) * u.fog_color.w);
   float hf = (1.0 - smoothstep(u.fog_height.x, u.fog_height.y, v_world_pos.y)) * u.fog_height.z;

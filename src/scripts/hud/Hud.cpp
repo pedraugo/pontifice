@@ -12,9 +12,9 @@ namespace {
 // Medidas em 1280x720, escaladas para a resolução lógica (ui::Px).
 constexpr float kMargin = ui::Px(16.0f);
 constexpr float kPadding = ui::Px(10.0f);
-constexpr float kPanelWidth = ui::Px(360.0f);
-constexpr float kFieldPanelHeight = ui::Px(140.0f);
-constexpr float kCounterPanelWidth = ui::Px(200.0f);  // painéis inferiores, fora da mão em repouso
+constexpr float kPanelWidth = ui::Px(360.0f);        // painel de vida
+constexpr float kFieldPanelWidth = ui::Px(250.0f);   // carta de campo: compacto
+constexpr float kFieldPanelHeight = ui::Px(76.0f);
 constexpr float kLineScale = 2.0f * ui::kScale;      // 16 px em 720p
 constexpr float kDetailScale = 1.5f * ui::kScale;    // 12 px em 720p
 constexpr float kResultScale = 6.0f * ui::kScale;
@@ -91,7 +91,8 @@ void Hud::Render(SDL_Renderer* r, int width, int height) const {
 }
 
 void Hud::RenderFieldPanel(SDL_Renderer* r) const {
-  const SDL_FRect panel{kMargin, kMargin, kPanelWidth, kFieldPanelHeight};
+  // Compacto: carta pequena à esquerda; nome e, em uma linha cada, buff e nerf à direita.
+  const SDL_FRect panel{kMargin, kMargin, kFieldPanelWidth, kFieldPanelHeight};
   Panel(r, panel);
 
   if (!has_field_) {
@@ -100,7 +101,6 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
     return;
   }
 
-  // Carta virada para cima, à esquerda; texto à direita dela.
   const float card_h = panel.h - 2 * kPadding;
   const SDL_FRect card{panel.x + kPadding, panel.y + kPadding, card_h * kCardAspect, card_h};
   if (field_.image != nullptr) {
@@ -111,18 +111,16 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   StrokeRect(r, card, colors::Get("panel.border"));
 
   const float text_x = card.x + card.w + kPadding;
+  const float small_gap = ui::Px(3.0f);
   float y = card.y;
   text::Draw(r, field_.name.c_str(), text_x, y, kLineScale, colors::Get("hud.fieldName"));
-  y += kLineHeight + kLineGap;
-  text::Draw(r, "Carta de campo", text_x, y, kDetailScale, colors::Get("hud.fieldLabel"));
-  y += kDetailHeight + kLineGap * 2;
-
+  y += kLineHeight + small_gap;
   const std::string buff =
-      std::string("Buff  ") + CategoryName(field_.favored) + " +" + std::to_string(field_.buff);
-  const std::string nerf = std::string("Nerf  ") + CategoryName(Other(field_.favored)) + " -" +
-                           std::to_string(field_.nerf);
+      std::string("+") + std::to_string(field_.buff) + " " + CategoryName(field_.favored);
+  const std::string nerf =
+      std::string("-") + std::to_string(field_.nerf) + " " + CategoryName(Other(field_.favored));
   text::Draw(r, buff.c_str(), text_x, y, kDetailScale, colors::Get("status.buff"));
-  y += kDetailHeight + kLineGap;
+  y += kDetailHeight + small_gap;
   text::Draw(r, nerf.c_str(), text_x, y, kDetailScale, colors::Get("status.nerf"));
 }
 
@@ -137,65 +135,53 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   const SDL_Color label = colors::Get("hud.lifeLabel");
   const SDL_Color value = colors::Get("hud.lifeValue");
   const SDL_Color zero = colors::Get("hud.lifeZero");
-  text::Draw(r, "OPONENTE", left, y, kLineScale, label);
+  text::Draw(r, "Oponente", left, y, kLineScale, label);
   DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, kLineScale,
             opponent_life_ > 0 ? value : zero);
   y += kLineHeight + kLineGap;
-  text::Draw(r, "VOCÊ", left, y, kLineScale, label);
+  text::Draw(r, "Jogador", left, y, kLineScale, label);
   DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, kLineScale,
             player_life_ > 0 ? value : zero);
 }
 
-// Painel de contadores: título e linhas "rótulo ... valor".
+// Painel de contador em uma linha: "[Título valor]", largura pelo texto.
 namespace {
 
-struct CounterLine {
-  const char* label;
-  int value;
-  SDL_Color color;
-};
+constexpr float kCounterGap = ui::Px(8.0f);  // entre título e valor
 
-float CounterPanelHeight(int lines) {
-  return 2 * kPadding + kLineHeight + lines * (kDetailHeight + kLineGap);
+float CounterPanelWidth(const char* title, const std::string& value) {
+  return 2 * kPadding + text::Width(title, kLineScale) + kCounterGap +
+         text::Width(value.c_str(), kLineScale);
 }
 
 void CounterPanel(SDL_Renderer* r, const SDL_FRect& panel, const char* title,
-                  const CounterLine* lines, int count) {
+                  const std::string& value, SDL_Color value_color) {
   Panel(r, panel);
-  const float left = panel.x + kPadding;
-  const float right = panel.x + panel.w - kPadding;
-  float y = panel.y + kPadding;
-  text::Draw(r, title, left, y, kLineScale, colors::Get("panel.title"));
-  y += kLineHeight + kLineGap;
-  const SDL_Color label = colors::Get("hud.counterLabel");
-  for (int i = 0; i < count; ++i) {
-    text::Draw(r, lines[i].label, left, y, kDetailScale, label);
-    DrawRight(r, std::to_string(lines[i].value).c_str(), right, y, kDetailScale,
-              lines[i].color);
-    y += kDetailHeight + kLineGap;
-  }
+  const float y = panel.y + kPadding;
+  text::Draw(r, title, panel.x + kPadding, y, kLineScale, colors::Get("panel.title"));
+  DrawRight(r, value.c_str(), panel.x + panel.w - kPadding, y, kLineScale, value_color);
 }
 
 }  // namespace
 
 void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
-  const float panel_h = CounterPanelHeight(2);
-  const SDL_FRect panel{kMargin, height - kMargin - panel_h, kCounterPanelWidth, panel_h};
-  // Monte vazio: destaca "restantes", o jogador não compra mais.
-  const SDL_Color value = colors::Get("hud.counterValue");
-  const CounterLine lines[] = {
-      {"usadas", deck_used_, value},
-      {"restantes", deck_remaining_, deck_remaining_ > 0 ? value : colors::Get("hud.deckEmpty")},
-  };
-  CounterPanel(r, panel, "MONTE", lines, 2);
+  // "Monte restantes/total"; monte vazio em destaque: o jogador não compra mais.
+  const std::string value = std::to_string(deck_remaining_) + "/" + std::to_string(kDeckSize);
+  const float panel_h = 2 * kPadding + kLineHeight;
+  const float left = deck_panel_left_ >= 0.0f ? deck_panel_left_ : kMargin;
+  const SDL_FRect panel{left, height - kMargin - panel_h, CounterPanelWidth("Monte", value),
+                        panel_h};
+  CounterPanel(r, panel, "Monte", value,
+               deck_remaining_ > 0 ? colors::Get("hud.counterValue")
+                                   : colors::Get("hud.deckEmpty"));
 }
 
 void Hud::RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const {
-  const float panel_h = CounterPanelHeight(1);
-  const SDL_FRect panel{width - kMargin - kCounterPanelWidth, height - kMargin - panel_h,
-                        kCounterPanelWidth, panel_h};
-  const CounterLine lines[] = {{"cartas", graveyard_, colors::Get("hud.counterValue")}};
-  CounterPanel(r, panel, "CEMITÉRIO", lines, 1);
+  const std::string value = std::to_string(graveyard_);
+  const float panel_h = 2 * kPadding + kLineHeight;
+  const float panel_w = CounterPanelWidth("Cemitério", value);
+  const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - panel_h, panel_w, panel_h};
+  CounterPanel(r, panel, "Cemitério", value, colors::Get("hud.counterValue"));
 }
 
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {

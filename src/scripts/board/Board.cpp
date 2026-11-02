@@ -96,6 +96,10 @@ void Board::Lunge(int slot, const math::Vec3& target) {
   cards_[slot].card.lunge_target = target;
 }
 
+void Board::Flash(int slot) {
+  if (!Empty(slot)) cards_[slot].card.flash = 1.0f;
+}
+
 bool Board::Animating() const {
   if (!leaving_.empty()) return true;
   for (const Slot& s : cards_) {
@@ -175,7 +179,8 @@ math::Mat4 Board::CardMatrix(int slot, const Card& card) const {
   const float d = SmoothStep(card.discard);
   const float hover = SmoothStep(card.hover);
   const float scale = layout_.card_scale * math::Lerp(layout_.place_scale, 1.0f, t) *
-                      (1.0f - d) * math::Lerp(1.0f, layout_.hover_scale, hover);
+                      (1.0f - d) * math::Lerp(1.0f, layout_.hover_scale, hover) *
+                      math::Lerp(1.0f, layout_.spent_scale, card.spent);
   const float lift = -zmin * scale + 0.004f + layout_.discard_rise * d +
                      layout_.hover_lift * hover;
   const math::Vec3 from =
@@ -218,6 +223,9 @@ void Board::Update(float dt) {
     if (s.card.lunge < 1.0f) {
       s.card.lunge = std::min(1.0f, s.card.lunge + dt / layout_.lunge_seconds);
     }
+    s.card.flash = std::max(0.0f, s.card.flash - dt * layout_.flash_speed);
+    s.card.spent += ((s.card.attacked ? 1.0f : 0.0f) - s.card.spent) *
+                    (1.0f - std::exp(-layout_.spent_speed * dt));
     s.card.world = CardMatrix(slot, s.card);
   }
   for (Leaving& l : leaving_) {
@@ -230,7 +238,15 @@ void Board::Update(float dt) {
 }
 
 void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const {
-  model_->Draw(gpu, card.world, view_proj, SDL_FColor{1, 1, 1, 1}, SkinFor(card));
+  // Flash de dano: tinge para vermelho e volta. Já atacou: translúcida (opaca de novo sob o
+  // mouse, para ler).
+  const float f = card.flash;
+  const float spent = card.spent * (1.0f - SmoothStep(card.hover));
+  const SDL_FColor tint{1.0f, 1.0f - 0.65f * f, 1.0f - 0.65f * f,
+                        math::Lerp(1.0f, layout_.spent_alpha, spent)};
+  gpu.SetDesaturate(card.spent);  // já atacou: preto e branco
+  model_->Draw(gpu, card.world, view_proj, tint, SkinFor(card));
+  gpu.SetDesaturate(0.0f);
 }
 
 void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {

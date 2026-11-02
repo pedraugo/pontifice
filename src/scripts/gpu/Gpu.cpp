@@ -553,7 +553,7 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
        {a.fog_color.r, a.fog_color.g, a.fog_color.b, a.fog_density},
        {a.fog_full_y, a.fog_clear_y, a.fog_height_strength, a.fog_start},
        {a.camera_pos.x, a.camera_pos.y, a.camera_pos.z, 0.0f},
-       {static_cast<float>(width_), static_cast<float>(height_), 0.0f, 0.0f},
+       {static_cast<float>(width_), static_cast<float>(height_), desaturate_, 0.0f},
        {a.mist_fade_start, a.mist_fade_end, a.mist_noise_scale, a.mist_density},
        {shadow_pipeline_ != nullptr ? a.shadow_strength : 0.0f, a.shadow_bias,
         1.0f / kShadowSize, 0.0f}};

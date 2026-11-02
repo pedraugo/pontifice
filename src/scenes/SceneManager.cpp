@@ -5,12 +5,20 @@
 #include "scenes/battle/BattleScene.h"
 #include "scenes/loading/LoadingScene.h"
 #include "scenes/menu/MenuScene.h"
+#include "scripts/music/Music.h"
 
 SceneManager::SceneManager(SceneContext ctx) : ctx_(std::move(ctx)) {}
 
 void SceneManager::SwitchTo(SceneId id) {
   if (current_) current_->OnExit(ctx_);
   ctx_.next_scene.reset();
+  // Trilha por cena (assets/ost.json): menu e loading tocam a categoria "ost" no volume do
+  // menu; a batalha troca para "battle" (fade out/fade in) no volume da batalha.
+  if (ctx_.music != nullptr) {
+    const bool battle = id == SceneId::kBattle;
+    ctx_.music->SetScene(battle ? "battle" : "menu");
+    ctx_.music->SetCategory(battle ? "battle" : "ost");
+  }
   fade_in_total_ = fade_in_left_ = ctx_.fade_in_seconds;
   ctx_.fade_in_seconds = 0.0f;
   if (ctx_.preloaded) {

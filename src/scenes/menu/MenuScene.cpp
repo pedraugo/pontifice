@@ -8,6 +8,7 @@
 #include "scripts/button/ButtonExit.h"
 #include "scripts/button/ButtonPlay.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -18,6 +19,8 @@ constexpr float kButtonHeight = ui::Px(56.0f);
 constexpr float kButtonGap = ui::Px(24.0f);
 constexpr float kTitleScale = 6.0f * ui::kScale;
 constexpr float kFooterScale = 2.0f * ui::kScale;
+constexpr float kSoundButtonSize = ui::Px(40.0f);
+constexpr float kSoundMargin = ui::Px(16.0f);
 
 std::string DifficultyLabel(int level) {
   return std::string("Nível: ") +
@@ -43,6 +46,8 @@ MenuScene::MenuScene() {
 void MenuScene::OnEnter(SceneContext& ctx) {
   difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
   LayoutButtons(ctx);
+  sound_button_.SetRect(SDL_FRect{kSoundMargin, ctx.logical_height - kSoundMargin - kSoundButtonSize,
+                                  kSoundButtonSize, kSoundButtonSize});
   clouds_ready_ = clouds_.Init(ctx.renderer, ctx.logical_width, ctx.logical_height);
   focused_ = 0;
   for (size_t i = 0; i < buttons_.size(); ++i) buttons_[i]->SetFocused(i == 0);
@@ -88,6 +93,10 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     }
   }
 
+  if (sound_button_.HandleEvent(event)) {
+    if (ctx.music != nullptr) ctx.music->ToggleMuted();
+    return;
+  }
   for (size_t i = 0; i < buttons_.size(); ++i) {
     if (buttons_[i]->HandleEvent(event)) {
       focused_ = static_cast<int>(i);
@@ -113,6 +122,7 @@ void MenuScene::Render(SceneContext& ctx) {
                      colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
+  sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
 
   text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - ui::Px(48.0f),
                      kFooterScale, colors::Get("text.secondary"));

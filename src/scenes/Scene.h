@@ -5,6 +5,8 @@
 #include <memory>
 #include <optional>
 
+class Music;
+
 enum class SceneId { kMenu, kLoading, kBattle };
 // Nível do oponente (ver scripts/ai/Ai.h, ai::Difficulty): 0 fácil, 1 médio, 2 difícil,
 // 3 impossível. Inteiro aqui para o cabeçalho das cenas não depender da IA.
@@ -26,6 +28,7 @@ struct PreloadInfo {
 // A cena pede troca de cena ou saída do jogo escrevendo aqui.
 struct SceneContext {
   SDL_Renderer* renderer = nullptr;
+  Music* music = nullptr;  // trilha sonora: o SceneManager ajusta o volume por cena
   SDL_GPUDevice* gpu_device = nullptr;  // SDL_GetGPURendererDevice(renderer), para Preload
   int logical_width = 0;
   int logical_height = 0;

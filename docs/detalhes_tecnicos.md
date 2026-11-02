@@ -6,7 +6,7 @@
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
 - **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG), stb_truetype (fonte TTF/OTF) e dr_mp3 (decodificação de MP3). Todas baixadas via `FetchContent`; cgltf, stb e dr_libs são header-only.
-- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop, em todas as cenas, com ganho do próprio stream (padrão 30%). Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
+- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"ost"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Music::SetCategory` e `Music::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a primeira da nova categoria entra em **fade in** de 2 s; o volume é **por cena** (`"volume": {"menu": 0.15, "battle": 0.25}`; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa tem um **ganho de normalização** em ost.json (`{"file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada MP3 e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`scripts/soundbutton`, menu e batalha) chama `Music::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
@@ -51,6 +51,10 @@ src/
       Hand.*          mão em dock: layout em arco, hover, animação, seleção e inspeção
     board/
       Board.*         um lado do campo (jogador ou oponente): 10 slots alinhados aos ladrilhos, destaque, cartas em 3D, investida e descarte
+    soundbutton/
+      SoundButton.*   botão com ícone de alto-falante (primitivas) que liga/desliga a música
+    sword/
+      Sword.*         efeito de golpe de espada nos ataques: espada procedural (caixas coloridas) que desce sobre o alvo e rastro de corte emissivo
     rules/
       Rules.*         regras de combate sem SDL: carta de campo ativa, ataque/defesa efetivos, cálculo de dano
     ai/
@@ -79,7 +83,7 @@ src/
     card_shadow.frag.glsl  fragmento vazio do passe de sombra (Vulkan)
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
-    ost.json          trilha sonora: volume (0 a 1) e lista de MP3 em sounds/, tocados em sequência
+    ost.json          trilha sonora: volume por cena (menu 0,15; batalha 0,25) e categorias "ost" (menu/loading) e "battle" de MP3 em sounds/
     PirataOne.ttf     fonte do jogo (tem acentos Latin-1)
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
@@ -209,8 +213,8 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 4. **Slot ocupado**: invocar sobre um slot com carta descarta a anterior (`Board::Discard`: sobe e encolhe até sumir; cemitério +1).
 5. **Carta de campo** selecionada: clicar em qualquer ladrilho da arena a ativa (`PlayField`): vai para o painel do HUD (frente composta pelo `cardface`), substitui a anterior (a sua vai para o cemitério) e passa a valer o buff/nerf em todo cálculo (`rules::EffectiveAttack/Defense`). Não gasta a invocação do turno.
 6. **Trocar posição**: sem carta selecionada, clicar numa carta sua no campo alterna **ataque <-> defesa** (`Board::TogglePosition`, giro animado de 90° no plano da mesa). (A regra "não troca de posição no turno em que entrou" vale para a IA; para o jogador a troca é livre no seu turno, por decisão de design.)
-7. **Atacar**: **arrastar** uma carta sua em ataque (que ainda não atacou neste turno) até uma carta do oponente a ataca; se o lado dele está vazio, soltar sobre qualquer ladrilho dele é **ataque direto**. Durante o arrasto uma linha amarela liga a carta ao mouse e o alvo ganha a moldura. A carta faz uma **investida** em arco (`Board::Lunge`, 0,5 s) e no impacto (0,25 s) `rules::Resolve` aplica as tabelas de dano: destruição vai para o cemitério, dano para o HUD.
-8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor com nome, **ATK** e **DEF** efetivos (verde/vermelho quando a carta de campo altera), dono e posição (`RenderTooltip`).
+7. **Atacar**: **arrastar** uma carta sua em ataque (que ainda não atacou neste turno) até uma carta do oponente a ataca; se o lado dele está vazio, soltar sobre qualquer ladrilho dele é **ataque direto**. Durante o arrasto uma linha amarela liga a carta ao mouse e o alvo ganha a moldura. A carta faz uma **investida** em arco (`Board::Lunge`, 0,5 s) e no impacto (0,25 s) `rules::Resolve` aplica as tabelas de dano: destruição vai para o cemitério, dano para o HUD. No impacto toca o **golpe de espada** (`scripts/sword/Sword.*`): uma espada procedural (lâmina de aço, guarda e pomo dourados, cabo de couro; caixas sem textura, iluminadas pelas tochas) surge acima do alvo vinda do lado do atacante, desce num golpe de 0,19 s até a carta e some; no impacto um **rastro de corte** branco emissivo risca o plano da carta na diagonal e se apaga em 0,3 s, e a carta atingida **pisca em vermelho** (`Board::Flash`). Vale para os dois lados, inclusive no ataque direto (golpe no meio do lado vazio). Uma carta que **já atacou** no turno fica **menor (82%), em preto e branco (dessaturação no shader, `Gpu::SetDesaturate`) e com 30% de opacidade** até o próximo turno do dono (`Board::Card::spent`, `spent_scale`/`spent_alpha` em `Board::Layout`); sob o mouse volta a opaca para leitura.
+8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor (`RenderTooltip`): frente composta da carta à esquerda (mesma textura do HUD, em cache por código), e à direita nome, categoria e hierarquia (número e nome, ex.: "Maligna - Hierarquia 3 (Criaturas)"), **ATK** e **DEF** efetivos (verde/vermelho e "(base n)" quando a carta de campo altera), descrição com quebra de linha, dono e posição. Na mão, a carta sob o mouse cresce 1,64x (`Hand::Layout::hover_scale`).
 9. **Passar turno**: com mais de 6 cartas na mão, as de menor ataque são descartadas. A câmera orbita 180° (1 s), a mão se recolhe e começa o turno do computador.
 
 **Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se bate o campo do jogador, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
@@ -320,6 +324,10 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_SCREENSHOT_TIME=s` | Em vez do quadro, salva o primeiro quadro depois de `s` segundos (sem vsync a taxa de quadros varia; use isto para animações) |
 | `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (porta num ponto fixo da abertura) |
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
+| `PONTIFICE_AUDIO_LOG=1` | A cada segundo loga volume aplicado e alvo, pico e RMS do áudio enviado |
+| `PONTIFICE_AUDIO_ANALYZE=1` | Na inicialização, mede o RMS de cada faixa de ost.json e sugere o ganho de normalização |
+| `PONTIFICE_STARTER=player\|enemy` | Força quem começa a batalha |
+| `PONTIFICE_DIFFICULTY=easy\|medium\|hard\|impossible` | Força o nível do oponente |
 
 Exemplo: `PONTIFICE_WINDOWED=1 PONTIFICE_SCENE=battle PONTIFICE_MOUSE=960,840 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`
 

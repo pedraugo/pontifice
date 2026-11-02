@@ -49,6 +49,10 @@ class Board {
     float lunge_seconds = 0.5f;   // investida de ataque: vai até perto do alvo e volta
     float lunge_reach = 0.7f;     // fração da distância até o alvo
     float lunge_height = 0.6f;    // arco por cima
+    float flash_speed = 5.0f;     // decaimento do flash de dano
+    float spent_scale = 0.82f;    // carta que já atacou no turno: menor...
+    float spent_alpha = 0.3f;     // ...e translúcida (30%)
+    float spent_speed = 8.0f;     // velocidade da transição
     float pulse_speed = 3.0f;     // pulsação do destaque (rad/s)
   };
 
@@ -63,6 +67,8 @@ class Board {
     float place = 1.0f;      // animação de colocação, 0 (no ar) a 1 (sobre o ladrilho)
     float discard = 0.0f;    // animação de descarte, 0 (no lugar) a 1 (sumiu)
     float hover = 0.0f;      // sob o mouse: 0 normal, 1 ampliada (animado)
+    float flash = 0.0f;      // atingida: 1 logo após o golpe, decai (tinge de vermelho)
+    float spent = 0.0f;      // já atacou: 0 normal, 1 menor e translúcida (animado)
     float lunge = 1.0f;      // investida: 0 começa, 1 terminou (parada em 1)
     math::Vec3 lunge_target; // para onde investe (mundo)
     math::Mat4 world;
@@ -108,6 +114,8 @@ class Board {
              const CardInfo* info = nullptr, int turn = 0);
   // Investida de ataque: a carta vai até perto de `target` (mundo) e volta ao lugar.
   void Lunge(int slot, const math::Vec3& target);
+  // Carta atingida: flash vermelho que decai.
+  void Flash(int slot);
   bool Animating() const;  // alguma carta em colocação, investida ou descarte
   // Tira a carta do slot (vai para o cemitério) com animação de saída; falso se vazio.
   bool Discard(int slot);
