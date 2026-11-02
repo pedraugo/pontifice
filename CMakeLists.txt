@@ -95,6 +95,7 @@ add_executable(pontifice
   src/scripts/gpu/Gpu.cpp
   src/scripts/model/Model.cpp
   src/scripts/hand/Hand.cpp
+  src/scripts/aura/CardAura.cpp
   src/scripts/hud/Hud.cpp
   src/scripts/json/Json.cpp
   src/scripts/config/Config.cpp

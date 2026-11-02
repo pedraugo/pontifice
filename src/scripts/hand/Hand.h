@@ -9,6 +9,8 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 
+class CardAura;
+
 class Gpu;
 
 // Mão de cartas em 3D, disposta como um dock na parte de baixo da tela.
@@ -80,6 +82,17 @@ class Hand {
   };
 
   void SetModel(const Model* model) { model_ = model; }
+  // Aura desenhada atrás das cartas foil (opcional; não é dona).
+  void SetAura(const CardAura* aura) { aura_ = aura; }
+
+  // Carta avulsa (fora da mão) com a mesma câmera, luz e pele das cartas da mão: verso,
+  // normal maps, foil e aura. Usada na revelação da carta jogada pelo oponente, para ela ter
+  // exatamente o mesmo efeito de uma carta na sua mão.
+  // Matriz no centro da tela, na profundidade da inspeção: altura = fração da altura
+  // visível; yaw/pitch giram a carta (Y e X).
+  math::Mat4 CenterMatrix(float height_fraction, float yaw, float pitch) const;
+  void DrawLoose(Gpu& gpu, const math::Mat4& view_proj, const math::Mat4& world,
+                 SDL_GPUTexture* front, bool foil, float alpha = 1.0f) const;
   void SetBack(SDL_GPUTexture* back) { back_ = back; }
   // Normal maps da frente e do verso (relevo da moldura), aplicados a todas as cartas.
   void SetNormalMaps(SDL_GPUTexture* front, SDL_GPUTexture* back) {
@@ -139,6 +152,8 @@ class Hand {
                          int width, int height) const;
 
   const Model* model_ = nullptr;
+  const CardAura* aura_ = nullptr;
+  void DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const;
   SDL_GPUTexture* back_ = nullptr;
   SDL_GPUTexture* front_normal_ = nullptr;
   SDL_GPUTexture* back_normal_ = nullptr;

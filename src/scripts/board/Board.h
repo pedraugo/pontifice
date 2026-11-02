@@ -9,6 +9,8 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 
+class CardAura;
+
 // Um lado do campo (docs/campo.md): 10 slots de carta em 5 colunas x 2 linhas, alinhados aos
 // ladrilhos de uma plataforma da arena (models/Arena.glb), e as cartas colocadas neles.
 // SetSide(+1) é a plataforma da frente (jogador, z > 0); SetSide(-1) a do fundo (oponente,
@@ -75,6 +77,8 @@ class Board {
   };
 
   void SetModel(const Model* model) { model_ = model; }
+  // Aura desenhada atrás das cartas foil (opcional; não é dona).
+  void SetAura(const CardAura* aura) { aura_ = aura; }
   void SetBack(SDL_GPUTexture* back) { back_ = back; }
   void SetNormalMaps(SDL_GPUTexture* front, SDL_GPUTexture* back) {
     front_normal_ = front;
@@ -142,6 +146,7 @@ class Board {
   Model::Skin SkinFor(const Card& card) const;
 
   const Model* model_ = nullptr;
+  const CardAura* aura_ = nullptr;
   float side_ = 1.0f;
   SDL_GPUTexture* back_ = nullptr;
   SDL_GPUTexture* front_normal_ = nullptr;

@@ -92,12 +92,36 @@ vec4 Flame(vec2 uv, vec3 world_pos, float t, bool glow) {
   return vec4(col, alpha);
 }
 
+vec3 Rainbow(float x) { return 0.5 + 0.5 * cos(6.2831853 * (x + vec3(0.0, 0.33, 0.67))); }
+
+// Aura em volta da carta foil: mesma lógica de card.metal (Aura).
+vec4 Aura(vec2 uv, vec3 world_pos, float t) {
+  float d = clamp(length(uv), 0.0, 1.0);
+  vec2 p = vec2(world_pos.x + world_pos.z * 0.6, world_pos.y + world_pos.z * 0.4);
+  float flow = Fbm(p * 4.0 + vec2(0.0, -t * 0.8));
+  float flow2 = Fbm(p * 7.5 + vec2(t * 0.45, t * 0.3) + 17.0);
+  float pulse = 0.82 + 0.18 * sin(t * 2.6);
+  float core = pow(1.0 - d, 2.4);
+  float tongues = 1.0 - smoothstep(0.25 + 0.55 * flow, 0.95, d);
+  float alpha = (core * 0.95 + tongues * 0.35) * (0.55 + 0.7 * flow2) * pulse;
+  vec3 rainbow = mix(Rainbow(t * 0.07 + flow * 0.8 + d * 0.6), vec3(1.0), 0.25);
+  vec3 col = mix(vec3(1.0, 0.95, 0.8), rainbow * 1.1, smoothstep(0.2, 0.85, d));
+  return vec4(col, clamp(alpha, 0.0, 1.0));
+}
+
 void main() {
   float t = u.params.z;
   float flicker = 1.0 + 0.035 * sin(t * 11.0) + 0.025 * sin(t * 6.3 + 1.7);
 
   vec3 rgb;
   float alpha;
+  if (u.params.y > 5.5) {
+    vec4 aura = Aura(v_uv, v_world_pos, t) * u.color;
+    vec2 suv = gl_FragCoord.xy / u.resolution.xy - 0.5;
+    float vig = 1.0 - u.params.w * smoothstep(0.3, 0.8, length(suv * vec2(1.0, 0.85)));
+    out_color = vec4(aura.rgb * vig, aura.a * (1.0 - u.resolution.z));
+    return;
+  }
   bool foil = u.params.y > 4.5;
   if (!foil && u.params.y > 2.5) {
     out_color = Flame(v_uv, v_world_pos, t, u.params.y > 3.5) * u.color;
@@ -164,12 +188,38 @@ void main() {
     rgb = base.rgb * light;
     alpha = base.a;
     if (foil) {
-      vec3 v = normalize(u.camera.xyz - v_world_pos);
-      float fres = pow(1.0 - abs(dot(n, v)), 1.5);
-      float band = dot(v_uv, vec2(2.5, 4.0)) + fres * 3.0 + t * 0.12;
-      vec3 rainbow = 0.5 + 0.5 * cos(6.2831853 * (band + vec3(0.0, 0.33, 0.67)));
-      float sparkle = 0.55 + 0.45 * Noise(v_uv * 60.0 + vec2(t * 0.3, -t * 0.2));
-      rgb += rainbow * (0.06 + 0.38 * fres) * sparkle;
+      // Foil holográfico: mesma lógica de card.metal.
+      vec3 view = normalize(u.camera.xyz - v_world_pos);
+      vec3 dp1 = dFdx(v_world_pos), dp2 = dFdy(v_world_pos);
+      vec2 duv1 = dFdx(v_uv), duv2 = dFdy(v_uv);
+      vec3 ng = normalize(cross(dp1, dp2));
+      vec3 dp2perp = cross(dp2, ng), dp1perp = cross(ng, dp1);
+      vec3 axis_u = normalize(dp2perp * duv1.x + dp1perp * duv2.x);
+      vec3 axis_v = normalize(dp2perp * duv1.y + dp1perp * duv2.y);
+      vec2 slant = vec2(dot(view, axis_u), dot(view, axis_v));
+      float tilt = clamp(length(slant), 0.0, 1.0);
+      float strength = 0.1 + 0.8 * smoothstep(0.08, 0.55, tilt);
+      vec3 bump = n - ng;
+      float band = dot(v_uv, vec2(1.4, 2.2)) + dot(slant, vec2(2.6, 1.8)) +
+                   2.0 * (dot(bump, axis_u) + dot(bump, axis_v)) + t * 0.05;
+      vec3 rainbow = Rainbow(band);
+      float lines = 0.88 + 0.12 * sin((v_uv.x + v_uv.y) * 420.0 + slant.x * 30.0);
+      float grain = 0.75 + 0.25 * Noise(v_uv * 70.0 + slant * 9.0);
+      vec3 holo = rgb * (0.35 + 1.3 * rainbow) + rainbow * 0.22;
+      rgb = mix(rgb, holo, clamp(strength * lines * grain, 0.0, 1.0));
+      float sweep = fract(t * 0.16) * 2.8 - 0.9;
+      float gd = dot(v_uv, vec2(0.55, 0.45)) + slant.x * 0.35 - sweep;
+      rgb += vec3(1.0, 0.97, 0.9) * exp(-gd * gd * 160.0) * 0.45;
+      vec2 grid = vec2(12.0, 17.0);
+      vec2 cell = floor(v_uv * grid);
+      float h = Hash(cell);
+      vec2 offset = vec2(Hash(cell + 3.1), Hash(cell + 7.7)) * 0.6 + 0.2;
+      vec2 sp = fract(v_uv * grid) - offset;
+      float twinkle = pow(clamp(sin(t * 2.2 + h * 37.0), 0.0, 1.0), 14.0) * step(0.7, h);
+      float star = clamp(1.0 - length(sp) * 10.0, 0.0, 1.0) +
+                   0.6 * max(clamp(1.0 - abs(sp.x) * 45.0, 0.0, 1.0) * clamp(1.0 - abs(sp.y) * 5.0, 0.0, 1.0),
+                             clamp(1.0 - abs(sp.y) * 45.0, 0.0, 1.0) * clamp(1.0 - abs(sp.x) * 5.0, 0.0, 1.0));
+      rgb += vec3(1.0, 0.98, 0.92) * star * twinkle * (0.5 + 0.8 * tilt);
     }
   }
 

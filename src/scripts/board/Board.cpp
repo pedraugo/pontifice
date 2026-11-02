@@ -1,5 +1,7 @@
 #include "scripts/board/Board.h"
 
+#include "scripts/aura/CardAura.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -245,6 +247,11 @@ void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) co
   const SDL_FColor tint{1.0f, 1.0f - 0.65f * f, 1.0f - 0.65f * f,
                         math::Lerp(1.0f, layout_.spent_alpha, spent)};
   gpu.SetDesaturate(card.spent);  // já atacou: preto e branco
+  // Carta foil: aura atrás (no plano da carta, sobre a mesa), mais fraca se já atacou e
+  // sumindo junto com a carta no descarte.
+  if (card.foil && aura_ != nullptr) {
+    aura_->Draw(gpu, card.world, view_proj, (1.0f - 0.8f * spent) * (1.0f - card.discard));
+  }
   model_->Draw(gpu, card.world, view_proj, tint, SkinFor(card));
   gpu.SetDesaturate(0.0f);
 }

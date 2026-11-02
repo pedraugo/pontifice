@@ -152,12 +152,12 @@ Cada arquivo em `src/assets` é um array JSON. Campos comuns a toda carta:
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `code` | string | Identificador único. Prefixo pela categoria: `G`, `E`, `N`, `F`. |
-| `name` | string | Nome exibido. |
-| `description` | string | Texto curto da carta. |
+| `name` | string | Nome em inglês (ex.: `Saint Michael`). O nome exibido vem de `assets/translate.json` (`card.<code>.name`) no idioma escolhido; este campo é o padrão quando falta a chave. |
+| `description` | string | Texto curto da carta, em inglês. O exibido vem de `card.<code>.description` no `translate.json`. |
 | `category` | string | `G`, `E`, `N` ou `F`. |
 | `categoryName` | string | `good`, `evil`, `neutral` ou `field`. |
 | `hierarchy` | int | 1 a 4 para cartas de batalha, 0 para cartas de campo. |
-| `hierarchyName` | string | Nome da hierarquia (ex.: `Arcanjos`). Ausente em cartas de campo. |
+| `hierarchyName` | string | Nome da hierarquia em inglês (ex.: `Archangels`). O exibido vem de `hierarchy.<categoryName>.<hierarchy>` no `translate.json`. Ausente em cartas de campo. |
 | `image`, `imageFile`, `imageUrl` | string | Nome, arquivo e caminho da textura. |
 | `attributes` | objeto | Atributos específicos do tipo de carta. |
 
@@ -205,7 +205,7 @@ Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/
 
 As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
-- Arena, portão e tocha têm **normal map** gerado de suas texturas (`tools/normalmap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/Card.glb`, com **normal map** na frente (`CardFrontNormalMap.png`) e no verso (`CardBackNormalMap.png`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- Arena, portão e tocha têm **normal map** gerado de suas texturas (`tools/normalmap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/Card.glb`, com **normal map** na frente (`CardFrontNormalMap.png`, 1600x2230 com cantos transparentes: ao carregar, a transparência vira normal plana e o mapa é reduzido para 800x1115, a resolução da frente composta) e no verso (`CardBackNormalMap.png`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
 - **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o monte de 40 é montado por peso `odds` (no máximo 2 cópias por carta, 1 das de hierarquia 1) e **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
@@ -223,13 +223,13 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Quando as tochas acendem (3,2 s), um sorteio decide quem começa (`PONTIFICE_STARTER=player|enemy` força). Quem começa não compra nem ataca no primeiro turno.
 
-**Seu turno** (botão **Passar turno** sempre visível à direita):
+**Seu turno** (botão **Passar turno** no centro superior da tela, logo abaixo da dica, visível sempre que você pode agir):
 
 1. **Selecionar a carta**: arrastar uma carta da mão para cima a seleciona (uma por vez). Os slots vazios do seu lado ficam levemente destacados (quad translúcido pulsando) e aparece a dica do que fazer. Toda carta entra **virada para cima, em modo de ataque**; não existe carta virada para baixo.
 2. **Escolher o slot**: o slot sob o mouse recebe uma **moldura quadrada amarela** (`board.slotHover`). A detecção projeta os quatro cantos do ladrilho na tela com a câmera da arena (`math::PointInConvexQuad`). Um clique sobre uma carta da mão nunca conta como clique no slot atrás dela.
 3. **Carta vai para a arena**: `Hand::Remove` tira a carta da mão (as outras deslizam para fechar o espaço) e `Board::Place` a coloca no slot: desce animada (0,45 s) de cima e à frente do slot até deitar sobre o ladrilho, topo para o lado do oponente. Uma invocação normal por turno.
 4. **Slot ocupado**: invocar sobre um slot com carta descarta a anterior (`Board::Discard`: sobe e encolhe até sumir; cemitério +1).
-5. **Carta de campo** selecionada: clicar em qualquer ladrilho da arena a ativa (`PlayField`): vai para o painel do HUD (frente composta pelo `cardface`), substitui a anterior (a sua vai para o cemitério) e passa a valer o buff/nerf em todo cálculo (`rules::EffectiveAttack/Defense`). Não gasta a invocação do turno.
+5. **Carta de campo** selecionada: clicar em qualquer ladrilho da arena a ativa (`PlayField`): a carta é consumida e conta no seu cemitério na hora, sem ocupar slot; o efeito vai para o painel do HUD (frente composta pelo `cardface`), substitui o anterior e passa a valer o buff/nerf em todo cálculo (`rules::EffectiveAttack/Defense`). Não gasta a invocação do turno.
 6. **Trocar posição**: sem carta selecionada, clicar numa carta sua no campo alterna **ataque <-> defesa** (`Board::TogglePosition`, giro animado de 90° no plano da mesa). (A regra "não troca de posição no turno em que entrou" vale para a IA; para o jogador a troca é livre no seu turno, por decisão de design.)
 7. **Atacar**: **arrastar** uma carta sua em ataque (que ainda não atacou neste turno) até uma carta do oponente a ataca; se o lado dele está vazio, soltar sobre qualquer ladrilho dele é **ataque direto**. Durante o arrasto uma linha amarela liga a carta ao mouse e o alvo ganha a moldura. A carta faz uma **investida** em arco (`Board::Lunge`, 0,5 s) e no impacto (0,25 s) `rules::Resolve` aplica as tabelas de dano: destruição vai para o cemitério, dano para o HUD. No impacto toca o **golpe de espada** (`scripts/sword/Sword.*`): uma espada procedural (lâmina de aço, guarda e pomo dourados, cabo de couro; caixas sem textura, iluminadas pelas tochas) surge acima do alvo vinda do lado do atacante, desce num golpe de 0,19 s até a carta e some; no impacto um **rastro de corte** branco emissivo risca o plano da carta na diagonal e se apaga em 0,3 s, e a carta atingida **pisca em vermelho** (`Board::Flash`). Vale para os dois lados, inclusive no ataque direto (golpe no meio do lado vazio). Uma carta que **já atacou** no turno fica **menor (82%), em preto e branco (dessaturação no shader, `Gpu::SetDesaturate`) e com 30% de opacidade** até o próximo turno do dono (`Board::Card::spent`, `spent_scale`/`spent_alpha` em `Board::Layout`); sob o mouse volta a opaca para leitura.
 8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor (`RenderTooltip`): frente composta da carta à esquerda (mesma textura do HUD, em cache por código), e à direita nome, categoria e hierarquia (número e nome, ex.: "Maligna - Hierarquia 3 (Criaturas)"), **ATK** e **DEF** efetivos (verde/vermelho e "(base n)" quando a carta de campo altera), descrição com quebra de linha, dono e posição. Na mão, a carta sob o mouse cresce 1,64x (`Hand::Layout::hover_scale`).
@@ -237,7 +237,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se consegue destruir alguma carta do jogador ou se o campo dele está vazio, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos, aceita troca igual; nunca ataca quem ganharia dela; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
 
-**Revelação da carta do oponente**: toda carta que o computador joga (invocação ou carta de campo) sai da mão dele e aparece **grande no centro da tela por 2 s** (`StartReveal`/`RenderReveal`, `kRevealSeconds`) antes de ir à arena: véu leve sobre a mesa, a frente composta da carta com 560 px de altura (entra crescendo de 85% em 0,2 s, sai em 0,25 s), a legenda acima ("O oponente invoca" ou "O oponente ativa a carta de campo") e, na invocação, a posição abaixo ("Em ataque" ou "Em defesa"). A colocação na arena é agendada com `ScheduleNext` (frente da fila), então acontece logo depois da revelação e antes dos passos seguintes. A pausa (Esc) congela a revelação junto com o resto.
+**Revelação da carta do oponente**: toda carta que o computador joga (invocação ou carta de campo) sai da mão dele e aparece **grande no centro da tela por 2 s** (`StartReveal`/`RenderReveal`, `kRevealSeconds`) antes de ir à arena: véu escuro sobre a mesa e a carta **em 3D** na camada da mão, com a mesma luz, foil e aura das cartas da sua mão, balançando de leve (560 px de altura; entra crescendo de 85% em 0,2 s, sai em 0,25 s); sem o render 3D cai na frente composta em 2D, a legenda acima ("O oponente invoca" ou "O oponente ativa a carta de campo") e, na invocação, a posição abaixo ("Em ataque" ou "Em defesa"). A colocação na arena é agendada com `ScheduleNext` (frente da fila), então acontece logo depois da revelação e antes dos passos seguintes. A pausa (Esc) congela a revelação junto com o resto.
 
 **Níveis** (`ai::Difficulty`, escolhidos no menu, `PONTIFICE_DIFFICULTY=easy|medium|hard|impossible` força): mudam só o **monte do computador**, por peso de sorteio por hierarquia (`ai::DeckWeight`; os limites de 2 cópias e 1 de hierarquia 1 continuam):
 
@@ -296,19 +296,26 @@ Ordem de um quadro na cena de batalha:
 
 O fragment shader calcula a normal pela derivada da posição, então funciona em malhas sem normais e ilumina as duas faces. Com um **normal map** (segundo sampler, `Gpu::Draw(..., normal_map)`), o referencial tangente também vem das derivadas de posição e UV (cotangent frame), sem tangentes nos vértices; o mapa é lido na convenção OpenGL com o verde invertido porque o V das texturas cresce para baixo. Texturas recebem mipmaps gerados na GPU e filtro anisotrópico.
 
-Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad), `kFlameGlow` (a mesma chama como halo oval difuso) e `kFoil` (como `kMesh`, mais brilho iridescente dependente do ângulo de visão).
+Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional, até **duas luzes pontuais** quentes com tremular, névoa, vinheta), `kMist` (quad de névoa com alpha de ruído animado), `kEmissive` (cor da textura direto, sem luz nem névoa), `kFlame` (chama procedural animada a partir do UV do quad), `kFlameGlow` (a mesma chama como halo oval difuso) e `kFoil` (como `kMesh`, mais arco-íris holográfico que cresce com a inclinação, reflexo e estrelas) e `kAura` (brilho procedural transparente em volta da carta foil).
 
 ## Frente da carta
 
-`cardface::Compose` recebe a moldura da categoria reduzida 2x (800x1115; `CardFrontGood`, `CardFrontEvil` ou `CardFrontField`, esta também para neutras) e desenha os textos com a fonte do jogo na CPU (`text::DrawOnImage`), antes de a imagem virar textura. Áreas, em px da imagem de 800x1115:
+`cardface::Compose` recebe a moldura da categoria reduzida 2x (800x1115; `CardFrontGood`, `CardFrontEvil`, `CardFrontNeutral` ou `CardFrontField`, uma por categoria, todas com as mesmas faixas) e desenha os textos com a fonte do jogo na CPU (`text::DrawOnImage`), antes de a imagem virar textura. Áreas, em px da imagem de 800x1115:
 
 | Área | Posição | Conteúdo |
 |---|---|---|
 | Faixa do topo | y 58–114 | `name` à esquerda e `hierarchy` (1 a 4) à direita (56 px); carta de campo não tem hierarquia |
-| Faixa abaixo da imagem | y 630–690 | `attributes.attack` à esquerda (`ATK 2800`) e `attributes.defense` à direita (`DEF 2900`), 48 px; carta de campo mostra `BUFF +n` e `NERF -n` |
-| Área branca de baixo | y 712–1031, x 70–730 | `description`, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
+| Faixa abaixo da imagem | y 592–688 | `attributes.attack` à esquerda (`ATK 2800`) e `attributes.defense` à direita (`DEF 2900`), 76 px; carta de campo mostra `BUFF +n` e `NERF -n` |
+| Área branca de baixo | y 712–1056, x 70–730 | `description`, 40 px, com quebra por palavras e bloco centralizado; carta de campo acrescenta "Favorece: Bondosas/Malignas" |
 
-Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMode::kFoil`, que soma faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes de raspão, pela fresnel) e com o tempo, com granulado fino; o efeito aparece ao inclinar a carta no hover ou girá-la na inspeção. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 128–613) continua em branco até existirem as ilustrações (`imageFile`).
+Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMode::kFoil` (holográfica) e a carta ganha uma **aura** de luz em volta, na mão, no campo, na inspeção e na revelação do oponente.
+
+- **Arco-íris pela inclinação**: o shader mede o olhar projetado no plano da carta (eixos da carta pelas derivadas de posição e UV, sem o relevo). De frente o arco-íris é discreto; inclinando (hover, inspeção, carta deitada no campo) ele domina a carta e corre para o lado da inclinação. A cor é tingida (multiplicada) mais um brilho próprio, então o branco vira cor viva e o texto escuro continua legível. Riscas finas, granulado e o relevo do normal map variam a cor localmente.
+- **Reflexo**: uma faixa clara varre a carta em diagonal a cada ~6 s.
+- **Estrelas**: brilhos em cruz que piscam em pontos sorteados, mais fortes inclinando.
+- **Aura** (`scripts/aura/CardAura.*`, `Gpu::DrawMode::kAura`): grade 4x4 no espaço local da carta, no plano do meio da espessura, desenhada logo antes da carta; UV = distância além da borda. Energia que flui (ruído animado) e pulsa, branco-dourada junto à borda e em arco-íris para fora, com a borda externa irregular. Mais fraca em carta que já atacou e some junto no descarte.
+
+Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. A imagem (y 129–576) continua em branco até existirem as ilustrações (`imageFile`).
 
 ## Ajustes em JSON
 
@@ -352,7 +359,8 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha); `=menu` pula a escolha de idioma; `=language` força a cena de idioma |
 | `PONTIFICE_LANG=en` | Define o idioma (`en`, `es`, `pt`) sem passar pela cena de idioma e abre no menu |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
-| `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia |
+| `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia; `=1920x1080` (ou outro LxA) abre nesse tamanho, útil para screenshots em resolução cheia |
+| `PONTIFICE_ENEMY_HAND=G101,E101,...` | Força a mão inicial do computador (até 5), para testar a revelação de cartas específicas |
 | `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |
 | `PONTIFICE_DRAG=...` | Sequência de gestos separados por `;`: `x0,y0,x1,y1,t` arrasta o botão esquerdo de (x0,y0) a (x1,y1) a partir de `t` s (mesmo ponto = clique); `w,dy,t` gira a roda. Testa seleção, inspeção, virar e zoom |
 | `PONTIFICE_KEYS=Escape,4;Return,6` | Aperta teclas (nomes do SDL) nos instantes dados, em segundos. Testa a pausa e os diálogos |

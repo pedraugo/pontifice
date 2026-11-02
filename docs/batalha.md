@@ -66,8 +66,9 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 
 ## Cartas de campo
 
-- Só existe **uma carta de campo ativa** por vez. Jogar uma nova carta de campo destrói a anterior.
-- A carta de campo dura até o fim da batalha ou até ser substituída.
+- A carta de campo **não entra no campo**: é consumida ao ser jogada, some e vai direto para o cemitério do dono. Não ocupa slot.
+- O **efeito** dela fica ativo até o fim da batalha ou até outra carta de campo, de qualquer jogador, substituí-lo. Só existe um efeito de campo ativo por vez.
+- O painel do HUD mostra o efeito de campo em vigor.
 - Cartas da categoria **favorecida** recebem **buff** no ataque e na defesa.
 - Cartas da categoria **prejudicada** recebem **nerf** no ataque e na defesa.
 - Cartas **Neutras** não são afetadas por cartas de campo.
@@ -75,7 +76,7 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 
 ## Jogadas do oponente
 
-Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no centro da tela por 2 segundos antes de ir para a arena. A legenda diz o que ele está fazendo e, na invocação, em que posição a carta entra. Assim o jogador lê nome, ATK, DEF e descrição antes de a carta descer na mesa.
+Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no centro da tela por 2 segundos antes de ir para a arena. A legenda diz o que ele está fazendo e, na invocação, em que posição a carta entra. Assim o jogador lê nome, ATK, DEF e descrição antes de a carta descer na mesa. A carta aparece em 3D, igual às da sua mão: cartas foil (hierarquia 1) brilham com a aura e mostram o arco-íris enquanto balançam.
 
 ## Pausa
 

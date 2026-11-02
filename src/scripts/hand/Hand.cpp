@@ -1,5 +1,7 @@
 #include "scripts/hand/Hand.h"
 
+#include "scripts/aura/CardAura.h"
+
 #include <algorithm>
 
 #include <cmath>
@@ -336,26 +338,49 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
   }
 }
 
+math::Mat4 Hand::CenterMatrix(float height_fraction, float yaw, float pitch) const {
+  if (model_ == nullptr) return math::Mat4::Identity();
+  const float visible_h =
+      2.0f * (layout_.camera_z - layout_.inspect_z) * std::tan(layout_.fov_y * 0.5f);
+  const float card_h = model_->BoundsMax().y - model_->BoundsMin().y;
+  const float scale = height_fraction * visible_h / std::max(card_h, 1e-3f);
+  return math::Mat4::Translate({0.0f, layout_.inspect_y, layout_.inspect_z}) *
+         math::Mat4::RotateY(yaw) * math::Mat4::RotateX(pitch) * math::Mat4::Scale(scale);
+}
+
+void Hand::DrawLoose(Gpu& gpu, const math::Mat4& view_proj, const math::Mat4& world,
+                     SDL_GPUTexture* front, bool foil, float alpha) const {
+  if (model_ == nullptr || front == nullptr || alpha <= 0.0f) return;
+  if (foil && aura_ != nullptr) aura_->Draw(gpu, world, view_proj, alpha);
+  model_->Draw(gpu, world, view_proj, SDL_FColor{1, 1, 1, alpha},
+               Model::Skin{front, back_, front_normal_, back_normal_,
+                           foil ? Gpu::DrawMode::kFoil : Gpu::DrawMode::kMesh});
+}
+
 Model::Skin Hand::SkinFor(const Card& card) const {
   return Model::Skin{card.front, back_, front_normal_, back_normal_,
                      card.foil ? Gpu::DrawMode::kFoil : Gpu::DrawMode::kMesh};
 }
 
+// Carta foil: aura atrás, logo antes da carta (a carta, opaca, cobre a parte de dentro).
+void Hand::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const {
+  if (card.foil && aura_ != nullptr) aura_->Draw(gpu, card.world, view_proj);
+  model_->Draw(gpu, card.world, view_proj, SDL_FColor{1, 1, 1, 1}, SkinFor(card));
+}
+
 void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (model_ == nullptr) return;
-  const SDL_FColor white{1, 1, 1, 1};
   // Ordem de trás para frente (índice crescente = mais perto da câmera) e a carta destacada
   // por último. Com blend ligado, desenhar na ordem da profundidade evita bordas erradas.
   for (size_t i = 0; i < cards_.size(); ++i) {
     if (static_cast<int>(i) == hovered_ || static_cast<int>(i) == inspect_card_) continue;
-    model_->Draw(gpu, cards_[i].world, view_proj, white, SkinFor(cards_[i]));
+    DrawCard(gpu, view_proj, cards_[i]);
   }
   if (hovered_ >= 0 && hovered_ < static_cast<int>(cards_.size()) && hovered_ != inspect_card_) {
-    model_->Draw(gpu, cards_[hovered_].world, view_proj, white, SkinFor(cards_[hovered_]));
+    DrawCard(gpu, view_proj, cards_[hovered_]);
   }
   // A carta inspecionada (ou voltando) por último: fica na frente de tudo.
   if (inspect_card_ >= 0 && inspect_card_ < static_cast<int>(cards_.size())) {
-    model_->Draw(gpu, cards_[inspect_card_].world, view_proj, white,
-                 SkinFor(cards_[inspect_card_]));
+    DrawCard(gpu, view_proj, cards_[inspect_card_]);
   }
 }

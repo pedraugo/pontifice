@@ -69,12 +69,12 @@ constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
 // arena no turno do computador e volta no seu.
 constexpr float kOrbitSeconds = 1.0f;
 
-// Layout 2D na grade de 16 px (ui::Grid). Botão "Passar turno": à direita, acima do painel
-// do cemitério, fora da mão.
+// Layout 2D na grade de 16 px (ui::Grid). Botão "Passar turno": centro superior, logo abaixo
+// da dica (kHintY), entre os painéis de campo e de vida e acima da arena.
 constexpr float kButtonWidth = ui::Grid(21);   // 336 px
 constexpr float kButtonHeight = ui::Grid(5);   // 80 px
-constexpr float kButtonMargin = ui::Grid(1);
-constexpr float kButtonBottom = ui::Grid(14);  // do rodapé: cemitério (3) + folga
+constexpr float kButtonMargin = ui::Grid(1);   // botão de som no canto inferior esquerdo
+constexpr float kEndTurnTop = ui::Grid(6);     // 96 px: dica centrada em 64 px, 24 px de linha
 constexpr float kHintScale = 2.0f * ui::kScale;
 // Botão de som: 3 x 3 células no canto inferior esquerdo; o painel do monte fica à direita.
 constexpr float kSoundButtonSize = ui::Grid(3);
@@ -129,6 +129,61 @@ constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
 constexpr float kRevealDetailScale = 2.5f * ui::kScale;
 constexpr float kAttackHit = 0.25f;  // momento do impacto dentro da investida
 
+// Normal map da carta pronto para a GPU: pixels transparentes (fora dos cantos arredondados)
+// viram normal plana (128, 128, 255), na proporção da transparência, para o filtro linear
+// não puxar a borda da carta para uma normal inválida; depois reduz 2x, para a mesma
+// resolução da frente composta (cardface::kWidth x kHeight). Reduções e normalização no
+// shader mantêm o relevo.
+Image CardNormalMap(Image image, int downscale) {
+  if (!image.Valid()) return image;
+  constexpr int kFlat[3] = {128, 128, 255};
+  for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) {
+    const int a = image.rgba[i + 3];
+    if (a == 255) continue;
+    for (int c = 0; c < 3; ++c) {
+      image.rgba[i + c] = static_cast<uint8_t>((image.rgba[i + c] * a + kFlat[c] * (255 - a)) / 255);
+    }
+    image.rgba[i + 3] = 255;
+  }
+  return downscale > 1 ? image.Downscaled(downscale) : image;
+}
+
+// Aura 2D (revelação de carta foil): anel em volta de `inner`, da cor de cada canto (sentido
+// horário a partir do superior esquerdo) para transparente a `margin` px. Quatro trapézios
+// com cores por vértice: a cor gira em volta da carta conforme os cantos mudam.
+void DrawGlowRing(SDL_Renderer* r, const SDL_FRect& inner, float margin, const SDL_FColor c[4]) {
+  const SDL_FPoint in[4] = {{inner.x, inner.y},
+                            {inner.x + inner.w, inner.y},
+                            {inner.x + inner.w, inner.y + inner.h},
+                            {inner.x, inner.y + inner.h}};
+  const SDL_FPoint out[4] = {{inner.x - margin, inner.y - margin},
+                             {inner.x + inner.w + margin, inner.y - margin},
+                             {inner.x + inner.w + margin, inner.y + inner.h + margin},
+                             {inner.x - margin, inner.y + inner.h + margin}};
+  SDL_Vertex v[16];
+  int indices[24];
+  for (int side = 0; side < 4; ++side) {
+    const int a = side, b = (side + 1) % 4;
+    SDL_FColor ca = c[a], cb = c[b];
+    SDL_FColor oa = ca, ob = cb;
+    oa.a = ob.a = 0.0f;
+    v[side * 4 + 0] = SDL_Vertex{in[a], ca, {0, 0}};
+    v[side * 4 + 1] = SDL_Vertex{in[b], cb, {0, 0}};
+    v[side * 4 + 2] = SDL_Vertex{out[b], ob, {0, 0}};
+    v[side * 4 + 3] = SDL_Vertex{out[a], oa, {0, 0}};
+    const int base = side * 4;
+    const int quad[6] = {base, base + 1, base + 2, base, base + 2, base + 3};
+    for (int k = 0; k < 6; ++k) indices[side * 6 + k] = quad[k];
+  }
+  SDL_RenderGeometry(r, nullptr, v, 16, indices, 24);
+}
+
+SDL_FColor Hue(float x, float alpha) {
+  constexpr float kTau = 6.2831853f;
+  return SDL_FColor{0.5f + 0.5f * std::cos(kTau * x), 0.5f + 0.5f * std::cos(kTau * (x + 0.33f)),
+                    0.5f + 0.5f * std::cos(kTau * (x + 0.67f)), alpha};
+}
+
 float SmoothStep(float t) {
   t = math::Clamp(t, 0.0f, 1.0f);
   return t * t * (3.0f - 2.0f * t);
@@ -151,6 +206,8 @@ BattleScene::~BattleScene() {
   board_.Destroy(*gpu_);
   enemy_board_.Destroy(*gpu_);
   sword_.Destroy(*gpu_);
+  card_aura_.Destroy(*gpu_);
+  gpu_->DestroyMesh(veil_quad_);
   card_model_.reset();
   arena_model_.reset();
   torch_.reset();
@@ -179,12 +236,19 @@ void BattleScene::Preload(const PreloadInfo& info) {
     card_model_.reset();
     return;
   }
+  card_aura_.Init(*gpu_, *card_model_);
+  veil_quad_ = gpu_->CreateMesh({{-0.5f, -0.5f, 0, 0, 1}, {0.5f, -0.5f, 0, 1, 1},
+                                 {0.5f, 0.5f, 0, 1, 0}, {-0.5f, 0.5f, 0, 0, 0}},
+                                {0, 1, 2, 0, 2, 3});
   back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
-  front_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardFrontNormalMap.png"));
+  // Frente: 1600x2230 com cantos transparentes, reduzido para 800x1115 (CardNormalMap).
+  front_normal_ = UploadSprite(
+      CardNormalMap(Image::LoadFile(base + "sprites/CardFrontNormalMap.png"), 2));
   back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.png"));
   for (Board* board : {&board_, &enemy_board_}) {
     board->GetLayout().arena_scale = kArenaScale;
     board->SetModel(card_model_.get());
+    board->SetAura(&card_aura_);
     board->SetBack(back_);
     board->SetNormalMaps(front_normal_, back_normal_);
     board->Init(*gpu_);
@@ -195,7 +259,8 @@ void BattleScene::Preload(const PreloadInfo& info) {
   // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.png").Downscaled(2);
-  frames_[2] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
+  frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.png").Downscaled(2);
+  frames_[3] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
 
   // Montes: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) para cada lado, ANTES de
   // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
@@ -220,8 +285,9 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                             }));
   enemy_deck_.Shuffle();
   SDL_Log("Nivel do oponente: %s", ai::DifficultyKey(difficulty_));
-  // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial (o monte continua
-  // embaralhado; essas cartas não saem dele).
+  // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial. O monte continua
+  // embaralhado e perde uma carta do topo por carta forçada, para o contador do HUD ficar
+  // como numa partida normal (35/40).
   std::vector<std::string> forced;
   if (const char* env = SDL_getenv("PONTIFICE_HAND")) {
     std::string spec = env;
@@ -236,7 +302,10 @@ void BattleScene::Preload(const PreloadInfo& info) {
   for (int i = 0; i < 5; ++i) {
     std::optional<std::string> code;
     if (!forced.empty()) {
-      if (i < static_cast<int>(forced.size())) code = forced[i];
+      if (i < static_cast<int>(forced.size())) {
+        code = forced[i];
+        deck_.Draw();
+      }
     } else {
       code = deck_.Draw();
     }
@@ -244,7 +313,22 @@ void BattleScene::Preload(const PreloadInfo& info) {
     const Face face = MakeCardFace(*code);
     if (face.texture != nullptr) initial_hand_.push_back(face);
   }
-  for (int i = 0; i < 5; ++i) EnemyDraw();
+  // Depuração: PONTIFICE_ENEMY_HAND=G101,E101,... força a mão inicial do computador (como
+  // PONTIFICE_HAND; o monte dele perde uma carta do topo por carta forçada).
+  if (const char* env = SDL_getenv("PONTIFICE_ENEMY_HAND")) {
+    std::string spec = env;
+    size_t pos = 0;
+    while (pos < spec.size() && enemy_hand_.size() < 5) {
+      size_t end = spec.find(',', pos);
+      if (end == std::string::npos) end = spec.size();
+      if (const CardInfo* info = cards::Find(cards_, spec.substr(pos, end - pos))) {
+        enemy_hand_.push_back(info);
+        enemy_deck_.Draw();
+      }
+      pos = end + 1;
+    }
+  }
+  while (enemy_hand_.size() < 5 && enemy_deck_.Size() > 0) EnemyDraw();
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/Arena.glb"))) {
     SDL_Log("Arena.glb nao carregado; gere com tools/texture_arena.py");
@@ -300,11 +384,24 @@ void BattleScene::ToggleSampleFieldCard() {
 BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
   const CardInfo* card = cards::Find(cards_, code);
   if (card == nullptr || gpu_ == nullptr) return {};
-  const Image& frame = card->category == 'G' ? frames_[0]
-                       : card->category == 'E' ? frames_[1]
-                                               : frames_[2];
+  const Image& frame = FrameFor(*card);
   // Hierarquia 1 (Divindades, Soberanos): carta foil.
   return {UploadSprite(cardface::Compose(frame, *card)), card->hierarchy == 1, card};
+}
+
+// Moldura da categoria (CardInfo::FrameSprite): Good, Evil, Neutral ou Field. Sem a neutra,
+// neutras usam a de campo.
+const Image& BattleScene::FrameFor(const CardInfo& card) const {
+  switch (card.category) {
+    case 'G':
+      return frames_[0];
+    case 'E':
+      return frames_[1];
+    case 'N':
+      return frames_[2].Valid() ? frames_[2] : frames_[3];
+    default:
+      return frames_[3];
+  }
 }
 
 SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
@@ -313,9 +410,7 @@ SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
   if (it != hud_faces_.end()) return it->second;
   // Composta na moldura da categoria reduzida 2x e reduzida mais 2x (400x557): o HUD e o
   // tooltip mostram de 120 a 300 px de altura.
-  const Image& frame = card.category == 'G' ? frames_[0]
-                       : card.category == 'E' ? frames_[1]
-                                              : frames_[2];
+  const Image& frame = FrameFor(card);
   if (!frame.Valid()) return field_front_2d_;
   SDL_Texture* texture = UploadHudSprite(renderer_, cardface::Compose(frame, card).Downscaled(2));
   if (texture == nullptr) return field_front_2d_;
@@ -349,7 +444,16 @@ void BattleScene::ScheduleNext(float delay, std::function<void()> fn) {
 }
 
 void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::string detail) {
-  reveal_ = Reveal{&card, HudFace(card), std::move(caption), std::move(detail), 0.0f};
+  reveal_ = Reveal{};
+  reveal_.card = &card;
+  reveal_.caption = std::move(caption);
+  reveal_.detail = std::move(detail);
+  if (ready_) {
+    const Face face = MakeCardFace(card.code);
+    reveal_.front3d = face.texture;
+    reveal_.foil = face.foil;
+  }
+  if (reveal_.front3d == nullptr) reveal_.face = HudFace(card);  // sem 3D: imagem 2D
 }
 
 bool BattleScene::Busy() const {
@@ -464,8 +568,9 @@ void BattleScene::RunEnemyTurn() {
     StartReveal(*card, i18n::Get("battle.reveal.summon"),
                 i18n::Get(defense ? "battle.reveal.defense" : "battle.reveal.attack"));
     ScheduleNext(kRevealSeconds, [this, card, defense] {
+      const Face face{reveal_.front3d, reveal_.foil, card};
       reveal_ = Reveal{};
-      EnemySummon(card, defense);
+      EnemySummon(card, defense, face.texture != nullptr ? &face : nullptr);
     });
   });
   // Fase de batalha: um ataque por passo, reavaliando o campo a cada vez.
@@ -520,7 +625,7 @@ ai::View BattleScene::BuildEnemyView() const {
   return view;
 }
 
-void BattleScene::EnemySummon(const CardInfo* info, bool defense) {
+void BattleScene::EnemySummon(const CardInfo* info, bool defense, const Face* ready_face) {
   if (info == nullptr) return;
   std::vector<int> free = enemy_board_.Free();
   int slot;
@@ -541,7 +646,7 @@ void BattleScene::EnemySummon(const CardInfo* info, bool defense) {
   } else {
     slot = ai::ChooseSlot(free, Board::kCols);
   }
-  const Face face = MakeCardFace(info->code);
+  const Face face = ready_face != nullptr ? *ready_face : MakeCardFace(info->code);
   if (face.texture == nullptr) return;
   enemy_board_.Place(slot, face.texture, face.foil, defense, info, turn_);
   char name[3];
@@ -570,8 +675,10 @@ bool BattleScene::CandidateIsField() const {
 }
 
 void BattleScene::PlayField(Side owner, const CardInfo& card) {
-  // Só uma carta de campo ativa: a anterior vai para o cemitério do dono.
-  if (field_.active && field_owner_ == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  // A carta de campo não entra no campo: é consumida ao ser jogada e vai direto para o
+  // cemitério do dono (o HUD conta só o seu). O efeito (buff/nerf) fica ativo até outra
+  // carta de campo substituí-lo, e o painel do HUD mostra o efeito em vigor.
+  if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
   field_ = rules::Field::From(card);
   field_owner_ = owner;
   FieldCardInfo info;
@@ -697,8 +804,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   end_turn_ = std::make_unique<ButtonAction>(i18n::Get("battle.endTurn"),
                                              [this](SceneContext&) { EndTurn(); });
-  SDL_FRect rect{ctx.logical_width - kButtonMargin - kButtonWidth,
-                 ctx.logical_height - kButtonBottom - kButtonHeight, kButtonWidth, kButtonHeight};
+  SDL_FRect rect{(ctx.logical_width - kButtonWidth) / 2.0f, kEndTurnTop, kButtonWidth,
+                 kButtonHeight};
   end_turn_->SetRect(rect);
   sound_button_.SetRect(SDL_FRect{kButtonMargin, ctx.logical_height - kButtonMargin - kSoundButtonSize,
                                   kSoundButtonSize, kSoundButtonSize});
@@ -733,6 +840,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   gpu_->SetRenderer(ctx.renderer);
 
   hand_.SetModel(card_model_.get());
+  hand_.SetAura(&card_aura_);
   hand_.SetBack(back_);
   hand_.SetNormalMaps(front_normal_, back_normal_);
   // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
@@ -1073,8 +1181,62 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
                                                                                 : -1);
 }
 
+// Entrada e saída da revelação: alpha e escala no instante t (s).
+namespace {
+void RevealCurve(float t, float& alpha, float& scale) {
+  const float in = SmoothStep(t / kRevealFadeIn);
+  const float out = 1.0f - SmoothStep((t - (kRevealSeconds - kRevealFadeOut)) / kRevealFadeOut);
+  alpha = std::min(in, out);
+  scale = (0.85f + 0.15f * in) * (0.92f + 0.08f * out);
+}
+}  // namespace
+
+void BattleScene::RenderReveal3D(int width, int height) {
+  if (reveal_.card == nullptr || reveal_.front3d == nullptr) return;
+  float alpha = 0.0f, scale = 1.0f;
+  RevealCurve(reveal_.time, alpha, scale);
+  const Hand::Layout& layout = hand_.GetLayout();
+  // Véu: quad escuro atrás da carta cobrindo a vista (escurece a mesa e a sua mão).
+  const float veil_z = layout.inspect_z - 1.0f;
+  const float veil_h = 2.2f * (layout.camera_z - veil_z) * std::tan(layout.fov_y * 0.5f);
+  const float aspect = static_cast<float>(width) / static_cast<float>(height);
+  SDL_FColor veil = colors::GetF("background.overlay");
+  veil.a *= alpha;
+  gpu_->Draw(veil_quad_, nullptr,
+             math::Mat4::Translate({0.0f, 0.0f, veil_z}) *
+                 math::Mat4::Scale({veil_h * aspect, veil_h, 1.0f}),
+             hand_view_proj_, veil, Gpu::DrawMode::kEmissive);
+  // Carta: balança em Y (e um pouco em X), para o arco-íris do foil correr pela frente.
+  const float t = reveal_.time;
+  const float yaw = 0.42f * std::sin(t * 3.1f - 1.2f);
+  const float pitch = 0.1f * std::sin(t * 2.3f);
+  const math::Mat4 world =
+      hand_.CenterMatrix(kRevealCardH * scale / static_cast<float>(height), yaw, pitch);
+  hand_.DrawLoose(*gpu_, hand_view_proj_, world, reveal_.front3d, reveal_.foil, alpha);
+}
+
 void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
-  if (reveal_.card == nullptr || reveal_.face == nullptr) return;
+  if (reveal_.card == nullptr) return;
+  if (reveal_.front3d != nullptr) {
+    // Carta e véu já foram desenhados em 3D (RenderReveal3D): aqui só as legendas.
+    float alpha = 0.0f, scale = 1.0f;
+    RevealCurve(reveal_.time, alpha, scale);
+    const auto with_alpha = [alpha](SDL_Color c) {
+      c.a = static_cast<Uint8>(c.a * alpha);
+      return c;
+    };
+    const float h = kRevealCardH * scale;
+    const float cx = width / 2.0f;
+    const float top = height / 2.0f - h / 2.0f;
+    text::DrawCentered(r, reveal_.caption.c_str(), cx, top - ui::Grid(3), kRevealCaptionScale,
+                       with_alpha(colors::Get("panel.title")));
+    if (!reveal_.detail.empty()) {
+      text::DrawCentered(r, reveal_.detail.c_str(), cx, top + h + ui::Grid(3),
+                         kRevealDetailScale, with_alpha(colors::Get("text.secondary")));
+    }
+    return;
+  }
+  if (reveal_.face == nullptr) return;
   // Entrada: cresce de 85% e clareia; saída: encolhe um pouco e some, logo antes de a carta
   // descer na arena.
   const float in = SmoothStep(reveal_.time / kRevealFadeIn);
@@ -1101,6 +1263,21 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   const float cx = width / 2.0f;
   const float cy = height / 2.0f + ui::Grid(1);
   const SDL_FRect card{cx - w / 2.0f, cy - h / 2.0f, w, h};
+  // Carta foil (hierarquia 1): aura atrás, que pulsa e gira em arco-íris; um anel largo e
+  // suave por fora e um mais estreito, quase branco, junto à borda.
+  if (reveal_.card->hierarchy == 1) {
+    const float t = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    const float pulse = 0.8f + 0.2f * std::sin(t * 2.6f);
+    SDL_FColor wide[4], near_edge[4];
+    for (int k = 0; k < 4; ++k) {
+      wide[k] = Hue(t * 0.12f + k * 0.25f, 0.55f * alpha * pulse);
+      const SDL_FColor hue = Hue(t * 0.12f + k * 0.25f, 0.9f * alpha * pulse);
+      near_edge[k] = SDL_FColor{0.55f + 0.45f * hue.r, 0.55f + 0.45f * hue.g,
+                                0.5f + 0.45f * hue.b, hue.a};
+    }
+    DrawGlowRing(r, card, ui::Grid(6) * scale, wide);
+    DrawGlowRing(r, card, ui::Grid(2) * scale, near_edge);
+  }
   SDL_SetTextureAlphaMod(reveal_.face, static_cast<Uint8>(alpha * 255.0f));
   SDL_RenderTexture(r, reveal_.face, nullptr, &card);
   SDL_SetTextureAlphaMod(reveal_.face, 255);  // textura compartilhada com HUD e tooltip
@@ -1287,6 +1464,7 @@ void BattleScene::Render(SceneContext& ctx) {
     gpu_->NewLayer();  // a mão fica sempre por cima da arena
     gpu_->SetAtmosphere(hand_atmosphere_);
     hand_.Render(*gpu_, hand_view_proj_);
+    RenderReveal3D(ctx.logical_width, ctx.logical_height);
     gpu_->EndFrame();
 
     SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);

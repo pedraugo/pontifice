@@ -13,7 +13,7 @@ struct CardInfo {
   char category = 'N';      // 'G' bondosa, 'E' maligna, 'N' neutra, 'F' campo
   std::string category_name;   // "good", "evil", "neutral", "field"
   int hierarchy = 0;        // 1 (mais rara) a 4; 0 para cartas de campo
-  std::string hierarchy_name;  // ex.: "Arcanjos"; vazio em cartas de campo
+  std::string hierarchy_name;  // ex.: "Arcanjos" (traduzido); vazio em cartas de campo
   int attack = 0;
   int defense = 0;
   int odds = 1;             // peso no sorteio do monte (maior = mais comum)
@@ -26,7 +26,8 @@ struct CardInfo {
   bool IsField() const { return category == 'F'; }
   // Nome da categoria no idioma atual (category.good, .evil, .neutral, .field), para a interface.
   std::string CategoryLabel() const;
-  // Moldura da frente em sprites/: Good, Evil ou Field (neutras e de campo usam a prateada).
+  // Moldura da frente em sprites/: CardFrontGood, CardFrontEvil, CardFrontNeutral ou
+  // CardFrontField.
   const char* FrameSprite() const;
 };
 
@@ -35,7 +36,7 @@ namespace cards {
 // Lê CardsGood, CardsEvil, CardsNeutral e CardsField de `base`/assets. Vazio se nenhum abrir.
 // Nome, descrição e nome da hierarquia já saem no idioma atual (assets/translate.json:
 // card.<code>.name, card.<code>.description, hierarchy.<categoryName>.<hierarchy>); sem a
-// chave, fica o texto do JSON da carta (português).
+// chave, fica o texto do JSON da carta (em inglês).
 std::vector<CardInfo> LoadAll(const std::string& base);
 
 const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code);

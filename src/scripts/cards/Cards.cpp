@@ -72,6 +72,8 @@ const char* CardInfo::FrameSprite() const {
       return "CardFrontGood.png";
     case 'E':
       return "CardFrontEvil.png";
+    case 'N':
+      return "CardFrontNeutral.png";
     default:
       return "CardFrontField.png";
   }

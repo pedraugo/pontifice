@@ -25,7 +25,8 @@ struct VertexUniforms {
 struct FragmentUniforms {
   float4 color;        // tint; multiplica a textura ou é a cor sólida
   float4 params;       // x = textura (0 não, 1 sim, 2 sim + normal map); y = modo (0 malha,
-                       // 1 névoa, 2 emissivo, 3 chama, 4 halo da chama, 5 malha com foil);
+                       // 1 névoa, 2 emissivo, 3 chama, 4 halo da chama, 5 malha com foil,
+                       // 6 aura da carta foil);
                        // z = tempo; w = vinheta
   float4 light_dir;    // xyz direção para a luz principal (normalizada), w = intensidade
   float4 light_color;  // rgb cor da luz principal (quente, tocha)
@@ -131,6 +132,28 @@ static float4 Flame(float2 uv, float3 world_pos, float t, bool glow) {
   return float4(col, alpha);
 }
 
+static float3 Rainbow(float x) {
+  return 0.5 + 0.5 * cos(6.2831853 * (x + float3(0.0, 0.33, 0.67)));
+}
+
+// Aura em volta da carta foil (CardAura): uv = distância além da borda da carta por eixo,
+// 0 junto à carta e 1 na ponta. Energia que flui (dois ruídos que sobem em sentidos
+// diferentes, no espaço do mundo) e pulsa; branco-dourada junto à borda, arco-íris que gira
+// com o tempo para fora; borda externa irregular, como chamas suaves.
+static float4 Aura(float2 uv, float3 world_pos, float t) {
+  const float d = saturate(length(uv));
+  const float2 p = float2(world_pos.x + world_pos.z * 0.6, world_pos.y + world_pos.z * 0.4);
+  const float flow = Fbm(p * 4.0 + float2(0.0, -t * 0.8));
+  const float flow2 = Fbm(p * 7.5 + float2(t * 0.45, t * 0.3) + 17.0);
+  const float pulse = 0.82 + 0.18 * sin(t * 2.6);
+  const float core = pow(1.0 - d, 2.4);
+  const float tongues = 1.0 - smoothstep(0.25 + 0.55 * flow, 0.95, d);
+  const float alpha = (core * 0.95 + tongues * 0.35) * (0.55 + 0.7 * flow2) * pulse;
+  const float3 rainbow = mix(Rainbow(t * 0.07 + flow * 0.8 + d * 0.6), float3(1.0), 0.25);
+  const float3 col = mix(float3(1.0, 0.95, 0.8), rainbow * 1.1, smoothstep(0.2, 0.85, d));
+  return float4(col, saturate(alpha));
+}
+
 fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]],
                         sampler smp [[sampler(0)]], texture2d<float> nmap [[texture(1)]],
                         sampler nsmp [[sampler(1)]], depth2d<float> shadow0 [[texture(2)]],
@@ -142,6 +165,13 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
 
   float3 rgb;
   float alpha;
+  if (u.params.y > 5.5) {
+    const float4 aura = Aura(in.uv, in.world_pos, t) * u.color;
+    // Vinheta também na aura, para não brilhar no escuro das bordas da tela.
+    const float2 suv = in.position.xy / u.resolution.xy - 0.5;
+    const float vig = 1.0 - u.params.w * smoothstep(0.3, 0.8, length(suv * float2(1.0, 0.85)));
+    return float4(aura.rgb * vig, aura.a * (1.0 - u.resolution.z));
+  }
   const bool foil = u.params.y > 4.5;
   if (!foil && u.params.y > 2.5) return Flame(in.uv, in.world_pos, t, u.params.y > 3.5) * u.color;
   if (!foil && u.params.y > 1.5) {
@@ -216,14 +246,49 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
     rgb = base.rgb * light;
     alpha = base.a;
     if (foil) {
-      // Foil: faixas de arco-íris em diagonal que deslizam com o ângulo de visão (mais fortes
-      // de raspão) e com o tempo, com um granulado fino de brilhos.
-      const float3 v = normalize(u.camera.xyz - in.world_pos);
-      const float fres = pow(1.0 - abs(dot(n, v)), 1.5);
-      const float band = dot(in.uv, float2(2.5, 4.0)) + fres * 3.0 + t * 0.12;
-      const float3 rainbow = 0.5 + 0.5 * cos(6.2831853 * (band + float3(0.0, 0.33, 0.67)));
-      const float sparkle = 0.55 + 0.45 * Noise(in.uv * 60.0 + float2(t * 0.3, -t * 0.2));
-      rgb += rainbow * (0.06 + 0.38 * fres) * sparkle;
+      // Foil holográfico. Referencial da carta pela geometria (sem o relevo do normal map):
+      // normal e eixos tangentes (U, V) pelas derivadas, para saber para que lado e quanto a
+      // carta está inclinada em relação ao olho.
+      const float3 view = normalize(u.camera.xyz - in.world_pos);
+      const float3 dp1 = dfdx(in.world_pos), dp2 = dfdy(in.world_pos);
+      const float2 duv1 = dfdx(in.uv), duv2 = dfdy(in.uv);
+      const float3 ng = normalize(cross(dp1, dp2));
+      const float3 dp2perp = cross(dp2, ng), dp1perp = cross(ng, dp1);
+      const float3 axis_u = normalize(dp2perp * duv1.x + dp1perp * duv2.x);
+      const float3 axis_v = normalize(dp2perp * duv1.y + dp1perp * duv2.y);
+      // Inclinação: o olhar projetado no plano da carta (0 de frente, 1 de raspão).
+      const float2 slant = float2(dot(view, axis_u), dot(view, axis_v));
+      const float tilt = saturate(length(slant));
+      // De frente o arco-íris é discreto; inclinando ele domina a carta.
+      const float strength = 0.1 + 0.8 * smoothstep(0.08, 0.55, tilt);
+      // Faixas: o arco-íris corre pela carta para o lado em que ela inclina, com o tempo e
+      // com o relevo (moldura e entalhes mudam a cor localmente).
+      const float3 bump = n - ng;
+      const float band = dot(in.uv, float2(1.4, 2.2)) + dot(slant, float2(2.6, 1.8)) +
+                         2.0 * (dot(bump, axis_u) + dot(bump, axis_v)) + t * 0.05;
+      const float3 rainbow = Rainbow(band);
+      // Textura holográfica: riscas bem finas e granulado, discretos.
+      const float lines = 0.88 + 0.12 * sin((in.uv.x + in.uv.y) * 420.0 + slant.x * 30.0);
+      const float grain = 0.75 + 0.25 * Noise(in.uv * 70.0 + slant * 9.0);
+      // O arco-íris tinge a cor (multiplica) mais um pouco de brilho próprio: o branco vira
+      // cor viva e o texto escuro continua escuro e legível.
+      const float3 holo = rgb * (0.35 + 1.3 * rainbow) + rainbow * 0.22;
+      rgb = mix(rgb, holo, saturate(strength * lines * grain));
+      // Reflexo que varre a carta em diagonal de tempos em tempos (e acompanha a inclinação).
+      const float sweep = fract(t * 0.16) * 2.8 - 0.9;
+      const float gd = dot(in.uv, float2(0.55, 0.45)) + slant.x * 0.35 - sweep;
+      rgb += float3(1.0, 0.97, 0.9) * exp(-gd * gd * 160.0) * 0.45;
+      // Estrelas que piscam: uma por célula sorteada, em cruz, mais fortes inclinando.
+      const float2 grid = float2(12.0, 17.0);
+      const float2 cell = floor(in.uv * grid);
+      const float h = Hash(cell);
+      const float2 offset = float2(Hash(cell + 3.1), Hash(cell + 7.7)) * 0.6 + 0.2;
+      const float2 sp = fract(in.uv * grid) - offset;
+      const float twinkle = pow(saturate(sin(t * 2.2 + h * 37.0)), 14.0) * step(0.7, h);
+      const float star = saturate(1.0 - length(sp) * 10.0) +
+                         0.6 * max(saturate(1.0 - abs(sp.x) * 45.0) * saturate(1.0 - abs(sp.y) * 5.0),
+                                   saturate(1.0 - abs(sp.y) * 45.0) * saturate(1.0 - abs(sp.x) * 5.0));
+      rgb += float3(1.0, 0.98, 0.92) * star * twinkle * (0.5 + 0.8 * tilt);
     }
   }
 

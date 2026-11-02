@@ -12,6 +12,7 @@
 
 #include "scenes/Scene.h"
 #include "scripts/ai/Ai.h"
+#include "scripts/aura/CardAura.h"
 #include "scripts/board/Board.h"
 #include "scripts/button/ButtonAction.h"
 #include "scripts/cards/Cards.h"
@@ -124,14 +125,20 @@ class BattleScene : public Scene {
   // Computador.
   ai::View BuildEnemyView() const;
   void EnemyDraw();
-  void EnemySummon(const CardInfo* info, bool defense);  // a carta já saiu da mão dele
+  // A carta já saiu da mão dele. `face`: frente já composta (a da revelação), ou nulo para
+  // compor aqui.
+  void EnemySummon(const CardInfo* info, bool defense, const Face* face = nullptr);
 
   // Revelação da carta do oponente: antes de ir à arena, a carta que ele joga (invocação ou
   // carta de campo) aparece grande no centro da tela por kRevealSeconds, com a legenda da
   // jogada, para o jogador ler os dados dela.
   struct Reveal {
     const CardInfo* card = nullptr;
-    SDL_Texture* face = nullptr;  // frente composta (HudFace, em cache; não é dono)
+    SDL_Texture* face = nullptr;  // frente 2D (HudFace, em cache): só sem o render 3D
+    // Frente 3D (MakeCardFace): a carta é desenhada em 3D na camada da mão, com foil e aura
+    // como na sua mão, balançando para o arco-íris correr. Reaproveitada ao ir para a arena.
+    SDL_GPUTexture* front3d = nullptr;
+    bool foil = false;
     std::string caption;          // "O oponente invoca"
     std::string detail;           // "Em ataque"; vazio para carta de campo
     float time = 0.0f;            // segundos desde o início
@@ -139,6 +146,9 @@ class BattleScene : public Scene {
   Reveal reveal_;
   void StartReveal(const CardInfo& card, std::string caption, std::string detail);
   void RenderReveal(SDL_Renderer* r, int width, int height) const;
+  // Parte 3D da revelação (véu e carta), na camada da mão, antes de EndFrame.
+  void RenderReveal3D(int width, int height);
+  GpuMesh veil_quad_;  // quad 1x1 para o véu da revelação na camada da mão
   void DiscardExtraCards();  // fim de turno: mão com mais de 6 cartas
 
   // Projeção de um ponto do mundo na tela (câmera da arena).
@@ -150,6 +160,7 @@ class BattleScene : public Scene {
   Image hud_field_;
   std::unique_ptr<Gpu> gpu_;
   std::unique_ptr<Model> card_model_;
+  CardAura card_aura_;  // aura das cartas foil (mão, campo, inspeção)
   std::unique_ptr<Model> arena_model_;
   std::unique_ptr<Torch> torch_;
   math::Mat4 torch_world_[2];
@@ -158,7 +169,9 @@ class BattleScene : public Scene {
   SDL_GPUTexture* back_ = nullptr;
   SDL_GPUTexture* front_normal_ = nullptr;
   SDL_GPUTexture* back_normal_ = nullptr;
-  Image frames_[3];
+  // Molduras da frente reduzidas 2x, por categoria: Good, Evil, Neutral, Field.
+  Image frames_[4];
+  const Image& FrameFor(const CardInfo& card) const;
   std::vector<CardInfo> cards_;
   std::mt19937 rng_;
   deck::Deck deck_;        // seu monte

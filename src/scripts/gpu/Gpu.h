@@ -95,8 +95,10 @@ class Gpu {
   // kEmissive: sem iluminação nem névoa: a cor da textura sai como está.
   // kFlame: chama procedural animada no shader a partir do UV (u largura, v 0 topo .. 1 base).
   // kFlameGlow: a mesma chama como halo difuso (oval, base esmaecida), para um quad maior atrás.
-  // kFoil: como kMesh, mais um brilho iridescente que muda com o ângulo de visão (cartas raras).
-  enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow, kFoil };
+  // kFoil: como kMesh, mais arco-íris holográfico que corre e se intensifica com a inclinação,
+  // reflexo que varre a carta e estrelas que piscam (cartas raras).
+  // kAura: brilho procedural transparente em volta de uma carta foil (ver CardAura).
+  enum class DrawMode { kMesh, kMist, kEmissive, kFlame, kFlameGlow, kFoil, kAura };
   // normal_map (opcional, só com textura): mapa de normais em espaço tangente (OpenGL, verde
   // para cima); o shader monta o referencial tangente pelas derivadas de posição e UV.
   void Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& model,

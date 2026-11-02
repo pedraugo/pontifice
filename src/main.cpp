@@ -68,12 +68,23 @@ bool Init(App& app) {
 
   // Tela cheia (sem borda, na resolução do monitor) por padrão; a resolução lógica 1920x1080
   // vai com letterbox. Sem SDL_WINDOW_RESIZABLE o usuário não redimensiona nem sai da tela
-  // cheia pelo sistema. PONTIFICE_WINDOWED=1 (depuração) abre em janela de 1280x720.
-  const bool windowed = std::getenv("PONTIFICE_WINDOWED") != nullptr;
+  // cheia pelo sistema. PONTIFICE_WINDOWED=1 (depuração) abre em janela de 1280x720;
+  // PONTIFICE_WINDOWED=LxA (ex.: 1920x1080) abre nesse tamanho, para screenshots em resolução
+  // cheia sem tomar a tela.
+  const char* env_windowed = std::getenv("PONTIFICE_WINDOWED");
+  const bool windowed = env_windowed != nullptr;
+  int window_w = 1280, window_h = 720;
+  if (windowed) {
+    int w = 0, h = 0;
+    if (std::sscanf(env_windowed, "%dx%d", &w, &h) == 2 && w > 0 && h > 0) {
+      window_w = w;
+      window_h = h;
+    }
+  }
   SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
   if (!windowed) flags |= SDL_WINDOW_FULLSCREEN;
-  app.window = SDL_CreateWindow("PONTIFICE", windowed ? 1280 : kLogicalWidth,
-                                windowed ? 720 : kLogicalHeight, flags);
+  app.window = SDL_CreateWindow("PONTIFICE", windowed ? window_w : kLogicalWidth,
+                                windowed ? window_h : kLogicalHeight, flags);
   if (app.window == nullptr) {
     std::fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
     return false;
