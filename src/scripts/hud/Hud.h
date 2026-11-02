@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <string>
+#include <vector>
 
 // Categoria favorecida por uma carta de campo. Neutras não são afetadas (docs/batalha.md).
 enum class Category { kGood, kEvil };
@@ -27,6 +28,9 @@ class Hud {
   static constexpr int kMaxLife = 5000;
   static constexpr int kDeckSize = 40;
 
+  // Vida perdida (valor novo menor que o atual) dispara o tremor do painel de vida e um
+  // número de dano ("-200" em vermelho) que salta do valor; o número mostra o dano pedido,
+  // mesmo que a vida pare em 0.
   void SetLife(int opponent, int player);
   int OpponentLife() const { return opponent_life_; }
   int PlayerLife() const { return player_life_; }
@@ -51,7 +55,8 @@ class Hud {
   void SetDeckPanelLeft(float x) { deck_panel_left_ = x; }
 
   // Mouse em px lógicos: com o mouse sobre a ilustração do painel de campo, ela cresce da
-  // miniatura até o tamanho nativo logo abaixo do painel (animação de kZoomSeconds).
+  // miniatura até o tamanho nativo logo abaixo do painel (animação de kZoomSeconds). Também
+  // anima o tremor do painel de vida e os números de dano.
   void Update(float dt, float mouse_x, float mouse_y);
 
   void Render(SDL_Renderer* r, int width, int height) const;
@@ -72,6 +77,21 @@ class Hud {
   void RenderDeckPanel(SDL_Renderer* r, int height) const;
   void RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const;
   void RenderResult(SDL_Renderer* r, int width, int height) const;
+  void RenderDamagePopups(SDL_Renderer* r, int width) const;
+  void OnDamage(bool player, int amount);
+
+  // Número de dano saltando do valor de vida: linha (oponente/jogador), valor, tempo de vida
+  // e deriva horizontal (alterna o lado para números seguidos não se sobreporem).
+  struct DamagePopup {
+    bool player = false;
+    int amount = 0;
+    float time = 0.0f;
+    float drift = -1.0f;
+  };
+  std::vector<DamagePopup> popups_;
+  float life_shake_ = 0.0f;       // segundos restantes do tremor do painel de vida
+  float life_shake_time_ = 0.0f;  // fase do tremor
+  float life_flash_[2] = {0.0f, 0.0f};  // valor piscando em vermelho: oponente, jogador
 
   int opponent_life_ = kMaxLife;
   int player_life_ = kMaxLife;

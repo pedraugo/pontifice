@@ -1,6 +1,7 @@
 #include "scripts/hud/Hud.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "scripts/colors/Colors.h"
 #include "scripts/frame/Frame.h"
@@ -32,6 +33,17 @@ constexpr float kArtAspect = 668.0f / 448.0f;
 constexpr float kZoomWidth = 668.0f;
 constexpr float kZoomHeight = 448.0f;
 constexpr float kZoomSeconds = 0.15f;
+// Dano na vida: tremor do painel (amplitude em px, cai com o quadrado do tempo), valor
+// piscando em vermelho e número que salta (velocidade inicial para cima, gravidade, deriva
+// lateral e tempo total, os últimos kPopupFade segundos sumindo).
+constexpr float kLifeShakeSeconds = 0.4f;
+constexpr float kLifeShakeAmplitude = 9.0f;
+constexpr float kPopupSeconds = 1.2f;
+constexpr float kPopupFade = 0.4f;
+constexpr float kPopupJump = 230.0f;     // px/s para cima
+constexpr float kPopupGravity = 900.0f;  // px/s²
+constexpr float kPopupDrift = 110.0f;    // px/s para o lado
+constexpr float kPopupScale = 3.5f * ui::kScale;
 
 void FillRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -70,8 +82,22 @@ std::string LifeText(int life, int max) {
 }  // namespace
 
 void Hud::SetLife(int opponent, int player) {
+  if (opponent < opponent_life_) OnDamage(false, opponent_life_ - opponent);
+  if (player < player_life_) OnDamage(true, player_life_ - player);
   opponent_life_ = std::clamp(opponent, 0, kMaxLife);
   player_life_ = std::clamp(player, 0, kMaxLife);
+}
+
+void Hud::OnDamage(bool player, int amount) {
+  if (amount <= 0) return;
+  life_shake_ = kLifeShakeSeconds;
+  life_flash_[player ? 1 : 0] = kLifeShakeSeconds * 1.5f;
+  DamagePopup popup;
+  popup.player = player;
+  popup.amount = amount;
+  // Números seguidos (ataques em sequência) saem para lados alternados.
+  popup.drift = (popups_.size() % 2 == 0) ? -1.0f : -0.35f;
+  popups_.push_back(popup);
 }
 
 void Hud::SetFieldCard(const FieldCardInfo& card) {
@@ -102,6 +128,17 @@ void Hud::Update(float dt, float mouse_x, float mouse_y) {
                 (inside(layout.thumb) || (zoom_t_ > 0.5f && inside(ZoomRect())));
   const float step = dt / kZoomSeconds;
   zoom_t_ = std::clamp(zoom_t_ + (zoom_hover_ ? step : -step), 0.0f, 1.0f);
+
+  // Dano na vida: tremor, pisca e números de dano.
+  if (life_shake_ > 0.0f) {
+    life_shake_ = std::max(0.0f, life_shake_ - dt);
+    life_shake_time_ += dt;
+  }
+  for (float& flash : life_flash_) flash = std::max(0.0f, flash - dt);
+  for (DamagePopup& popup : popups_) popup.time += dt;
+  popups_.erase(std::remove_if(popups_.begin(), popups_.end(),
+                               [](const DamagePopup& p) { return p.time >= kPopupSeconds; }),
+                popups_.end());
 }
 
 void Hud::Render(SDL_Renderer* r, int width, int height) const {
@@ -114,6 +151,7 @@ void Hud::Render(SDL_Renderer* r, int width, int height) const {
   RenderDeckPanel(r, height);
   RenderGraveyardPanel(r, width, height);
   RenderFieldZoom(r);  // por cima dos outros painéis
+  RenderDamagePopups(r, width);
   if (Over()) RenderResult(r, width, height);
 
   SDL_SetRenderDrawBlendMode(r, previous);
@@ -204,7 +242,16 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
 }
 
 void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
-  const SDL_FRect panel{width - kMargin - kPanelWidth, kMargin, kPanelWidth, kPanelHeight};
+  // Tremor ao perder vida: o painel inteiro sacode, forte no golpe e sumindo.
+  float dx = 0.0f, dy = 0.0f;
+  if (life_shake_ > 0.0f) {
+    const float k = life_shake_ / kLifeShakeSeconds;
+    const float a = kLifeShakeAmplitude * k * k;
+    dx = a * std::sin(life_shake_time_ * 61.0f);
+    dy = a * 0.5f * std::sin(life_shake_time_ * 47.0f + 1.1f);
+  }
+  const SDL_FRect panel{width - kMargin - kPanelWidth + dx, kMargin + dy, kPanelWidth,
+                        kPanelHeight};
   Panel(r, panel);
 
   const float left = panel.x + kPadding;
@@ -214,13 +261,48 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   const SDL_Color label = colors::Get("hud.lifeLabel");
   const SDL_Color value = colors::Get("hud.lifeValue");
   const SDL_Color zero = colors::Get("hud.lifeZero");
+  const SDL_Color hit = colors::Get("status.nerf");  // valor piscando ao perder vida
+  auto value_color = [&](int life, float flash) {
+    if (life <= 0) return zero;
+    // Pisca: alterna vermelho e normal enquanto o flash dura.
+    return flash > 0.0f && std::fmod(flash, 0.16f) > 0.08f ? hit : value;
+  };
   text::Draw(r, i18n::Get("hud.opponent").c_str(), left, y, kLineScale, label);
   DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, kLineScale,
-            opponent_life_ > 0 ? value : zero);
+            value_color(opponent_life_, life_flash_[0]));
   y += kLineHeight + kLineGap;
   text::Draw(r, i18n::Get("hud.player").c_str(), left, y, kLineScale, label);
   DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, kLineScale,
-            player_life_ > 0 ? value : zero);
+            value_color(player_life_, life_flash_[1]));
+}
+
+void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
+  if (popups_.empty()) return;
+  // Mesmo layout do painel de vida (sem o tremor): o número nasce sobre o valor da linha.
+  const float panel_x = width - kMargin - kPanelWidth;
+  const float right = panel_x + kPanelWidth - kPadding;
+  const float top = kMargin + (kPanelHeight - (2 * kLineHeight + kLineGap)) / 2.0f;
+  const SDL_Color red = colors::Get("status.nerf");
+  const SDL_Color shadow = colors::Get("text.shadow");
+  for (const DamagePopup& popup : popups_) {
+    const float t = popup.time;
+    const float row_y = top + (popup.player ? kLineHeight + kLineGap : 0.0f);
+    // Salta: sobe um pouco, cai em arco para dentro da tela e vai para o lado.
+    const float x = right - ui::Grid(4) + popup.drift * kPopupDrift * t;
+    const float y = row_y - kPopupJump * t + 0.5f * kPopupGravity * t * t;
+    // Estoura grande e assenta (0,15 s), some no fim.
+    const float pop = t < 0.15f ? 1.0f + 0.6f * std::sin(t / 0.15f * 3.14159f) : 1.0f;
+    const float alpha = 1.0f - std::clamp((t - (kPopupSeconds - kPopupFade)) / kPopupFade, 0.0f, 1.0f);
+    const std::string label = "-" + std::to_string(popup.amount);
+    const float scale = kPopupScale * pop;
+    const float w = text::Width(label.c_str(), scale);
+    SDL_Color s = shadow, c = red;
+    s.a = static_cast<Uint8>(200.0f * alpha);
+    c.a = static_cast<Uint8>(255.0f * alpha);
+    const float off = ui::Px(2.0f);
+    text::Draw(r, label.c_str(), x - w / 2.0f + off, y + off, scale, s);
+    text::Draw(r, label.c_str(), x - w / 2.0f, y, scale, c);
+  }
 }
 
 // Painel de contador em uma linha: "[Título valor]", largura pelo texto arredondada à grade.
