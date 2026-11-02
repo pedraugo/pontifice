@@ -1,6 +1,6 @@
 # Menu
 
-O menu é a **primeira cena** do jogo. Abre assim que o executável inicia e é o único caminho para a batalha e para sair.
+O menu abre logo depois da escolha de idioma (docs/idioma.md), a primeira cena do jogo, e é o único caminho para a batalha e para sair. Os textos vêm de `assets/translate.json` no idioma escolhido; abaixo estão em português.
 
 ## Layout
 
@@ -9,9 +9,7 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 ```
 +------------------------------------------------------------+
 |                                                            |
-|                                                            |
-|                        PONTIFICE                           |
-|                                                            |
+|                  [ícone]  PONTIFICE                        |
 |                                                            |
 |                      [   Jogar   ]                         |
 |                                                            |
@@ -27,8 +25,8 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 
 | Elemento | Posição | Conteúdo |
 |---|---|---|
-| Ícone | Topo, centralizado | `assets/icon.png` com 128 px (8 células da grade), centro em y = 6 células |
-| Título | Abaixo do ícone, centralizado | Logotipo `sprites/Logo.png` (letras de pedra, 640 px de largura, centro em y = 16 células); sem o arquivo, texto `PONTIFICE` em fonte grande |
+| Ícone | Topo, à esquerda do logotipo | `assets/icon.png` com 128 px (8 células da grade); ícone e logotipo formam uma linha centrada em x, com 2 células entre eles, centro em y = 12 células |
+| Título | Topo, à direita do ícone | Logotipo `sprites/Logo.png` (letras de pedra, 640 px de largura); sem o arquivo, texto `PONTIFICE` em fonte grande no mesmo lugar |
 | Botão Jogar | Centro, em cima | Texto `Jogar` |
 | Botão Nível | Centro, no meio | Texto `Nível: Fácil`, `Médio`, `Difícil` ou `Impossível`; cada clique passa ao próximo |
 | Botão Sair | Centro, embaixo | Texto `Sair` |

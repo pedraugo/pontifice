@@ -5,18 +5,18 @@
 
 namespace ai {
 
-const char* DifficultyName(Difficulty d) {
+const char* DifficultyKey(Difficulty d) {
   switch (d) {
     case Difficulty::kEasy:
-      return "Fácil";
+      return "difficulty.easy";
     case Difficulty::kMedium:
-      return "Médio";
+      return "difficulty.medium";
     case Difficulty::kHard:
-      return "Difícil";
+      return "difficulty.hard";
     case Difficulty::kImpossible:
-      return "Impossível";
+      return "difficulty.impossible";
   }
-  return "Médio";
+  return "difficulty.medium";
 }
 
 Difficulty NextDifficulty(Difficulty d) {

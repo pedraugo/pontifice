@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "scenes/battle/BattleScene.h"
+#include "scenes/language/LanguageScene.h"
 #include "scenes/loading/LoadingScene.h"
 #include "scenes/menu/MenuScene.h"
 #include "scripts/music/Music.h"
@@ -13,7 +14,8 @@ void SceneManager::SwitchTo(SceneId id) {
   if (current_) current_->OnExit(ctx_);
   ctx_.next_scene.reset();
   // Trilha por cena (assets/ost.json): menu e loading tocam a categoria "ost" no volume do
-  // menu; a batalha troca para "battle" (fade out/fade in) no volume da batalha.
+  // menu (a cena de idioma também); a batalha troca para "battle" (fade out/fade in) no
+  // volume da batalha.
   if (ctx_.music != nullptr) {
     const bool battle = id == SceneId::kBattle;
     ctx_.music->SetScene(battle ? "battle" : "menu");
@@ -58,6 +60,8 @@ void SceneManager::ApplyPendingSwitch() {
 
 std::unique_ptr<Scene> SceneManager::Create(SceneId id) {
   switch (id) {
+    case SceneId::kLanguage:
+      return std::make_unique<LanguageScene>();
     case SceneId::kMenu:
       return std::make_unique<MenuScene>();
     case SceneId::kLoading:

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "scripts/i18n/I18n.h"
 #include "scripts/text/Text.h"
 
 namespace {
@@ -104,11 +105,11 @@ Image Compose(const Image& frame, const CardInfo& card) {
     const float y = CenteredTop(kStatsTop * sy, kStatsBottom * sy, px);
     std::string left, right;
     if (card.IsField()) {
-      left = "BUFF +" + std::to_string(card.buff);
-      right = "NERF -" + std::to_string(card.nerf);
+      left = i18n::Get("cardface.buff") + " +" + std::to_string(card.buff);
+      right = i18n::Get("cardface.nerf") + " -" + std::to_string(card.nerf);
     } else {
-      left = "ATK " + std::to_string(card.attack);
-      right = "DEF " + std::to_string(card.defense);
+      left = i18n::Get("cardface.atk") + " " + std::to_string(card.attack);
+      right = i18n::Get("cardface.def") + " " + std::to_string(card.defense);
     }
     Label(img, left, kLeft * sx, y, px);
     Label(img, right, kRight * sx - text::ImageWidth(right.c_str(), px), y, px);
@@ -120,7 +121,9 @@ Image Compose(const Image& frame, const CardInfo& card) {
     const float line_h = kDescLine * sy;
     std::string body = card.description;
     if (card.IsField() && !card.favored.empty()) {
-      body += "\nFavorece: " + std::string(card.favored == "evil" ? "Malignas" : "Bondosas");
+      const std::string favored =
+          i18n::Get(card.favored == "evil" ? "category.evil.plural" : "category.good.plural");
+      body += "\n" + i18n::Format("cardface.favors", {favored});
     }
     const std::vector<std::string> lines = Wrap(body, px, (kRight - kLeft) * sx);
     const float block_h = static_cast<float>(lines.size()) * line_h;

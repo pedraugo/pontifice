@@ -13,6 +13,7 @@
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
 #include "scripts/frame/Frame.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
 
@@ -125,6 +126,17 @@ int main(int /*argc*/, char** /*argv*/) {
       std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
     }
   }
+  // Textos (assets/translate.json): pt, en e es. O idioma é escolhido na primeira cena;
+  // PONTIFICE_LANG=en|es|pt (depuração) já define o idioma e pula essa cena.
+  {
+    const std::string translate = base + "assets/translate.json";
+    if (!i18n::Load(translate)) {
+      std::fprintf(stderr, "Traducoes nao carregadas (%s); textos saem pelas chaves\n",
+                   translate.c_str());
+    }
+  }
+  const char* env_lang = std::getenv("PONTIFICE_LANG");
+  if (env_lang != nullptr) i18n::SetLanguage(env_lang);
   // Fonte do jogo (atlas de glifos no renderer); sem ela o texto usa a fonte de depuração.
   text::Init(app.renderer, base + "assets/PirataOne.ttf");
   // Placas de pedra com moldura (sprites/UiFrameButton.png e UiFrameWindow.png): fundo de
@@ -146,8 +158,9 @@ int main(int /*argc*/, char** /*argv*/) {
   ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
   SceneManager scenes(std::move(ctx));
 
-  // Depuração: PONTIFICE_SCENE=battle abre direto na batalha e =loading na tela de loading
-  // (que segue para a batalha); PONTIFICE_MOUSE=x,y injeta um
+  // Depuração: PONTIFICE_SCENE=menu abre direto no menu (pulando a escolha de idioma),
+  // =battle na batalha e =loading na tela de loading (que segue para a batalha);
+  // PONTIFICE_MOUSE=x,y injeta um
   // movimento de mouse em coordenadas lógicas; PONTIFICE_SCREENSHOT=arquivo.bmp salva o
   // quadro PONTIFICE_SCREENSHOT_FRAME (padrão 60), ou o primeiro quadro depois de
   // PONTIFICE_SCREENSHOT_TIME segundos, e encerra.
@@ -185,7 +198,10 @@ int main(int /*argc*/, char** /*argv*/) {
   const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
   const int shot_frame = env_shot_frame != nullptr ? std::atoi(env_shot_frame) : 60;
   const double shot_time = env_shot_time != nullptr ? std::atof(env_shot_time) : -1.0;
-  SceneId first = SceneId::kMenu;
+  // Primeira cena: escolha de idioma (docs/idioma.md); com PONTIFICE_LANG, direto no menu.
+  SceneId first = env_lang != nullptr ? SceneId::kMenu : SceneId::kLanguage;
+  if (env_scene != nullptr && std::strcmp(env_scene, "language") == 0) first = SceneId::kLanguage;
+  if (env_scene != nullptr && std::strcmp(env_scene, "menu") == 0) first = SceneId::kMenu;
   if (env_scene != nullptr && std::strcmp(env_scene, "battle") == 0) first = SceneId::kBattle;
   if (env_scene != nullptr && std::strcmp(env_scene, "loading") == 0) first = SceneId::kLoading;
   scenes.SwitchTo(first);

@@ -9,6 +9,7 @@
 #include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/frame/Frame.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/image/Image.h"
 #include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
@@ -213,7 +214,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                               return ai::DeckWeight(card, difficulty_);
                                             }));
   enemy_deck_.Shuffle();
-  SDL_Log("Nivel do oponente: %s", ai::DifficultyName(difficulty_));
+  SDL_Log("Nivel do oponente: %s", ai::DifficultyKey(difficulty_));
   // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial (o monte continua
   // embaralhado; essas cartas não saem dele).
   std::vector<std::string> forced;
@@ -661,7 +662,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   if (!preloaded_) Preload(ctx.Preload());
   renderer_ = ctx.renderer;
 
-  end_turn_ = std::make_unique<ButtonAction>("Passar turno", [this](SceneContext&) { EndTurn(); });
+  end_turn_ = std::make_unique<ButtonAction>(i18n::Get("battle.endTurn"),
+                                             [this](SceneContext&) { EndTurn(); });
   SDL_FRect rect{ctx.logical_width - kButtonMargin - kButtonWidth,
                  ctx.logical_height - kButtonBottom - kButtonHeight, kButtonWidth, kButtonHeight};
   end_turn_->SetRect(rect);
@@ -1004,7 +1006,7 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   lines.push_back({info.name, kTipScale, title, kTipGap});
   std::string kind = info.CategoryLabel();
   if (info.hierarchy > 0) {
-    kind += " - Hierarquia " + std::to_string(info.hierarchy);
+    kind += " - " + i18n::Format("battle.tooltip.hierarchy", {std::to_string(info.hierarchy)});
     if (!info.hierarchy_name.empty()) kind += " (" + info.hierarchy_name + ")";
   }
   lines.push_back({kind, kTipDetailScale, label, kTipGap * 2});
@@ -1013,19 +1015,26 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
            : effective < base ? colors::Get("status.nerf")
                               : value;
   };
-  std::string atk = "ATK " + std::to_string(attack);
-  if (attack != info.attack) atk += " (base " + std::to_string(info.attack) + ")";
-  std::string def = "DEF " + std::to_string(defense);
-  if (defense != info.defense) def += " (base " + std::to_string(info.defense) + ")";
+  std::string atk = i18n::Get("cardface.atk") + " " + std::to_string(attack);
+  if (attack != info.attack) {
+    atk += " " + i18n::Format("battle.tooltip.base", {std::to_string(info.attack)});
+  }
+  std::string def = i18n::Get("cardface.def") + " " + std::to_string(defense);
+  if (defense != info.defense) {
+    def += " " + i18n::Format("battle.tooltip.base", {std::to_string(info.defense)});
+  }
   lines.push_back({atk, kTipScale, stat_color(attack, info.attack), kTipGap});
   lines.push_back({def, kTipScale, stat_color(defense, info.defense), kTipGap * 2});
   for (const std::string& part : WrapText(info.description, kTipTextW, kTipDetailScale)) {
     lines.push_back({part, kTipDetailScale, colors::Get("text.secondary"), kTipGap * 0.6f});
   }
   if (!info.description.empty()) lines.back().gap_after = kTipGap * 2;
-  std::string owner = tooltip_side_ == Side::kPlayer ? "Sua carta" : "Carta do oponente";
-  owner += card->defense ? " - em defesa" : " - em ataque";
-  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) owner += " (ja atacou)";
+  std::string owner = i18n::Get(tooltip_side_ == Side::kPlayer ? "battle.tooltip.yourCard"
+                                                                 : "battle.tooltip.opponentCard");
+  owner += " - " + i18n::Get(card->defense ? "battle.tooltip.inDefense" : "battle.tooltip.inAttack");
+  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) {
+    owner += " " + i18n::Get("battle.tooltip.attacked");
+  }
   lines.push_back({owner, kTipDetailScale, label, 0.0f});
 
   // Tamanho: imagem à esquerda (kTipImageH de altura), coluna de texto à direita.
@@ -1153,16 +1162,18 @@ void BattleScene::Render(SceneContext& ctx) {
   } else {
     SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
     SDL_RenderClear(r);
-    text::DrawCentered(r, "Render 3D indisponivel. Veja o log.", cx, ctx.logical_height * 0.5f,
+    text::DrawCentered(r, i18n::Get("battle.noRender").c_str(), cx, ctx.logical_height * 0.5f,
                        2.0f * ui::kScale, fg);
   }
 
   // Topo: situação do turno e, abaixo, a dica do que fazer.
   if (started_ && !hud_.Over()) {
-    std::string status = "Turno " + std::to_string(turn_) + " - ";
-    status += turn_side_ == Side::kPlayer && player_turn_ ? "sua vez" : "oponente";
-    status += " - oponente (" + std::string(ai::DifficultyName(difficulty_)) + ") com " +
-              std::to_string(enemy_hand_.size()) + " cartas na mao";
+    const std::string status = i18n::Format(
+        "battle.status",
+        {std::to_string(turn_),
+         i18n::Get(turn_side_ == Side::kPlayer && player_turn_ ? "battle.status.yourTurn"
+                                                               : "battle.status.opponent"),
+         i18n::Get(ai::DifficultyKey(difficulty_)), std::to_string(enemy_hand_.size())});
     text::DrawCentered(r, status.c_str(), cx, kStatusY, kStatusScale,
                        colors::Get("text.secondary"));
   }
@@ -1178,24 +1189,23 @@ void BattleScene::Render(SceneContext& ctx) {
     }
   }
   // Dicas do seu turno.
-  const char* hint = nullptr;
+  const char* hint = nullptr;  // chave em translate.json
   if (attack_from_ >= 0 && attack_drag_) {
-    hint = enemy_board_.Count() == 0 ? "Solte no lado do oponente: ataque direto"
-                                     : "Solte sobre uma carta do oponente para atacar";
+    hint = enemy_board_.Count() == 0 ? "battle.hint.directAttack" : "battle.hint.attackCard";
   } else if (CanSummon()) {
-    hint = CandidateIsField() ? "Clique na arena para ativar a carta de campo"
-                              : "Clique em um slot do seu lado para invocar a carta";
+    hint = CandidateIsField() ? "battle.hint.playField" : "battle.hint.summon";
   } else if (CanAct() && AttacksAllowed(Side::kPlayer)) {
     for (int slot : board_.Occupied()) {
       const Board::Card* card = board_.At(slot);
       if (!card->defense && !card->attacked) {
-        hint = "Arraste uma carta sua em ataque até o oponente para atacar";
+        hint = "battle.hint.attack";
         break;
       }
     }
   }
   if (hint != nullptr) {
-    text::DrawCentered(r, hint, cx, kHintY, kHintScale, colors::Get("board.hint"));
+    text::DrawCentered(r, i18n::Get(hint).c_str(), cx, kHintY, kHintScale,
+                       colors::Get("board.hint"));
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);

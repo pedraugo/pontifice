@@ -26,7 +26,7 @@ class MenuScene : public Scene {
   void ActivateFocused(SceneContext& ctx);
 
   std::vector<std::unique_ptr<Button>> buttons_;
-  Button* difficulty_button_ = nullptr;  // "Nível: Fácil/Médio/Difícil/Impossível", cicla
+  Button* difficulty_button_ = nullptr;  // "Nível: <nome>" (menu.level), cicla
   Clouds clouds_;  // nuvens atrás do texto e névoa na frente
   SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
   SDL_Texture* logo_ = nullptr;  // sprites/Logo.png (título); nulo cai no texto

@@ -5,6 +5,7 @@
 #include <map>
 
 #include "scripts/deck/Deck.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/json/Json.h"
 
 namespace {
@@ -37,11 +38,33 @@ void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
     card.favored = Str(item.Path("attributes.category"));
     card.buff = Int(item.Path("attributes.buff"));
     card.nerf = Int(item.Path("attributes.nerf"));
-    if (!card.code.empty()) out.push_back(card);
+    if (card.code.empty()) continue;
+    // Textos no idioma atual; a chave ausente mantém o português do arquivo.
+    card.name = i18n::GetOr("card." + card.code + ".name", card.name);
+    card.description = i18n::GetOr("card." + card.code + ".description", card.description);
+    if (card.hierarchy > 0 && !card.category_name.empty()) {
+      card.hierarchy_name = i18n::GetOr(
+          "hierarchy." + card.category_name + "." + std::to_string(card.hierarchy),
+          card.hierarchy_name);
+    }
+    out.push_back(card);
   }
 }
 
 }  // namespace
+
+std::string CardInfo::CategoryLabel() const {
+  switch (category) {
+    case 'G':
+      return i18n::Get("category.good");
+    case 'E':
+      return i18n::Get("category.evil");
+    case 'N':
+      return i18n::Get("category.neutral");
+    default:
+      return i18n::Get("category.field");
+  }
+}
 
 const char* CardInfo::FrameSprite() const {
   switch (category) {

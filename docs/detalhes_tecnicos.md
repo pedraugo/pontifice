@@ -24,8 +24,10 @@ src/
   scenes/             uma pasta por cena
     Scene.h           interface Scene e SceneContext
     SceneManager.*    cena ativa e troca de cena
+    language/
+      LanguageScene.* escolha de idioma (docs/idioma.md), primeira cena
     menu/
-      MenuScene.*     menu (docs/menu.md), primeira cena
+      MenuScene.*     menu (docs/menu.md)
     loading/
       LoadingScene.*  tela de loading (docs/loading.md): portão 3D abrindo no preto, pré-carrega a próxima cena
     battle/
@@ -42,6 +44,11 @@ src/
       ButtonPlay.*    botão Jogar
       ButtonExit.*    botão Sair
       ButtonAction.*  botão genérico com rótulo e ação (Passar turno, Nível do menu)
+      ButtonLanguage.* botão da cena de idioma: bandeira + nome, define o idioma
+    flag/
+      Flag.*          bandeiras (EUA, Espanha, Brasil) com primitivas do renderer
+    i18n/
+      I18n.*          textos em pt/en/es (assets/translate.json): Get, GetOr, Format
     math/
       Math.h          Vec2/3/4, Mat4 (perspectiva, lookAt, rotação, escala)
     image/
@@ -321,7 +328,8 @@ Variáveis de ambiente lidas em `main.cpp`:
 
 | Variável | Efeito |
 |---|---|
-| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha) |
+| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha); `=menu` pula a escolha de idioma; `=language` força a cena de idioma |
+| `PONTIFICE_LANG=en` | Define o idioma (`en`, `es`, `pt`) sem passar pela cena de idioma e abre no menu |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia |
 | `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |

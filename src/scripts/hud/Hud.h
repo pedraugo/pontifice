@@ -30,7 +30,8 @@ class Hud {
   int PlayerLife() const { return player_life_; }
   bool Over() const { return opponent_life_ <= 0 || player_life_ <= 0; }
 
-  // Substitui a carta de campo ativa imediatamente. ClearFieldCard volta a "Sem campo".
+  // Substitui a carta de campo ativa imediatamente. ClearFieldCard volta a "Sem campo"
+  // (hud.noField).
   void SetFieldCard(const FieldCardInfo& card);
   void ClearFieldCard();
   bool HasFieldCard() const { return has_field_; }

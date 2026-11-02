@@ -7,7 +7,6 @@
 
 namespace {
 
-constexpr float kLabelScale = 3.0f * ui::kScale;
 constexpr int kBorderThin = 1;
 constexpr int kBorderThick = static_cast<int>(3.0f * ui::kScale + 0.5f);
 
@@ -78,8 +77,12 @@ void Button::Render(SDL_Renderer* r) const {
                                     : "button.border";
     StrokeRect(r, rect_, colors::Get(border), highlight ? kBorderThick : kBorderThin);
   }
-  text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
-                     kLabelScale, colors::Get("button.text"));
+  RenderContent(r);
 
   SDL_SetRenderDrawBlendMode(r, previous);
+}
+
+void Button::RenderContent(SDL_Renderer* r) const {
+  text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
+                     LabelScale(), colors::Get("button.text"));
 }

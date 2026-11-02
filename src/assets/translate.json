@@ -1,0 +1,968 @@
+{
+  "notes": [
+    "Textos do jogo em pt (padrão), en e es. Cada chave tem um texto por idioma.",
+    "{0}, {1}... são substituídos em tempo de execução (i18n::Format).",
+    "Cartas: card.<code>.name e card.<code>.description, um par por carta de assets/Cards*.json.",
+    "Hierarquias: hierarchy.<categoryName>.<hierarchy>. Sem chave, o jogo usa o texto do JSON da carta.",
+    "A fonte (PirataOne) cobre ASCII e Latin-1 (0xC0..0xFF): evitar ¿ e ¡, que viram '?'."
+  ],
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "flag": "us"
+    },
+    {
+      "code": "es",
+      "name": "Español",
+      "flag": "es"
+    },
+    {
+      "code": "pt",
+      "name": "Português",
+      "flag": "br"
+    }
+  ],
+  "strings": {
+    "language.en": {
+      "pt": "English",
+      "en": "English",
+      "es": "English"
+    },
+    "language.es": {
+      "pt": "Español",
+      "en": "Español",
+      "es": "Español"
+    },
+    "language.pt": {
+      "pt": "Português",
+      "en": "Português",
+      "es": "Português"
+    },
+    "menu.play": {
+      "pt": "Jogar",
+      "en": "Play",
+      "es": "Jugar"
+    },
+    "menu.exit": {
+      "pt": "Sair",
+      "en": "Exit",
+      "es": "Salir"
+    },
+    "menu.level": {
+      "pt": "Nível: {0}",
+      "en": "Level: {0}",
+      "es": "Nivel: {0}"
+    },
+    "menu.credits": {
+      "pt": "Criado por pedraugo",
+      "en": "Created by pedraugo",
+      "es": "Creado por pedraugo"
+    },
+    "difficulty.easy": {
+      "pt": "Fácil",
+      "en": "Easy",
+      "es": "Fácil"
+    },
+    "difficulty.medium": {
+      "pt": "Médio",
+      "en": "Medium",
+      "es": "Medio"
+    },
+    "difficulty.hard": {
+      "pt": "Difícil",
+      "en": "Hard",
+      "es": "Difícil"
+    },
+    "difficulty.impossible": {
+      "pt": "Impossível",
+      "en": "Impossible",
+      "es": "Imposible"
+    },
+    "loading.label": {
+      "pt": "Carregando",
+      "en": "Loading",
+      "es": "Cargando"
+    },
+    "battle.endTurn": {
+      "pt": "Passar turno",
+      "en": "End turn",
+      "es": "Pasar turno"
+    },
+    "battle.noRender": {
+      "pt": "Render 3D indisponível. Veja o log.",
+      "en": "3D rendering unavailable. See the log.",
+      "es": "Render 3D no disponible. Mira el log."
+    },
+    "battle.status": {
+      "pt": "Turno {0} - {1} - oponente ({2}) com {3} cartas na mão",
+      "en": "Turn {0} - {1} - opponent ({2}) with {3} cards in hand",
+      "es": "Turno {0} - {1} - oponente ({2}) con {3} cartas en la mano"
+    },
+    "battle.status.yourTurn": {
+      "pt": "sua vez",
+      "en": "your turn",
+      "es": "tu turno"
+    },
+    "battle.status.opponent": {
+      "pt": "oponente",
+      "en": "opponent",
+      "es": "oponente"
+    },
+    "battle.hint.directAttack": {
+      "pt": "Solte no lado do oponente: ataque direto",
+      "en": "Drop on the opponent's side: direct attack",
+      "es": "Suelta en el lado del oponente: ataque directo"
+    },
+    "battle.hint.attackCard": {
+      "pt": "Solte sobre uma carta do oponente para atacar",
+      "en": "Drop onto an opponent's card to attack",
+      "es": "Suelta sobre una carta del oponente para atacar"
+    },
+    "battle.hint.playField": {
+      "pt": "Clique na arena para ativar a carta de campo",
+      "en": "Click the arena to activate the field card",
+      "es": "Haz clic en la arena para activar la carta de campo"
+    },
+    "battle.hint.summon": {
+      "pt": "Clique em um slot do seu lado para invocar a carta",
+      "en": "Click a slot on your side to summon the card",
+      "es": "Haz clic en una casilla de tu lado para invocar la carta"
+    },
+    "battle.hint.attack": {
+      "pt": "Arraste uma carta sua em ataque até o oponente para atacar",
+      "en": "Drag one of your attacking cards to the opponent to attack",
+      "es": "Arrastra una carta tuya en ataque hasta el oponente para atacar"
+    },
+    "battle.tooltip.hierarchy": {
+      "pt": "Hierarquia {0}",
+      "en": "Hierarchy {0}",
+      "es": "Jerarquía {0}"
+    },
+    "battle.tooltip.base": {
+      "pt": "(base {0})",
+      "en": "(base {0})",
+      "es": "(base {0})"
+    },
+    "battle.tooltip.yourCard": {
+      "pt": "Sua carta",
+      "en": "Your card",
+      "es": "Tu carta"
+    },
+    "battle.tooltip.opponentCard": {
+      "pt": "Carta do oponente",
+      "en": "Opponent's card",
+      "es": "Carta del oponente"
+    },
+    "battle.tooltip.inDefense": {
+      "pt": "em defesa",
+      "en": "in defense",
+      "es": "en defensa"
+    },
+    "battle.tooltip.inAttack": {
+      "pt": "em ataque",
+      "en": "in attack",
+      "es": "en ataque"
+    },
+    "battle.tooltip.attacked": {
+      "pt": "(já atacou)",
+      "en": "(already attacked)",
+      "es": "(ya atacó)"
+    },
+    "hud.noField": {
+      "pt": "Sem campo",
+      "en": "No field",
+      "es": "Sin campo"
+    },
+    "hud.opponent": {
+      "pt": "Oponente",
+      "en": "Opponent",
+      "es": "Oponente"
+    },
+    "hud.player": {
+      "pt": "Jogador",
+      "en": "Player",
+      "es": "Jugador"
+    },
+    "hud.deck": {
+      "pt": "Monte",
+      "en": "Deck",
+      "es": "Mazo"
+    },
+    "hud.graveyard": {
+      "pt": "Cemitério",
+      "en": "Graveyard",
+      "es": "Cementerio"
+    },
+    "hud.victory": {
+      "pt": "VITÓRIA",
+      "en": "VICTORY",
+      "es": "VICTORIA"
+    },
+    "hud.defeat": {
+      "pt": "DERROTA",
+      "en": "DEFEAT",
+      "es": "DERROTA"
+    },
+    "hud.escMenu": {
+      "pt": "Esc volta ao menu",
+      "en": "Esc returns to the menu",
+      "es": "Esc vuelve al menú"
+    },
+    "cardface.atk": {
+      "pt": "ATK",
+      "en": "ATK",
+      "es": "ATQ"
+    },
+    "cardface.def": {
+      "pt": "DEF",
+      "en": "DEF",
+      "es": "DEF"
+    },
+    "cardface.buff": {
+      "pt": "BUFF",
+      "en": "BUFF",
+      "es": "BUFF"
+    },
+    "cardface.nerf": {
+      "pt": "NERF",
+      "en": "NERF",
+      "es": "NERF"
+    },
+    "cardface.favors": {
+      "pt": "Favorece: {0}",
+      "en": "Favors: {0}",
+      "es": "Favorece: {0}"
+    },
+    "category.good": {
+      "pt": "Bondosa",
+      "en": "Good",
+      "es": "Bondadosa"
+    },
+    "category.evil": {
+      "pt": "Maligna",
+      "en": "Evil",
+      "es": "Maligna"
+    },
+    "category.neutral": {
+      "pt": "Neutra",
+      "en": "Neutral",
+      "es": "Neutral"
+    },
+    "category.field": {
+      "pt": "Campo",
+      "en": "Field",
+      "es": "Campo"
+    },
+    "category.good.plural": {
+      "pt": "Bondosas",
+      "en": "Good",
+      "es": "Bondadosas"
+    },
+    "category.evil.plural": {
+      "pt": "Malignas",
+      "en": "Evil",
+      "es": "Malignas"
+    },
+    "hierarchy.evil.1": {
+      "pt": "Soberanos",
+      "en": "Sovereigns",
+      "es": "Soberanos"
+    },
+    "hierarchy.evil.2": {
+      "pt": "Bestas",
+      "en": "Beasts",
+      "es": "Bestias"
+    },
+    "hierarchy.evil.3": {
+      "pt": "Criaturas",
+      "en": "Creatures",
+      "es": "Criaturas"
+    },
+    "hierarchy.evil.4": {
+      "pt": "Impuros",
+      "en": "Unclean",
+      "es": "Impuros"
+    },
+    "hierarchy.good.1": {
+      "pt": "Divindades",
+      "en": "Deities",
+      "es": "Divinidades"
+    },
+    "hierarchy.good.2": {
+      "pt": "Arcanjos",
+      "en": "Archangels",
+      "es": "Arcángeles"
+    },
+    "hierarchy.good.3": {
+      "pt": "Anjos",
+      "en": "Angels",
+      "es": "Ángeles"
+    },
+    "hierarchy.good.4": {
+      "pt": "Santos",
+      "en": "Saints",
+      "es": "Santos"
+    },
+    "hierarchy.neutral.3": {
+      "pt": "Líderes",
+      "en": "Leaders",
+      "es": "Líderes"
+    },
+    "hierarchy.neutral.4": {
+      "pt": "Mortais",
+      "en": "Mortals",
+      "es": "Mortales"
+    },
+    "card.G101.name": {
+      "pt": "Deus",
+      "en": "God",
+      "es": "Dios"
+    },
+    "card.G101.description": {
+      "pt": "Criador dos céus, da terra e de toda existência",
+      "en": "Creator of the heavens, the earth and all existence",
+      "es": "Creador de los cielos, de la tierra y de toda existencia"
+    },
+    "card.G102.name": {
+      "pt": "Cristo",
+      "en": "Christ",
+      "es": "Cristo"
+    },
+    "card.G102.description": {
+      "pt": "Filho de Deus e Salvador da humanidade",
+      "en": "Son of God and Savior of humanity",
+      "es": "Hijo de Dios y Salvador de la humanidad"
+    },
+    "card.G103.name": {
+      "pt": "Espírito Santo",
+      "en": "Holy Spirit",
+      "es": "Espíritu Santo"
+    },
+    "card.G103.description": {
+      "pt": "Consolador divino que ilumina e fortalece a fé",
+      "en": "Divine Comforter who enlightens and strengthens faith",
+      "es": "Consolador divino que ilumina y fortalece la fe"
+    },
+    "card.G201.name": {
+      "pt": "São Miguel",
+      "en": "Saint Michael",
+      "es": "San Miguel"
+    },
+    "card.G201.description": {
+      "pt": "O guerreiro celestial, defensor contra o mal",
+      "en": "The heavenly warrior, defender against evil",
+      "es": "El guerrero celestial, defensor contra el mal"
+    },
+    "card.G202.name": {
+      "pt": "São Gabriel",
+      "en": "Saint Gabriel",
+      "es": "San Gabriel"
+    },
+    "card.G202.description": {
+      "pt": "O mensageiro de Deus, responsável pela Anunciação",
+      "en": "The messenger of God, bearer of the Annunciation",
+      "es": "El mensajero de Dios, responsable de la Anunciación"
+    },
+    "card.G203.name": {
+      "pt": "São Rafael",
+      "en": "Saint Raphael",
+      "es": "San Rafael"
+    },
+    "card.G203.description": {
+      "pt": "Associado à cura, proteção e orientação",
+      "en": "Associated with healing, protection and guidance",
+      "es": "Asociado a la curación, la protección y la guía"
+    },
+    "card.G301.name": {
+      "pt": "Querubim",
+      "en": "Cherub",
+      "es": "Querubín"
+    },
+    "card.G301.description": {
+      "pt": "Guardião do Éden",
+      "en": "Guardian of Eden",
+      "es": "Guardián del Edén"
+    },
+    "card.G302.name": {
+      "pt": "Serafim",
+      "en": "Seraph",
+      "es": "Serafín"
+    },
+    "card.G302.description": {
+      "pt": "Adoração diante do trono de Deus",
+      "en": "Worship before the throne of God",
+      "es": "Adoración ante el trono de Dios"
+    },
+    "card.G303.name": {
+      "pt": "Anjo Azul",
+      "en": "Blue Angel",
+      "es": "Ángel Azul"
+    },
+    "card.G303.description": {
+      "pt": "Executor do juízo divino",
+      "en": "Executor of divine judgment",
+      "es": "Ejecutor del juicio divino"
+    },
+    "card.G304.name": {
+      "pt": "Anjo do Senhor",
+      "en": "Angel of the Lord",
+      "es": "Ángel del Señor"
+    },
+    "card.G304.description": {
+      "pt": "Representante divino",
+      "en": "Divine envoy",
+      "es": "Representante divino"
+    },
+    "card.G305.name": {
+      "pt": "Anjo da Guarda",
+      "en": "Guardian Angel",
+      "es": "Ángel de la Guarda"
+    },
+    "card.G305.description": {
+      "pt": "Protetor dos fiéis",
+      "en": "Protector of the faithful",
+      "es": "Protector de los fieles"
+    },
+    "card.G401.name": {
+      "pt": "São Pedro",
+      "en": "Saint Peter",
+      "es": "San Pedro"
+    },
+    "card.G401.description": {
+      "pt": "Primeiro Papa e apóstolo de Jesus",
+      "en": "First Pope and apostle of Jesus",
+      "es": "Primer Papa y apóstol de Jesús"
+    },
+    "card.G402.name": {
+      "pt": "São Paulo",
+      "en": "Saint Paul",
+      "es": "San Pablo"
+    },
+    "card.G402.description": {
+      "pt": "Apóstolo e grande evangelizador",
+      "en": "Apostle and great evangelizer",
+      "es": "Apóstol y gran evangelizador"
+    },
+    "card.G403.name": {
+      "pt": "São Francisco de Assis",
+      "en": "Saint Francis of Assisi",
+      "es": "San Francisco de Asís"
+    },
+    "card.G403.description": {
+      "pt": "Pobreza, humildade e amor à natureza",
+      "en": "Poverty, humility and love of nature",
+      "es": "Pobreza, humildad y amor a la naturaleza"
+    },
+    "card.G404.name": {
+      "pt": "São Jorge",
+      "en": "Saint George",
+      "es": "San Jorge"
+    },
+    "card.G404.description": {
+      "pt": "Guerreiro e mártir",
+      "en": "Warrior and martyr",
+      "es": "Guerrero y mártir"
+    },
+    "card.G405.name": {
+      "pt": "São Bento",
+      "en": "Saint Benedict",
+      "es": "San Benito"
+    },
+    "card.G405.description": {
+      "pt": "Fundador da Ordem Beneditina",
+      "en": "Founder of the Benedictine Order",
+      "es": "Fundador de la Orden Benedictina"
+    },
+    "card.G406.name": {
+      "pt": "Santo Antônio de Pádua",
+      "en": "Saint Anthony of Padua",
+      "es": "San Antonio de Padua"
+    },
+    "card.G406.description": {
+      "pt": "Pregador e doutor da Igreja",
+      "en": "Preacher and Doctor of the Church",
+      "es": "Predicador y doctor de la Iglesia"
+    },
+    "card.G407.name": {
+      "pt": "Santa Teresa de Ávila",
+      "en": "Saint Teresa of Ávila",
+      "es": "Santa Teresa de Ávila"
+    },
+    "card.G407.description": {
+      "pt": "Mística e doutora da Igreja",
+      "en": "Mystic and Doctor of the Church",
+      "es": "Mística y doctora de la Iglesia"
+    },
+    "card.G408.name": {
+      "pt": "Santa Joana d'Arc",
+      "en": "Saint Joan of Arc",
+      "es": "Santa Juana de Arco"
+    },
+    "card.G408.description": {
+      "pt": "Guerreira e mártir",
+      "en": "Warrior and martyr",
+      "es": "Guerrera y mártir"
+    },
+    "card.G409.name": {
+      "pt": "Santa Rita de Cássia",
+      "en": "Saint Rita of Cascia",
+      "es": "Santa Rita de Casia"
+    },
+    "card.G409.description": {
+      "pt": "Conhecida como santa das causas impossíveis",
+      "en": "Known as the saint of impossible causes",
+      "es": "Conocida como la santa de las causas imposibles"
+    },
+    "card.G410.name": {
+      "pt": "Santa Sofia",
+      "en": "Saint Sophia",
+      "es": "Santa Sofía"
+    },
+    "card.G410.description": {
+      "pt": "Símbolo da sabedoria divina e da fé cristã",
+      "en": "Symbol of divine wisdom and Christian faith",
+      "es": "Símbolo de la sabiduría divina y de la fe cristiana"
+    },
+    "card.E101.name": {
+      "pt": "Satanás",
+      "en": "Satan",
+      "es": "Satanás"
+    },
+    "card.E101.description": {
+      "pt": "O adversário de Deus",
+      "en": "The adversary of God",
+      "es": "El adversario de Dios"
+    },
+    "card.E102.name": {
+      "pt": "Lúcifer",
+      "en": "Lucifer",
+      "es": "Lucifer"
+    },
+    "card.E102.description": {
+      "pt": "O mal portador da luz",
+      "en": "The evil bearer of light",
+      "es": "El mal portador de la luz"
+    },
+    "card.E103.name": {
+      "pt": "Anjo Caído",
+      "en": "Fallen Angel",
+      "es": "Ángel Caído"
+    },
+    "card.E103.description": {
+      "pt": "O renegado",
+      "en": "The renegade",
+      "es": "El renegado"
+    },
+    "card.E201.name": {
+      "pt": "Belial",
+      "en": "Belial",
+      "es": "Belial"
+    },
+    "card.E201.description": {
+      "pt": "Personificação da maldade",
+      "en": "Personification of wickedness",
+      "es": "Personificación de la maldad"
+    },
+    "card.E202.name": {
+      "pt": "Belzebu",
+      "en": "Beelzebub",
+      "es": "Belcebú"
+    },
+    "card.E202.description": {
+      "pt": "Príncipe dos demônios",
+      "en": "Prince of demons",
+      "es": "Príncipe de los demonios"
+    },
+    "card.E203.name": {
+      "pt": "Baal",
+      "en": "Baal",
+      "es": "Baal"
+    },
+    "card.E203.description": {
+      "pt": "Falso deus adorado, símbolo da idolatria",
+      "en": "False god once worshipped, symbol of idolatry",
+      "es": "Falso dios adorado, símbolo de la idolatría"
+    },
+    "card.E301.name": {
+      "pt": "Mephisto",
+      "en": "Mephisto",
+      "es": "Mefisto"
+    },
+    "card.E301.description": {
+      "pt": "Astuto que corrompe almas e pactos",
+      "en": "Cunning one who corrupts souls and pacts",
+      "es": "Astuto que corrompe almas y pactos"
+    },
+    "card.E302.name": {
+      "pt": "Asmodeus",
+      "en": "Asmodeus",
+      "es": "Asmodeo"
+    },
+    "card.E302.description": {
+      "pt": "Associado à luxúria e destruição",
+      "en": "Associated with lust and destruction",
+      "es": "Asociado a la lujuria y la destrucción"
+    },
+    "card.E303.name": {
+      "pt": "Abaddon",
+      "en": "Abaddon",
+      "es": "Abadón"
+    },
+    "card.E303.description": {
+      "pt": "Anjo do abismo, senhor da destruição",
+      "en": "Angel of the abyss, lord of destruction",
+      "es": "Ángel del abismo, señor de la destrucción"
+    },
+    "card.E304.name": {
+      "pt": "Leviatã",
+      "en": "Leviathan",
+      "es": "Leviatán"
+    },
+    "card.E304.description": {
+      "pt": "Monstro marinho colossal que personifica o caos",
+      "en": "Colossal sea monster that embodies chaos",
+      "es": "Monstruo marino colosal que personifica el caos"
+    },
+    "card.E305.name": {
+      "pt": "Lilith",
+      "en": "Lilith",
+      "es": "Lilith"
+    },
+    "card.E305.description": {
+      "pt": "Espírito noturno associado à sedução e às trevas",
+      "en": "Night spirit associated with seduction and darkness",
+      "es": "Espíritu nocturno asociado a la seducción y las tinieblas"
+    },
+    "card.E401.name": {
+      "pt": "Diabo",
+      "en": "Devil",
+      "es": "Diablo"
+    },
+    "card.E401.description": {
+      "pt": "Espírito maligno que se opõe ao divino",
+      "en": "Evil spirit that opposes the divine",
+      "es": "Espíritu maligno que se opone a lo divino"
+    },
+    "card.E402.name": {
+      "pt": "Demônio",
+      "en": "Demon",
+      "es": "Demonio"
+    },
+    "card.E402.description": {
+      "pt": "Espírito impuro que corrompe os homens",
+      "en": "Unclean spirit that corrupts mankind",
+      "es": "Espíritu impuro que corrompe a los hombres"
+    },
+    "card.E403.name": {
+      "pt": "Morte",
+      "en": "Death",
+      "es": "Muerte"
+    },
+    "card.E403.description": {
+      "pt": "Ceifadora de vidas e símbolo do fim",
+      "en": "Reaper of lives and symbol of the end",
+      "es": "Segadora de vidas y símbolo del fin"
+    },
+    "card.E404.name": {
+      "pt": "Caim",
+      "en": "Cain",
+      "es": "Caín"
+    },
+    "card.E404.description": {
+      "pt": "Primeiro assassino, marcado pela inveja e violência",
+      "en": "First murderer, marked by envy and violence",
+      "es": "Primer asesino, marcado por la envidia y la violencia"
+    },
+    "card.E405.name": {
+      "pt": "Judas Iscariotes",
+      "en": "Judas Iscariot",
+      "es": "Judas Iscariote"
+    },
+    "card.E405.description": {
+      "pt": "Discípulo que traiu Jesus por dinheiro",
+      "en": "Disciple who betrayed Jesus for money",
+      "es": "Discípulo que traicionó a Jesús por dinero"
+    },
+    "card.E406.name": {
+      "pt": "Herodes",
+      "en": "Herod",
+      "es": "Herodes"
+    },
+    "card.E406.description": {
+      "pt": "Rei cruel que ordenou a morte dos inocentes",
+      "en": "Cruel king who ordered the death of the innocents",
+      "es": "Rey cruel que ordenó la muerte de los inocentes"
+    },
+    "card.E407.name": {
+      "pt": "Golias",
+      "en": "Goliath",
+      "es": "Goliat"
+    },
+    "card.E407.description": {
+      "pt": "Gigante que desafiou Israel e zombou de Deus",
+      "en": "Giant who defied Israel and mocked God",
+      "es": "Gigante que desafió a Israel y se burló de Dios"
+    },
+    "card.E408.name": {
+      "pt": "Serpente",
+      "en": "Serpent",
+      "es": "Serpiente"
+    },
+    "card.E408.description": {
+      "pt": "Símbolo da traição e da corrupção humana",
+      "en": "Symbol of betrayal and human corruption",
+      "es": "Símbolo de la traición y la corrupción humana"
+    },
+    "card.E409.name": {
+      "pt": "Falso Profeta",
+      "en": "False Prophet",
+      "es": "Falso Profeta"
+    },
+    "card.E409.description": {
+      "pt": "Enganador que conduz os homens à idolatria",
+      "en": "Deceiver who leads mankind into idolatry",
+      "es": "Engañador que conduce a los hombres a la idolatría"
+    },
+    "card.E410.name": {
+      "pt": "Caveira",
+      "en": "Skull",
+      "es": "Calavera"
+    },
+    "card.E410.description": {
+      "pt": "Símbolo da morte e da decadência",
+      "en": "Symbol of death and decay",
+      "es": "Símbolo de la muerte y la decadencia"
+    },
+    "card.N301.name": {
+      "pt": "Rei Davi",
+      "en": "King David",
+      "es": "Rey David"
+    },
+    "card.N301.description": {
+      "pt": "Rei de Israel que venceu Golias",
+      "en": "King of Israel who defeated Goliath",
+      "es": "Rey de Israel que venció a Goliat"
+    },
+    "card.N302.name": {
+      "pt": "Moisés",
+      "en": "Moses",
+      "es": "Moisés"
+    },
+    "card.N302.description": {
+      "pt": "Profeta que libertou os hebreus do Egito",
+      "en": "Prophet who freed the Hebrews from Egypt",
+      "es": "Profeta que liberó a los hebreos de Egipto"
+    },
+    "card.N303.name": {
+      "pt": "Rei Salomão",
+      "en": "King Solomon",
+      "es": "Rey Salomón"
+    },
+    "card.N303.description": {
+      "pt": "Rei de Israel célebre pela sabedoria",
+      "en": "King of Israel renowned for his wisdom",
+      "es": "Rey de Israel célebre por su sabiduría"
+    },
+    "card.N304.name": {
+      "pt": "Noé",
+      "en": "Noah",
+      "es": "Noé"
+    },
+    "card.N304.description": {
+      "pt": "Construiu a arca e sobreviveu ao Dilúvio",
+      "en": "Built the ark and survived the Flood",
+      "es": "Construyó el arca y sobrevivió al Diluvio"
+    },
+    "card.N305.name": {
+      "pt": "Rei Constantino",
+      "en": "King Constantine",
+      "es": "Rey Constantino"
+    },
+    "card.N305.description": {
+      "pt": "Imperador romano que legalizou o cristianismo",
+      "en": "Roman emperor who legalized Christianity",
+      "es": "Emperador romano que legalizó el cristianismo"
+    },
+    "card.N401.name": {
+      "pt": "Templário",
+      "en": "Templar",
+      "es": "Templario"
+    },
+    "card.N401.description": {
+      "pt": "Monge guerreiro, protetor dos peregrinos",
+      "en": "Warrior monk, protector of pilgrims",
+      "es": "Monje guerrero, protector de los peregrinos"
+    },
+    "card.N402.name": {
+      "pt": "Duque",
+      "en": "Duke",
+      "es": "Duque"
+    },
+    "card.N402.description": {
+      "pt": "Nobre de mais alto título, vassalo do rei",
+      "en": "Noble of the highest title, vassal of the king",
+      "es": "Noble del más alto título, vasallo del rey"
+    },
+    "card.N403.name": {
+      "pt": "Conde",
+      "en": "Count",
+      "es": "Conde"
+    },
+    "card.N403.description": {
+      "pt": "Nobre que governa um condado",
+      "en": "Noble who rules a county",
+      "es": "Noble que gobierna un condado"
+    },
+    "card.N404.name": {
+      "pt": "Visconde",
+      "en": "Viscount",
+      "es": "Vizconde"
+    },
+    "card.N404.description": {
+      "pt": "Nobre delegado do conde",
+      "en": "Noble deputy of the count",
+      "es": "Noble delegado del conde"
+    },
+    "card.N405.name": {
+      "pt": "Barão",
+      "en": "Baron",
+      "es": "Barón"
+    },
+    "card.N405.description": {
+      "pt": "Nobre de menor título, senhor de um feudo",
+      "en": "Noble of the lowest title, lord of a fief",
+      "es": "Noble de menor título, señor de un feudo"
+    },
+    "card.N406.name": {
+      "pt": "Cavaleiro",
+      "en": "Knight",
+      "es": "Caballero"
+    },
+    "card.N406.description": {
+      "pt": "Guerreiro montado a serviço de um senhor",
+      "en": "Mounted warrior in the service of a lord",
+      "es": "Guerrero montado al servicio de un señor"
+    },
+    "card.N407.name": {
+      "pt": "Servo",
+      "en": "Serf",
+      "es": "Siervo"
+    },
+    "card.N407.description": {
+      "pt": "Trabalhador preso à terra do senhor feudal",
+      "en": "Laborer bound to the feudal lord's land",
+      "es": "Trabajador atado a la tierra del señor feudal"
+    },
+    "card.N408.name": {
+      "pt": "Camponesa",
+      "en": "Peasant Woman",
+      "es": "Campesina"
+    },
+    "card.N408.description": {
+      "pt": "Mulher do campo que cultiva a terra",
+      "en": "Country woman who tills the land",
+      "es": "Mujer del campo que cultiva la tierra"
+    },
+    "card.N409.name": {
+      "pt": "Burguesa",
+      "en": "Bourgeois Woman",
+      "es": "Burguesa"
+    },
+    "card.N409.description": {
+      "pt": "Mulher da cidade dedicada ao comércio",
+      "en": "Townswoman devoted to trade",
+      "es": "Mujer de la ciudad dedicada al comercio"
+    },
+    "card.N410.name": {
+      "pt": "Artesã",
+      "en": "Artisan Woman",
+      "es": "Artesana"
+    },
+    "card.N410.description": {
+      "pt": "Mulher que produz bens com as próprias mãos",
+      "en": "Woman who crafts goods with her own hands",
+      "es": "Mujer que produce bienes con sus propias manos"
+    },
+    "card.FE01.name": {
+      "pt": "Dilúvio",
+      "en": "The Flood",
+      "es": "Diluvio"
+    },
+    "card.FE01.description": {
+      "pt": "Águas que cobriram a terra e apagaram toda carne",
+      "en": "Waters that covered the earth and wiped out all flesh",
+      "es": "Aguas que cubrieron la tierra y borraron toda carne"
+    },
+    "card.FE02.name": {
+      "pt": "Chuva de Fogo",
+      "en": "Rain of Fire",
+      "es": "Lluvia de Fuego"
+    },
+    "card.FE02.description": {
+      "pt": "Fogo e enxofre que consumiram Sodoma e Gomorra",
+      "en": "Fire and brimstone that consumed Sodom and Gomorrah",
+      "es": "Fuego y azufre que consumieron Sodoma y Gomorra"
+    },
+    "card.FE03.name": {
+      "pt": "Dez Pragas",
+      "en": "Ten Plagues",
+      "es": "Diez Plagas"
+    },
+    "card.FE03.description": {
+      "pt": "Flagelos lançados sobre o Egito pela dureza do Faraó",
+      "en": "Scourges cast upon Egypt for Pharaoh's hardness of heart",
+      "es": "Flagelos lanzados sobre Egipto por la dureza del Faraón"
+    },
+    "card.FE04.name": {
+      "pt": "Juízo Final",
+      "en": "Last Judgment",
+      "es": "Juicio Final"
+    },
+    "card.FE04.description": {
+      "pt": "Julgamento derradeiro de vivos e mortos no fim dos tempos",
+      "en": "Final judgment of the living and the dead at the end of time",
+      "es": "Juicio último de vivos y muertos al fin de los tiempos"
+    },
+    "card.FG01.name": {
+      "pt": "Estrela de Belém",
+      "en": "Star of Bethlehem",
+      "es": "Estrella de Belén"
+    },
+    "card.FG01.description": {
+      "pt": "Luz que guiou os magos até o Menino Jesus",
+      "en": "Light that guided the Magi to the Child Jesus",
+      "es": "Luz que guió a los magos hasta el Niño Jesús"
+    },
+    "card.FG02.name": {
+      "pt": "Abertura do Mar Vermelho",
+      "en": "Parting of the Red Sea",
+      "es": "Apertura del Mar Rojo"
+    },
+    "card.FG02.description": {
+      "pt": "Passagem aberta por Moisés para libertar os hebreus",
+      "en": "Passage opened by Moses to free the Hebrews",
+      "es": "Paso abierto por Moisés para liberar a los hebreos"
+    },
+    "card.FG03.name": {
+      "pt": "Sol Parado",
+      "en": "Sun Stood Still",
+      "es": "Sol Detenido"
+    },
+    "card.FG03.description": {
+      "pt": "Josué fez o sol parar até vencer a batalha",
+      "en": "Joshua made the sun stand still until the battle was won",
+      "es": "Josué detuvo el sol hasta ganar la batalla"
+    },
+    "card.FG04.name": {
+      "pt": "Retorno de Cristo",
+      "en": "Return of Christ",
+      "es": "Retorno de Cristo"
+    },
+    "card.FG04.description": {
+      "pt": "Segunda vinda do Salvador em glória",
+      "en": "Second coming of the Savior in glory",
+      "es": "Segunda venida del Salvador en gloria"
+    }
+  }
+}

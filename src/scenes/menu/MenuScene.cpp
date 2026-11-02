@@ -8,6 +8,7 @@
 #include "scripts/button/ButtonExit.h"
 #include "scripts/button/ButtonPlay.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/image/Image.h"
 #include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
@@ -20,13 +21,14 @@ constexpr float kButtonWidth = ui::Grid(22);
 constexpr float kButtonHeight = ui::Grid(5);
 constexpr float kButtonGap = ui::Grid(2);
 constexpr float kTitleScale = 6.0f * ui::kScale;  // só sem o logo
-// Topo na grade de 16 px: ícone (assets/icon.png) de 8 células centrado em y = 6 células;
-// logo (sprites/Logo.png, de art/logo.png por tools/make_logo.py) com 40 células de largura
-// centrado em y = 16 células; os botões começam em ~25 células.
+// Topo na grade de 16 px: uma linha com o ícone (assets/icon.png, 8 células) à esquerda e
+// o logo (sprites/Logo.png, de art/logo.png por tools/make_logo.py, 40 células de largura) à
+// direita, 2 células entre eles, o conjunto centrado em x e em y = 12 células; os botões
+// começam em ~24 células.
 constexpr float kIconSize = ui::Grid(8);     // 128 px
-constexpr float kIconCenterY = ui::Grid(6);
 constexpr float kLogoWidth = ui::Grid(40);   // 640 px
-constexpr float kLogoCenterY = ui::Grid(16);
+constexpr float kHeaderGap = ui::Grid(2);
+constexpr float kHeaderCenterY = ui::Grid(12);
 
 SDL_Texture* LoadTexture(SDL_Renderer* r, const Image& image) {
   if (!image.Valid()) return nullptr;
@@ -48,8 +50,8 @@ constexpr float kSoundButtonSize = ui::Grid(3);
 constexpr float kSoundMargin = ui::Grid(1);
 
 std::string DifficultyLabel(int level) {
-  return std::string("Nível: ") +
-         ai::DifficultyName(static_cast<ai::Difficulty>(std::clamp(level, 0, 3)));
+  const auto difficulty = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
+  return i18n::Format("menu.level", {i18n::Get(ai::DifficultyKey(difficulty))});
 }
 
 }  // namespace
@@ -159,25 +161,29 @@ void MenuScene::Render(SceneContext& ctx) {
   SDL_RenderClear(r);
   if (clouds_ready_) clouds_.RenderBack(r);
 
+  // Cabeçalho: [ícone] [logo] lado a lado, centrados.
   const float center_x = ctx.logical_width / 2.0f;
+  const float header_w = kIconSize + kHeaderGap + kLogoWidth;
+  const float header_x = center_x - header_w / 2.0f;
   if (icon_ != nullptr) {
-    const SDL_FRect dst{center_x - kIconSize / 2.0f, kIconCenterY - kIconSize / 2.0f, kIconSize,
-                        kIconSize};
+    const SDL_FRect dst{header_x, kHeaderCenterY - kIconSize / 2.0f, kIconSize, kIconSize};
     SDL_RenderTexture(r, icon_, nullptr, &dst);
   }
+  const float logo_x = header_x + kIconSize + kHeaderGap;
   if (logo_ != nullptr) {
     const float h = kLogoWidth * static_cast<float>(logo_h_) / static_cast<float>(logo_w_);
-    const SDL_FRect dst{center_x - kLogoWidth / 2.0f, kLogoCenterY - h / 2.0f, kLogoWidth, h};
+    const SDL_FRect dst{logo_x, kHeaderCenterY - h / 2.0f, kLogoWidth, h};
     SDL_RenderTexture(r, logo_, nullptr, &dst);
   } else {
-    text::DrawCentered(r, "PONTIFICE", center_x, kLogoCenterY, kTitleScale,
+    text::DrawCentered(r, "PONTIFICE", logo_x + kLogoWidth / 2.0f, kHeaderCenterY, kTitleScale,
                        colors::Get("text.title"));
   }
 
   for (auto& button : buttons_) button->Render(r);
   sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
 
-  text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - ui::Grid(3),
-                     kFooterScale, colors::Get("text.secondary"));
+  text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,
+                     ctx.logical_height - ui::Grid(3), kFooterScale,
+                     colors::Get("text.secondary"));
   if (clouds_ready_) clouds_.RenderFront(r);  // névoa rala por cima do texto
 }

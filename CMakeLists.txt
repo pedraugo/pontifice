@@ -74,6 +74,7 @@ endif()
 add_executable(pontifice
   src/main.cpp
   src/scenes/SceneManager.cpp
+  src/scenes/language/LanguageScene.cpp
   src/scenes/menu/MenuScene.cpp
   src/scenes/loading/LoadingScene.cpp
   src/scenes/battle/BattleScene.cpp
@@ -82,6 +83,7 @@ add_executable(pontifice
   src/scripts/button/ButtonPlay.cpp
   src/scripts/button/ButtonExit.cpp
   src/scripts/button/ButtonAction.cpp
+  src/scripts/button/ButtonLanguage.cpp
   src/scripts/board/Board.cpp
   src/scripts/sword/Sword.cpp
   src/scripts/soundbutton/SoundButton.cpp
@@ -94,6 +96,8 @@ add_executable(pontifice
   src/scripts/hand/Hand.cpp
   src/scripts/hud/Hud.cpp
   src/scripts/json/Json.cpp
+  src/scripts/i18n/I18n.cpp
+  src/scripts/flag/Flag.cpp
   src/scripts/colors/Colors.cpp
   src/scripts/clouds/Clouds.cpp
   src/scripts/torch/Torch.cpp

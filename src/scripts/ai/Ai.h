@@ -27,7 +27,8 @@ namespace ai {
 // - Difícil: na maioria das vezes mais fortes (hierarquias 2 e 3 reforçadas).
 // - Impossível: nitidamente mais fortes (todas as de hierarquia 1 e 2, resto 3).
 enum class Difficulty { kEasy, kMedium, kHard, kImpossible };
-const char* DifficultyName(Difficulty d);  // "Fácil", "Médio", "Difícil", "Impossível"
+// Chave do nome em assets/translate.json ("difficulty.easy", ...); traduzir com i18n::Get.
+const char* DifficultyKey(Difficulty d);
 Difficulty NextDifficulty(Difficulty d);   // cicla (seletor do menu)
 // Peso de sorteio de `card` no monte do computador para o nível (0 = não entra).
 int DeckWeight(const CardInfo& card, Difficulty d);

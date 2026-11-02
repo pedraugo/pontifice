@@ -7,7 +7,7 @@
 
 class Music;
 
-enum class SceneId { kMenu, kLoading, kBattle };
+enum class SceneId { kLanguage, kMenu, kLoading, kBattle };
 // Nível do oponente (ver scripts/ai/Ai.h, ai::Difficulty): 0 fácil, 1 médio, 2 difícil,
 // 3 impossível. Inteiro aqui para o cabeçalho das cenas não depender da IA.
 constexpr int kDefaultDifficulty = 1;

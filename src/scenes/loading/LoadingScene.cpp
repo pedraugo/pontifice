@@ -7,6 +7,7 @@
 
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -242,9 +243,10 @@ void LoadingScene::Render(SceneContext& ctx) {
 
   // "Carregando" com pontos que avançam, no canto inferior direito.
   const int dots = static_cast<int>(time_ * 2.0f) % 4;
-  const std::string label = "Carregando" + std::string(static_cast<size_t>(dots), '.');
+  const std::string loading = i18n::Get("loading.label");
+  const std::string label = loading + std::string(static_cast<size_t>(dots), '.');
   const float scale = 2.0f * ui::kScale;
-  const float x = ctx.logical_width - ui::Px(60.0f) - text::Width("Carregando...", scale);
+  const float x = ctx.logical_width - ui::Px(60.0f) - text::Width((loading + "...").c_str(), scale);
   text::Draw(r, label.c_str(), x, ctx.logical_height - ui::Px(60.0f), scale,
              colors::Get("text.muted"));
 

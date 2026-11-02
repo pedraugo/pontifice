@@ -4,6 +4,7 @@
 
 #include "scripts/colors/Colors.h"
 #include "scripts/frame/Frame.h"
+#include "scripts/i18n/I18n.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -46,7 +47,9 @@ void Panel(SDL_Renderer* r, const SDL_FRect& rect) {
   StrokeRect(r, rect, colors::Get("panel.border"));
 }
 
-const char* CategoryName(Category c) { return c == Category::kGood ? "Bondosas" : "Malignas"; }
+std::string CategoryName(Category c) {
+  return i18n::Get(c == Category::kGood ? "category.good.plural" : "category.evil.plural");
+}
 Category Other(Category c) { return c == Category::kGood ? Category::kEvil : Category::kGood; }
 
 // Texto alinhado à direita: a borda direita fica em `right_x`.
@@ -103,7 +106,7 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   Panel(r, panel);
 
   if (!has_field_) {
-    text::DrawCentered(r, "Sem campo", panel.x + panel.w / 2.0f, panel.y + panel.h / 2.0f,
+    text::DrawCentered(r, i18n::Get("hud.noField").c_str(), panel.x + panel.w / 2.0f, panel.y + panel.h / 2.0f,
                        kLineScale, colors::Get("text.muted"));
     return;
   }
@@ -142,11 +145,11 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   const SDL_Color label = colors::Get("hud.lifeLabel");
   const SDL_Color value = colors::Get("hud.lifeValue");
   const SDL_Color zero = colors::Get("hud.lifeZero");
-  text::Draw(r, "Oponente", left, y, kLineScale, label);
+  text::Draw(r, i18n::Get("hud.opponent").c_str(), left, y, kLineScale, label);
   DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, kLineScale,
             opponent_life_ > 0 ? value : zero);
   y += kLineHeight + kLineGap;
-  text::Draw(r, "Jogador", left, y, kLineScale, label);
+  text::Draw(r, i18n::Get("hud.player").c_str(), left, y, kLineScale, label);
   DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, kLineScale,
             player_life_ > 0 ? value : zero);
 }
@@ -176,9 +179,10 @@ void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
   const std::string value = std::to_string(deck_remaining_) + "/" + std::to_string(kDeckSize);
   const float panel_h = kCounterHeight;
   const float left = deck_panel_left_ >= 0.0f ? deck_panel_left_ : kMargin;
-  const SDL_FRect panel{left, height - kMargin - panel_h, CounterPanelWidth("Monte", value),
-                        panel_h};
-  CounterPanel(r, panel, "Monte", value,
+  const std::string title = i18n::Get("hud.deck");
+  const SDL_FRect panel{left, height - kMargin - panel_h,
+                        CounterPanelWidth(title.c_str(), value), panel_h};
+  CounterPanel(r, panel, title.c_str(), value,
                deck_remaining_ > 0 ? colors::Get("hud.counterValue")
                                    : colors::Get("hud.deckEmpty"));
 }
@@ -186,9 +190,10 @@ void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
 void Hud::RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const {
   const std::string value = std::to_string(graveyard_);
   const float panel_h = kCounterHeight;
-  const float panel_w = CounterPanelWidth("Cemitério", value);
+  const std::string title = i18n::Get("hud.graveyard");
+  const float panel_w = CounterPanelWidth(title.c_str(), value);
   const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - panel_h, panel_w, panel_h};
-  CounterPanel(r, panel, "Cemitério", value, colors::Get("hud.counterValue"));
+  CounterPanel(r, panel, title.c_str(), value, colors::Get("hud.counterValue"));
 }
 
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
@@ -198,8 +203,9 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   const float cy = height / 2.0f;
   // Os dois em 0 ao mesmo tempo não acontece pelas regras; se acontecer, conta como derrota.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
-  text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - ui::Grid(2), kResultScale,
+  text::DrawCentered(r, i18n::Get(won ? "hud.victory" : "hud.defeat").c_str(), cx,
+                     cy - ui::Grid(2), kResultScale,
                      colors::Get(won ? "status.victory" : "status.defeat"));
-  text::DrawCentered(r, "Esc volta ao menu", cx, cy + ui::Grid(4), kLineScale,
+  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, cy + ui::Grid(4), kLineScale,
                      colors::Get("text.primary"));
 }

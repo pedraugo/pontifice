@@ -56,7 +56,7 @@ O binário fica em `build/pontifice`, com `assets/` e `sprites/` copiados para o
 ./build/pontifice     # só abre, sem recompilar
 ```
 
-O jogo abre no menu (`docs/menu.md`). `Esc` sai. "Jogar" abre a batalha com a mão de cartas em 3D.
+O jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol ou português) e segue para o menu (`docs/menu.md`). `Esc` sai. "Jogar" abre a batalha com a mão de cartas em 3D.
 
 **Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
 
@@ -117,5 +117,6 @@ Apague `build/` e rode `./build.sh` de novo.
 - [Campo](docs/campo.md): slots, layout 5x2 e regras de posicionamento.
 - [Batalha](docs/batalha.md): fases do turno, invocação, posições, ataque e cálculo de dano.
 - [HUD](docs/hud.md): carta de campo ativa e pontos de vida na tela.
-- [Menu](docs/menu.md): primeira cena, botões Jogar e Sair.
+- [Idioma](docs/idioma.md): primeira cena, escolha entre inglês, espanhol e português; textos em `assets/translate.json`.
+- [Menu](docs/menu.md): botões Jogar, Nível e Sair.
 - [Detalhes técnicos](docs/detalhes_tecnicos.md): stack, estrutura do projeto, formato das cartas e renderização 3D.
