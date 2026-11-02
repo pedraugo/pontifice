@@ -1,6 +1,7 @@
 #include "scripts/button/Button.h"
 
 #include "scripts/colors/Colors.h"
+#include "scripts/frame/Frame.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -60,17 +61,23 @@ void Button::Render(SDL_Renderer* r) const {
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
   const bool highlight = hovered_ || focused_;
-  if (pressed_) {
-    FillRect(r, rect_, colors::Get("button.pressedFill"));
-  } else if (highlight) {
-    FillRect(r, rect_, colors::Get("button.hoverFill"));
+  if (frame::Ready()) {
+    // Placa de pedra: normal um pouco escurecida, destaque na cor cheia, pressionado escuro.
+    frame::Draw(r, rect_, frame::Kind::kButton, pressed_ ? 0.6f : highlight ? 1.0f : 0.8f);
+    if (focused_) StrokeRect(r, rect_, colors::Get("button.focusBorder"), kBorderThin);
   } else {
-    FillRect(r, rect_, colors::Get("button.fill"));
+    if (pressed_) {
+      FillRect(r, rect_, colors::Get("button.pressedFill"));
+    } else if (highlight) {
+      FillRect(r, rect_, colors::Get("button.hoverFill"));
+    } else {
+      FillRect(r, rect_, colors::Get("button.fill"));
+    }
+    const char* border = focused_ ? "button.focusBorder"
+                         : hovered_ ? "button.hoverBorder"
+                                    : "button.border";
+    StrokeRect(r, rect_, colors::Get(border), highlight ? kBorderThick : kBorderThin);
   }
-  const char* border = focused_ ? "button.focusBorder"
-                       : hovered_ ? "button.hoverBorder"
-                                  : "button.border";
-  StrokeRect(r, rect_, colors::Get(border), highlight ? kBorderThick : kBorderThin);
   text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
                      kLabelScale, colors::Get("button.text"));
 

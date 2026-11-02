@@ -3,18 +3,21 @@
 #include <algorithm>
 
 #include "scripts/colors/Colors.h"
+#include "scripts/frame/Frame.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
 // Cores vêm de assets/colors.json, pelos papéis "panel.*", "hud.*", "status.*" e "text.*".
 namespace {
 
-// Medidas em 1280x720, escaladas para a resolução lógica (ui::Px).
-constexpr float kMargin = ui::Px(16.0f);
-constexpr float kPadding = ui::Px(10.0f);
-constexpr float kPanelWidth = ui::Px(360.0f);        // painel de vida
-constexpr float kFieldPanelWidth = ui::Px(250.0f);   // carta de campo: compacto
-constexpr float kFieldPanelHeight = ui::Px(76.0f);
+// Layout na grade de 16 px (ui::Grid): margens de 1 célula, painéis com tamanhos inteiros.
+constexpr float kMargin = ui::Grid(1);
+constexpr float kPadding = ui::Grid(1);
+constexpr float kPanelWidth = ui::Grid(34);         // painel de vida (544 px)
+constexpr float kPanelHeight = ui::Grid(6);         // 96 px: 2 linhas de 24 px + folgas
+constexpr float kFieldPanelWidth = ui::Grid(24);    // carta de campo (384 px)
+constexpr float kFieldPanelHeight = ui::Grid(6);
+constexpr float kCounterHeight = ui::Grid(3);       // Monte / Cemitério: 48 px
 constexpr float kLineScale = 2.0f * ui::kScale;      // 16 px em 720p
 constexpr float kDetailScale = 1.5f * ui::kScale;    // 12 px em 720p
 constexpr float kResultScale = 6.0f * ui::kScale;
@@ -35,6 +38,10 @@ void StrokeRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
 }
 
 void Panel(SDL_Renderer* r, const SDL_FRect& rect) {
+  if (frame::Ready()) {
+    frame::Draw(r, rect, frame::Kind::kWindow);
+    return;
+  }
   FillRect(r, rect, colors::Get("panel.fill"));
   StrokeRect(r, rect, colors::Get("panel.border"));
 }
@@ -111,7 +118,7 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   StrokeRect(r, card, colors::Get("panel.border"));
 
   const float text_x = card.x + card.w + kPadding;
-  const float small_gap = ui::Px(3.0f);
+  const float small_gap = ui::Grid(0.25f);
   float y = card.y;
   text::Draw(r, field_.name.c_str(), text_x, y, kLineScale, colors::Get("hud.fieldName"));
   y += kLineHeight + small_gap;
@@ -125,13 +132,13 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
 }
 
 void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
-  const float panel_h = 2 * kPadding + 2 * kLineHeight + kLineGap;
-  const SDL_FRect panel{width - kMargin - kPanelWidth, kMargin, kPanelWidth, panel_h};
+  const SDL_FRect panel{width - kMargin - kPanelWidth, kMargin, kPanelWidth, kPanelHeight};
   Panel(r, panel);
 
   const float left = panel.x + kPadding;
   const float right = panel.x + panel.w - kPadding;
-  float y = panel.y + kPadding;
+  // Duas linhas centralizadas na altura do painel.
+  float y = panel.y + (panel.h - (2 * kLineHeight + kLineGap)) / 2.0f;
   const SDL_Color label = colors::Get("hud.lifeLabel");
   const SDL_Color value = colors::Get("hud.lifeValue");
   const SDL_Color zero = colors::Get("hud.lifeZero");
@@ -144,20 +151,20 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
             player_life_ > 0 ? value : zero);
 }
 
-// Painel de contador em uma linha: "[Título valor]", largura pelo texto.
+// Painel de contador em uma linha: "[Título valor]", largura pelo texto arredondada à grade.
 namespace {
 
-constexpr float kCounterGap = ui::Px(8.0f);  // entre título e valor
+constexpr float kCounterGap = ui::Grid(1);  // entre título e valor
 
 float CounterPanelWidth(const char* title, const std::string& value) {
-  return 2 * kPadding + text::Width(title, kLineScale) + kCounterGap +
-         text::Width(value.c_str(), kLineScale);
+  return ui::SnapUp(2 * kPadding + text::Width(title, kLineScale) + kCounterGap +
+                    text::Width(value.c_str(), kLineScale));
 }
 
 void CounterPanel(SDL_Renderer* r, const SDL_FRect& panel, const char* title,
                   const std::string& value, SDL_Color value_color) {
   Panel(r, panel);
-  const float y = panel.y + kPadding;
+  const float y = panel.y + (panel.h - kLineHeight) / 2.0f;
   text::Draw(r, title, panel.x + kPadding, y, kLineScale, colors::Get("panel.title"));
   DrawRight(r, value.c_str(), panel.x + panel.w - kPadding, y, kLineScale, value_color);
 }
@@ -167,7 +174,7 @@ void CounterPanel(SDL_Renderer* r, const SDL_FRect& panel, const char* title,
 void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
   // "Monte restantes/total"; monte vazio em destaque: o jogador não compra mais.
   const std::string value = std::to_string(deck_remaining_) + "/" + std::to_string(kDeckSize);
-  const float panel_h = 2 * kPadding + kLineHeight;
+  const float panel_h = kCounterHeight;
   const float left = deck_panel_left_ >= 0.0f ? deck_panel_left_ : kMargin;
   const SDL_FRect panel{left, height - kMargin - panel_h, CounterPanelWidth("Monte", value),
                         panel_h};
@@ -178,7 +185,7 @@ void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
 
 void Hud::RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const {
   const std::string value = std::to_string(graveyard_);
-  const float panel_h = 2 * kPadding + kLineHeight;
+  const float panel_h = kCounterHeight;
   const float panel_w = CounterPanelWidth("Cemitério", value);
   const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - panel_h, panel_w, panel_h};
   CounterPanel(r, panel, "Cemitério", value, colors::Get("hud.counterValue"));
@@ -191,8 +198,8 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   const float cy = height / 2.0f;
   // Os dois em 0 ao mesmo tempo não acontece pelas regras; se acontecer, conta como derrota.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
-  text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - ui::Px(20.0f), kResultScale,
+  text::DrawCentered(r, won ? "VITÓRIA" : "DERROTA", cx, cy - ui::Grid(2), kResultScale,
                      colors::Get(won ? "status.victory" : "status.defeat"));
-  text::DrawCentered(r, "Esc volta ao menu", cx, cy + ui::Px(40.0f), kLineScale,
+  text::DrawCentered(r, "Esc volta ao menu", cx, cy + ui::Grid(4), kLineScale,
                      colors::Get("text.primary"));
 }

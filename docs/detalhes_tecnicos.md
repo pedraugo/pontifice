@@ -10,7 +10,8 @@
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
-- **Resolução lógica**: 1920x1080 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução. O layout 2D foi medido em 1280x720 e passa por `ui::Px` / `ui::kScale` (1,5) em `scripts/ui/Ui.h`.
+- **Resolução lógica**: 1920x1080 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução. A interface 2D fica numa **grade de 16 px** (`ui::Grid(n)` em `scripts/ui/Ui.h`: 1920 = 120 células, 1080 = 67,5): margens de 1 célula, painéis do HUD 24x6 e 34x6, contadores com 3 de altura e largura arredondada à grade (`ui::SnapUp`), botões do menu 22x5 com 2 de vão, botão da batalha 21x5, botão de som 3x3, tooltip com imagem de 14 células. Tamanhos de texto seguem `ui::kScale` (1,5; medidos em 1280x720).
+- **Moldura da interface**: duas placas de pedra com moldura de metal e estrelas nos cantos (de `art/ui.jpg`; 768x768), cada uma dividida em **9 tiles iguais** (terços): `tl t tr / ml m mr / bl b br`. `sprites/UiFrameButton.png` (azulada, como na arte) é o fundo dos botões (`frame::Kind::kButton`: Jogar, Nível, Sair, Passar turno, som); `sprites/UiFrameWindow.png` (dessaturada 75%, escurecida a 68%, leve tom de aço) é o fundo de janelas, painéis do HUD e tooltip (`frame::Kind::kWindow`). `scripts/frame/Frame.*` monta cada elemento com tiles: linha de cima `tl` + N vezes `t` + `tr`, de baixo `bl` + N vezes `b` + `br` e, em painéis altos, linhas `ml` + N vezes `m` + `mr` no meio. A escala vem da altura (tile = altura / linhas; linhas = altura / 40 px, mínimo 2) e N cobre a largura com tiles quase quadrados. Estados de botão escurecem a placa (normal 80%, pressionado 60%, destaque 100%). `tools/make_ui_frame.py` gera os dois PNG: converte o JPG (`sips`), torna o fundo branco transparente, tira a margem, refaz o centro em espelho 2x2 (terços simétricos, tiles sem emenda) e deriva a variante Window.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto
@@ -31,7 +32,9 @@ src/
       BattleScene.*   batalha: render 3D e mão de cartas
   scripts/            componentes reutilizáveis, uma pasta por componente
     ui/
-      Ui.h            escala da interface 2D (layout em 1280x720 -> lógica 1920x1080)
+      Ui.h            escala de texto (ui::Px) e grade de 16 px da interface (ui::Grid, ui::SnapUp)
+    frame/
+      Frame.*         moldura da interface: UiFrameButton.png (botões) e UiFrameWindow.png (janelas, painéis, tooltip) em 9 tiles iguais montados por elemento
     text/
       Text.*          texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: atlas 16/32/64 px, ASCII e Latin-1; sem a fonte, cai na de depuração do SDL
     button/
@@ -91,7 +94,7 @@ src/
     CardsNeutral.json
     CardsField.json
   sounds/             músicas de fundo (MP3) listadas em assets/ost.json
-  sprites/            texturas das cartas (PNG) e fontes de arte (PSD)
+  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
   icons/
@@ -110,12 +113,14 @@ src/
                       madeira, bandas de metal, tábuas, cruz e placa com flor-de-lis
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
+    ui.jpg            ilustração de referência da moldura da interface (placa de pedra); vira sprites/UiFrameButton.png e UiFrameWindow.png
     Door.jpg          ilustração de referência do portão da tela de loading
     DoorAtlas.png     atlas gerado para o portão (1024x1024): pedra procedural, madeira e ferro da arena
     torch.webp        ilustração de referência da tocha
     TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
+  make_ui_frame.py    gera sprites/UiFrameButton.png e UiFrameWindow.png (placas da interface) a partir de art/ui.jpg: fundo transparente, placa sem a margem, centro em tile; Window mais escura e cinza
   make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
   make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)
   normalmap.py        gera normal map (luminância -> Sobel) da textura embutida e grava como normalTexture no GLB; chamado pelos três geradores
@@ -217,7 +222,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor (`RenderTooltip`): frente composta da carta à esquerda (mesma textura do HUD, em cache por código), e à direita nome, categoria e hierarquia (número e nome, ex.: "Maligna - Hierarquia 3 (Criaturas)"), **ATK** e **DEF** efetivos (verde/vermelho e "(base n)" quando a carta de campo altera), descrição com quebra de linha, dono e posição. Na mão, a carta sob o mouse cresce 1,64x (`Hand::Layout::hover_scale`).
 9. **Passar turno**: com mais de 6 cartas na mão, as de menor ataque são descartadas. A câmera orbita 180° (1 s), a mão se recolhe e começa o turno do computador.
 
-**Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se bate o campo do jogador, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
+**Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se consegue destruir alguma carta do jogador ou se o campo dele está vazio, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos, aceita troca igual; nunca ataca quem ganharia dela; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
 
 **Níveis** (`ai::Difficulty`, escolhidos no menu, `PONTIFICE_DIFFICULTY=easy|medium|hard|impossible` força): mudam só o **monte do computador**, por peso de sorteio por hierarquia (`ai::DeckWeight`; os limites de 2 cópias e 1 de hierarquia 1 continuam):
 

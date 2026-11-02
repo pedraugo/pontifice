@@ -8,6 +8,7 @@
 
 #include "scripts/cardface/CardFace.h"
 #include "scripts/colors/Colors.h"
+#include "scripts/frame/Frame.h"
 #include "scripts/image/Image.h"
 #include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
@@ -70,24 +71,27 @@ constexpr IntroMistLayer kIntroMistLayers[] = {
 // arena no turno do computador e volta no seu.
 constexpr float kOrbitSeconds = 1.0f;
 
-// Botão "Passar turno": à direita, acima do painel do cemitério, fora da mão.
-constexpr float kButtonWidth = ui::Px(220.0f);
-constexpr float kButtonHeight = ui::Px(52.0f);
-constexpr float kButtonMargin = ui::Px(16.0f);
-constexpr float kButtonBottom = ui::Px(120.0f);  // distância do rodapé (painel do cemitério)
+// Layout 2D na grade de 16 px (ui::Grid). Botão "Passar turno": à direita, acima do painel
+// do cemitério, fora da mão.
+constexpr float kButtonWidth = ui::Grid(21);   // 336 px
+constexpr float kButtonHeight = ui::Grid(5);   // 80 px
+constexpr float kButtonMargin = ui::Grid(1);
+constexpr float kButtonBottom = ui::Grid(14);  // do rodapé: cemitério (3) + folga
 constexpr float kHintScale = 2.0f * ui::kScale;
-// Botão de som: quadrado no canto inferior esquerdo; o painel do monte fica à direita dele.
-constexpr float kSoundButtonSize = ui::Px(40.0f);
-constexpr float kSoundButtonGap = ui::Px(10.0f);
-// Tooltip da carta no campo: medidas em 1280x720 (ui::Px), como o HUD. Imagem da carta à
-// esquerda, textos à direita.
-constexpr float kTipScale = 2.0f * ui::kScale;        // 16 px em 720p
-constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 12 px
-constexpr float kTipPadding = ui::Px(10.0f);
-constexpr float kTipGap = ui::Px(5.0f);
-constexpr float kTipOffset = ui::Px(14.0f);   // distância do cursor
-constexpr float kTipImageH = ui::Px(220.0f);  // altura da frente da carta
-constexpr float kTipTextW = ui::Px(250.0f);   // largura da coluna de texto (quebra da descrição)
+// Botão de som: 3 x 3 células no canto inferior esquerdo; o painel do monte fica à direita.
+constexpr float kSoundButtonSize = ui::Grid(3);
+constexpr float kSoundButtonGap = ui::Grid(1);
+// Tooltip da carta no campo: imagem da carta à esquerda, textos à direita.
+constexpr float kTipScale = 2.0f * ui::kScale;        // 24 px
+constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 18 px
+constexpr float kTipPadding = ui::Grid(1);
+constexpr float kTipGap = ui::Grid(0.5f);
+constexpr float kTipOffset = ui::Grid(1);     // distância do cursor
+constexpr float kTipImageH = ui::Grid(14);    // altura da frente da carta (224 px)
+constexpr float kTipTextW = ui::Grid(24);     // largura da coluna de texto (quebra da descrição)
+// Topo: linha de situação e dica (centros em y).
+constexpr float kStatusY = ui::Grid(2);
+constexpr float kHintY = ui::Grid(4);
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 
 // Quebra `str` em linhas de até `max_w` px na escala dada (por palavras).
@@ -1032,20 +1036,25 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
     text_h += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
   }
   const float image_w = kTipImageH * kCardAspect;
-  const float w = 3 * kTipPadding + image_w + std::max(text_w, kTipTextW * 0.6f);
-  const float h = 2 * kTipPadding + std::max(kTipImageH, text_h);
+  const float w = ui::SnapUp(3 * kTipPadding + image_w + std::max(text_w, kTipTextW * 0.6f));
+  const float h = ui::SnapUp(2 * kTipPadding + std::max(kTipImageH, text_h));
   // Perto do cursor, sem sair da tela.
   float x = mouse_.x + kTipOffset;
   float y = mouse_.y + kTipOffset;
   if (x + w > width) x = mouse_.x - kTipOffset - w;
   if (y + h > height) y = std::max(0.0f, mouse_.y - kTipOffset - h);
   const SDL_FRect panel{x, y, w, h};
-  SDL_Color c = colors::Get("panel.fill");
-  SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-  SDL_RenderFillRect(r, &panel);
-  c = colors::Get("panel.border");
-  SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-  SDL_RenderRect(r, &panel);
+  SDL_Color c;
+  if (frame::Ready()) {
+    frame::Draw(r, panel, frame::Kind::kWindow);
+  } else {
+    c = colors::Get("panel.fill");
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderFillRect(r, &panel);
+    c = colors::Get("panel.border");
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderRect(r, &panel);
+  }
 
   // Imagem: frente composta da carta (mesma do HUD), em cache por código.
   const SDL_FRect image{x + kTipPadding, y + kTipPadding, image_w, kTipImageH};
@@ -1154,7 +1163,7 @@ void BattleScene::Render(SceneContext& ctx) {
     status += turn_side_ == Side::kPlayer && player_turn_ ? "sua vez" : "oponente";
     status += " - oponente (" + std::string(ai::DifficultyName(difficulty_)) + ") com " +
               std::to_string(enemy_hand_.size()) + " cartas na mao";
-    text::DrawCentered(r, status.c_str(), cx, ui::Px(26.0f), kStatusScale,
+    text::DrawCentered(r, status.c_str(), cx, kStatusY, kStatusScale,
                        colors::Get("text.secondary"));
   }
   // Arrasto de ataque: linha da carta atacante até o mouse.
@@ -1186,7 +1195,7 @@ void BattleScene::Render(SceneContext& ctx) {
     }
   }
   if (hint != nullptr) {
-    text::DrawCentered(r, hint, cx, ui::Px(54.0f), kHintScale, colors::Get("board.hint"));
+    text::DrawCentered(r, hint, cx, kHintY, kHintScale, colors::Get("board.hint"));
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);

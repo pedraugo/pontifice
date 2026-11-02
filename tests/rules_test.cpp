@@ -83,6 +83,13 @@ int main() {
   v.hand = {&weak, &wall};
   s = ai::ChooseSummon(v);
   Check(s && s->hand_index == 1 && s->defense, "sem bater o campo, a de maior defesa em defesa");
+  // Com uma carta fraca do jogador em campo (além da forte), entra em ataque para destruí-la.
+  v.theirs.push_back(ai::FieldCard{1, &weak, false, true, false});
+  v.hand = {&weak, &wall, &good};
+  s = ai::ChooseSummon(v);
+  Check(s && (s->hand_index == 1 || s->hand_index == 2) && !s->defense,
+        "bate a carta mais fraca: entra em ataque (ATK 500)");
+  v.theirs.pop_back();
   v.can_summon = false;
   Check(!ai::ChooseSummon(v), "sem invocação disponível não invoca");
 

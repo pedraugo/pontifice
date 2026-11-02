@@ -11,10 +11,11 @@
 // computador e decide uma ação por vez; a cena executa e pergunta de novo. Todas as cartas
 // em campo ficam viradas para cima, então a IA vê o que o jogador vê. Heurísticas, sem busca:
 // - Carta de campo: joga se favorece a categoria que ele tem mais em jogo e na mão.
-// - Invocação: a carta de maior ataque efetivo, em ataque se bate o campo do jogador (ou se
-//   o campo dele está vazio); senão a de maior defesa, em modo de defesa.
-// - Posição: carta em defesa que já ganha de tudo passa a ataque; em ataque que perderia de
-//   qualquer atacante do jogador passa a defesa (nunca no turno em que entrou).
+// - Invocação: a carta de maior ataque efetivo, em ataque se consegue destruir alguma carta
+//   do jogador (ou se o campo dele está vazio); senão a de maior defesa, em modo de defesa.
+// - Posição: carta em defesa que consegue destruir algo (ou com o campo do jogador vazio)
+//   passa a ataque; em ataque que não destrói nada e perderia do atacante mais forte do
+//   jogador passa a defesa (nunca no turno em que entrou).
 // - Ataques: primeiro os que destroem sem risco e com dano, depois os seguros; ataque direto
 //   com todas quando o campo do jogador está vazio.
 namespace ai {

@@ -85,6 +85,7 @@ add_executable(pontifice
   src/scripts/board/Board.cpp
   src/scripts/sword/Sword.cpp
   src/scripts/soundbutton/SoundButton.cpp
+  src/scripts/frame/Frame.cpp
   src/scripts/rules/Rules.cpp
   src/scripts/ai/Ai.cpp
   src/scripts/image/Image.cpp

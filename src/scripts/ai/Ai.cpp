@@ -54,19 +54,17 @@ namespace {
 int Atk(const CardInfo* c, const rules::Field& f) { return rules::EffectiveAttack(*c, f); }
 int Def(const CardInfo* c, const rules::Field& f) { return rules::EffectiveDefense(*c, f); }
 
-// Maior ataque efetivo do jogador em campo (cartas em modo de ataque).
-int TheirMaxAttack(const View& v) {
-  int best = 0;
-  for (const FieldCard& c : v.theirs) {
-    if (c.info != nullptr && !c.defense) best = std::max(best, Atk(c.info, v.field));
-  }
-  return best;
-}
-
 // O que a carta do jogador "vale" como alvo: ataque (modo ataque) ou defesa (modo defesa).
 int TheirGuard(const FieldCard& c, const View& v) {
   if (c.info == nullptr) return 0;
   return c.defense ? Def(c.info, v.field) : Atk(c.info, v.field);
+}
+
+// Alvo mais fraco do jogador: um ataque acima disso destrói alguma carta. Campo vazio: 0.
+int TheirMinGuard(const View& v) {
+  int best = 1 << 30;
+  for (const FieldCard& c : v.theirs) best = std::min(best, TheirGuard(c, v));
+  return v.theirs.empty() ? 0 : best;
 }
 
 }  // namespace
@@ -135,9 +133,9 @@ std::optional<Summon> ChooseSummon(const View& view) {
     }
     if (best_atk <= worst) return std::nullopt;
   }
-  const int threat = TheirMaxAttack(view);
-  if (view.theirs.empty() || best_atk > threat) return Summon{atk_index, false};
-  // Não bate o campo do jogador: entra a de maior defesa, em modo de defesa.
+  // Em ataque se consegue destruir alguma carta do jogador (ou o campo dele está vazio);
+  // senão entra a de maior defesa, em modo de defesa.
+  if (view.theirs.empty() || best_atk > TheirMinGuard(view)) return Summon{atk_index, false};
   return Summon{def_index, true};
 }
 
@@ -167,19 +165,18 @@ std::vector<int> ChoosePositionChanges(const View& view) {
       their_best_atk = std::max(their_best_atk, Atk(c.info, view.field));
     }
   }
+  const int min_guard = TheirMinGuard(view);
   for (const FieldCard& c : view.mine) {
     if (c.info == nullptr || c.summoned_this_turn) continue;
     const int a = Atk(c.info, view.field);
     const int d = Def(c.info, view.field);
     if (c.defense) {
-      // Vale levantar se ganha de todo alvo do jogador (ou o campo dele está vazio).
-      bool beats_all = true;
-      for (const FieldCard& t : view.theirs) {
-        if (a <= TheirGuard(t, view)) beats_all = false;
-      }
-      if (beats_all && (view.theirs.empty() || a > their_best_atk)) out.push_back(c.slot);
-    } else if (their_best_atk > a && d > a) {
-      // Em ataque perderia (e levaria dano); em defesa segura mais.
+      // Levanta se consegue destruir alguma carta do jogador ou se o campo dele está vazio
+      // (ataque direto).
+      if (view.theirs.empty() || a > min_guard) out.push_back(c.slot);
+    } else if (!view.theirs.empty() && a <= min_guard && their_best_atk > a && d > a) {
+      // Não destrói nada, perderia para o atacante mais forte do jogador e defende melhor
+      // do que ataca: abaixa.
       out.push_back(c.slot);
     }
   }
@@ -211,8 +208,8 @@ std::optional<Attack> ChooseAttack(const View& view) {
       } else {
         if (a > guard) {
           score = 300 + (a - guard) + guard;  // destrói e causa dano
-        } else if (a == guard && view.my_life >= view.their_life) {
-          score = 50;  // troca igual, aceitável se não estou atrás
+        } else if (a == guard) {
+          score = 50;  // troca igual: as duas saem, sem dano
         }
       }
       if (score > best_score) {

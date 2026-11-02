@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "scripts/colors/Colors.h"
+#include "scripts/frame/Frame.h"
 #include "scripts/ui/Ui.h"
 
 namespace {
@@ -67,13 +68,17 @@ void SoundButton::Render(SDL_Renderer* r, bool muted) const {
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
-  // Fundo e borda como os botões de texto (papéis "button.*").
-  SDL_Color fill = colors::Get(pressed_ ? "button.pressedFill" : hovered_ ? "button.hoverFill" : "button.fill");
-  SDL_SetRenderDrawColor(r, fill.r, fill.g, fill.b, fill.a);
-  SDL_RenderFillRect(r, &rect_);
-  SDL_Color border = colors::Get(hovered_ ? "button.hoverBorder" : "button.border");
-  SDL_SetRenderDrawColor(r, border.r, border.g, border.b, border.a);
-  SDL_RenderRect(r, &rect_);
+  // Fundo como os botões de texto: placa de pedra (ou cores "button.*" sem ela).
+  if (frame::Ready()) {
+    frame::Draw(r, rect_, frame::Kind::kButton, pressed_ ? 0.6f : hovered_ ? 1.0f : 0.8f);
+  } else {
+    SDL_Color fill = colors::Get(pressed_ ? "button.pressedFill" : hovered_ ? "button.hoverFill" : "button.fill");
+    SDL_SetRenderDrawColor(r, fill.r, fill.g, fill.b, fill.a);
+    SDL_RenderFillRect(r, &rect_);
+    SDL_Color border = colors::Get(hovered_ ? "button.hoverBorder" : "button.border");
+    SDL_SetRenderDrawColor(r, border.r, border.g, border.b, border.a);
+    SDL_RenderRect(r, &rect_);
+  }
 
   // Ícone em coordenadas 0..1 da caixa: corpo do alto-falante, cone, ondas (ou X).
   SDL_Color ink = colors::Get("button.text");
@@ -93,7 +98,7 @@ void SoundButton::Render(SDL_Renderer* r, bool muted) const {
     // X ao lado do cone.
     const SDL_Color x = colors::Get("status.nerf");
     SDL_SetRenderDrawColor(r, x.r, x.g, x.b, x.a);
-    const float t = ui::Px(1.0f);
+    const float t = 1.5f;
     for (int k = -1; k <= 1; ++k) {
       const float o = static_cast<float>(k) * t;
       SDL_RenderLine(r, P(0.60f, 0.38f).x + o, P(0.60f, 0.38f).y, P(0.80f, 0.62f).x + o,

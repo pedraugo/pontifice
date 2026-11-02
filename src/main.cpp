@@ -12,6 +12,7 @@
 #include "scenes/SceneManager.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/image/Image.h"
+#include "scripts/frame/Frame.h"
 #include "scripts/music/Music.h"
 #include "scripts/text/Text.h"
 
@@ -126,6 +127,9 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   // Fonte do jogo (atlas de glifos no renderer); sem ela o texto usa a fonte de depuração.
   text::Init(app.renderer, base + "assets/PirataOne.ttf");
+  // Placas de pedra com moldura (sprites/UiFrameButton.png e UiFrameWindow.png): fundo de
+  // botões e de janelas/painéis.
+  frame::Init(app.renderer, base + "sprites/");
 
   SceneContext ctx;
   ctx.renderer = app.renderer;
@@ -273,6 +277,7 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   }  // cenas destruídas aqui
 
+  frame::Shutdown();
   text::Shutdown();  // textura da fonte antes de destruir o renderer
   Shutdown(app);
   return 0;

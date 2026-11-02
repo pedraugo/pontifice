@@ -14,13 +14,14 @@
 
 namespace {
 
-constexpr float kButtonWidth = ui::Px(260.0f);
-constexpr float kButtonHeight = ui::Px(56.0f);
-constexpr float kButtonGap = ui::Px(24.0f);
+// Grade de 16 px: botões de 22 x 5 células, 2 células entre eles.
+constexpr float kButtonWidth = ui::Grid(22);
+constexpr float kButtonHeight = ui::Grid(5);
+constexpr float kButtonGap = ui::Grid(2);
 constexpr float kTitleScale = 6.0f * ui::kScale;
 constexpr float kFooterScale = 2.0f * ui::kScale;
-constexpr float kSoundButtonSize = ui::Px(40.0f);
-constexpr float kSoundMargin = ui::Px(16.0f);
+constexpr float kSoundButtonSize = ui::Grid(3);
+constexpr float kSoundMargin = ui::Grid(1);
 
 std::string DifficultyLabel(int level) {
   return std::string("Nível: ") +
@@ -56,7 +57,7 @@ void MenuScene::OnEnter(SceneContext& ctx) {
 void MenuScene::LayoutButtons(const SceneContext& ctx) {
   const float total = buttons_.size() * kButtonHeight + (buttons_.size() - 1) * kButtonGap;
   const float x = (ctx.logical_width - kButtonWidth) / 2.0f;
-  float y = (ctx.logical_height - total) / 2.0f;
+  float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
   for (auto& button : buttons_) {
     button->SetRect(SDL_FRect{x, y, kButtonWidth, kButtonHeight});
     y += kButtonHeight + kButtonGap;
@@ -124,7 +125,7 @@ void MenuScene::Render(SceneContext& ctx) {
   for (auto& button : buttons_) button->Render(r);
   sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
 
-  text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - ui::Px(48.0f),
+  text::DrawCentered(r, "Criado por pedraugo", center_x, ctx.logical_height - ui::Grid(3),
                      kFooterScale, colors::Get("text.secondary"));
   if (clouds_ready_) clouds_.RenderFront(r);  // névoa rala por cima do texto
 }
