@@ -188,6 +188,103 @@ SDL_FColor Hue(float x, float alpha) {
                     0.5f + 0.5f * std::cos(kTau * (x + 0.67f)), alpha};
 }
 
+// Faixa grossa ao longo de uma polilinha (SDL_RenderGeometry): largura e cor por ponto.
+void DrawStrip(SDL_Renderer* r, const std::vector<SDL_FPoint>& pts,
+               const std::vector<float>& widths, const std::vector<SDL_FColor>& colors_) {
+  const size_t n = pts.size();
+  if (n < 2) return;
+  std::vector<SDL_Vertex> v;
+  v.reserve(n * 2);
+  for (size_t i = 0; i < n; ++i) {
+    const SDL_FPoint a = pts[i == 0 ? 0 : i - 1];
+    const SDL_FPoint b = pts[i + 1 < n ? i + 1 : n - 1];
+    float tx = b.x - a.x, ty = b.y - a.y;
+    const float len = SDL_sqrtf(tx * tx + ty * ty);
+    if (len > 1e-4f) {
+      tx /= len;
+      ty /= len;
+    }
+    const float half = widths[i] * 0.5f;
+    const SDL_FPoint p = pts[i];
+    v.push_back(SDL_Vertex{{p.x - ty * half, p.y + tx * half}, colors_[i], {0, 0}});
+    v.push_back(SDL_Vertex{{p.x + ty * half, p.y - tx * half}, colors_[i], {0, 0}});
+  }
+  std::vector<int> idx;
+  for (int i = 0; i + 1 < static_cast<int>(n); ++i) {
+    const int a = i * 2;
+    idx.insert(idx.end(), {a, a + 1, a + 2, a + 1, a + 3, a + 2});
+  }
+  SDL_RenderGeometry(r, nullptr, v.data(), static_cast<int>(v.size()), idx.data(),
+                     static_cast<int>(idx.size()));
+}
+
+// Linha de ataque: arco (Bézier quadrática) da carta atacante até o mouse, curvado para cima
+// com altura proporcional à distância; engrossa até a ponta, com contorno escuro, brilho em
+// volta, um pulso de luz que corre da carta para o alvo e ponta de seta na direção da curva.
+void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color color, float time) {
+  const float dx = to.x - from.x, dy = to.y - from.y;
+  const float dist = SDL_sqrtf(dx * dx + dy * dy);
+  if (dist < 8.0f) return;
+  // Normal do segmento voltada para cima na tela (y menor); linha vertical curva para a direita.
+  float nx = -dy / dist, ny = dx / dist;
+  if (ny > 0.0f || (ny == 0.0f && nx < 0.0f)) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const float bend = SDL_clamp(dist * 0.35f, 40.0f, 320.0f);
+  const SDL_FPoint ctrl{(from.x + to.x) * 0.5f + nx * bend, (from.y + to.y) * 0.5f + ny * bend};
+  constexpr int kSegments = 48;
+  constexpr float kHeadLength = 34.0f;
+  constexpr float kHeadWidth = 34.0f;
+  // Pontos da curva; a faixa para na base da seta (recuo de kHeadLength ao longo da ponta).
+  auto at = [&](float t) {
+    const float u = 1.0f - t;
+    return SDL_FPoint{u * u * from.x + 2 * u * t * ctrl.x + t * t * to.x,
+                      u * u * from.y + 2 * u * t * ctrl.y + t * t * to.y};
+  };
+  // Tangente no fim (direção de ctrl para to): orienta a seta.
+  float ex = to.x - ctrl.x, ey = to.y - ctrl.y;
+  const float elen = SDL_sqrtf(ex * ex + ey * ey);
+  ex /= SDL_max(elen, 1e-4f);
+  ey /= SDL_max(elen, 1e-4f);
+  const SDL_FPoint base{to.x - ex * kHeadLength, to.y - ey * kHeadLength};
+  std::vector<SDL_FPoint> pts;
+  std::vector<float> core_w, glow_w, outline_w;
+  std::vector<SDL_FColor> core_c, glow_c, outline_c;
+  const float head_t = SDL_max(0.0f, 1.0f - kHeadLength / SDL_max(dist * 1.15f, 1.0f));
+  const SDL_FColor c{color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f};
+  for (int i = 0; i <= kSegments; ++i) {
+    const float s = static_cast<float>(i) / kSegments;
+    pts.push_back(i == kSegments ? base : at(s * head_t));
+    const float w = 4.0f + 6.0f * s;  // engrossa até a ponta
+    // Pulso: faixa clara que corre ao longo do arco (ciclo de 0,8 s).
+    const float phase = s - SDL_fmodf(time * 1.25f, 1.0f);
+    const float pulse = SDL_expf(-phase * phase * 120.0f);
+    core_w.push_back(w);
+    glow_w.push_back(w * 3.2f);
+    outline_w.push_back(w + 4.0f);
+    core_c.push_back(SDL_FColor{SDL_min(1.0f, c.r + 0.5f * pulse), SDL_min(1.0f, c.g + 0.5f * pulse),
+                                SDL_min(1.0f, c.b + 0.5f * pulse), 0.55f + 0.45f * s});
+    glow_c.push_back(SDL_FColor{c.r, c.g, c.b, (0.12f + 0.25f * pulse) * (0.5f + 0.5f * s)});
+    outline_c.push_back(SDL_FColor{0.0f, 0.0f, 0.0f, 0.45f * (0.5f + 0.5f * s)});
+  }
+  DrawStrip(r, pts, glow_w, glow_c);
+  DrawStrip(r, pts, outline_w, outline_c);
+  DrawStrip(r, pts, core_w, core_c);
+  // Ponta de seta: contorno escuro um pouco maior e a seta na cor.
+  auto head = [&](float grow, SDL_FColor fill) {
+    const float px = -ey, py = ex;  // perpendicular à ponta
+    const float half = kHeadWidth * 0.5f + grow;
+    const SDL_FPoint tip{to.x + ex * grow, to.y + ey * grow};
+    const SDL_FPoint b0{base.x - ex * grow + px * half, base.y - ey * grow + py * half};
+    const SDL_FPoint b1{base.x - ex * grow - px * half, base.y - ey * grow - py * half};
+    const SDL_Vertex tri[3] = {{tip, fill, {0, 0}}, {b0, fill, {0, 0}}, {b1, fill, {0, 0}}};
+    SDL_RenderGeometry(r, nullptr, tri, 3, nullptr, 0);
+  };
+  head(3.0f, SDL_FColor{0.0f, 0.0f, 0.0f, 0.5f});
+  head(0.0f, SDL_FColor{c.r, c.g, c.b, 1.0f});
+}
+
 float SmoothStep(float t) {
   t = math::Clamp(t, 0.0f, 1.0f);
   return t * t * (3.0f - 2.0f * t);
@@ -1561,16 +1658,14 @@ void BattleScene::Render(SceneContext& ctx) {
     text::DrawCentered(r, status.c_str(), cx, kStatusY, kStatusScale,
                        colors::Get("text.secondary"));
   }
-  // Arrasto de ataque: linha da carta atacante até o mouse.
+  // Arrasto de ataque: arco curvo com seta da carta atacante até o mouse.
   if (attack_from_ >= 0 && attack_drag_ && mouse_.x >= 0) {
     const math::Vec2 from =
         ScreenOf(board_.CardPosition(attack_from_), ctx.logical_width, ctx.logical_height);
-    const SDL_Color line = colors::Get("board.slotHover");
-    SDL_SetRenderDrawColor(r, line.r, line.g, line.b, line.a);
-    for (int k = -1; k <= 1; ++k) {
-      SDL_RenderLine(r, from.x + k, from.y, mouse_.x + k, mouse_.y);
-      SDL_RenderLine(r, from.x, from.y + k, mouse_.x, mouse_.y + k);
-    }
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    DrawAttackArc(r, SDL_FPoint{from.x, from.y}, SDL_FPoint{mouse_.x, mouse_.y},
+                  colors::Get("board.slotHover"),
+                  static_cast<float>(SDL_GetTicks()) / 1000.0f);
   }
   // Dicas do seu turno.
   const char* hint = nullptr;  // chave em translate.json
