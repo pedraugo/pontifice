@@ -1,5 +1,6 @@
 {
   "volume": {"menu": 0.15, "battle": 0.25},
+  "random": ["battle"],
   "categories": {
     "ost": [
       {"file": "sounds/HowlsOfTheNight.mp3", "gain": 0.66},

@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstdint>
 #include <map>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -17,7 +18,9 @@
 // áudio).
 // ost.json: "volume" número ou objeto por cena {"menu": 0.15, "battle": 0.25};
 // "categories" {"ost": [...], "battle": [...]} ("ost" toca no menu e no loading, "battle" na
-// batalha). "tracks" (lista única) continua aceito como categoria "ost". Cada faixa é uma
+// batalha). "random": ["battle"] lista as categorias tocadas em ordem aleatória (cada faixa
+// sorteada, sem repetir a que acabou de tocar); as outras tocam em sequência.
+// "tracks" (lista única) continua aceito como categoria "ost". Cada faixa é uma
 // string ou {"file": "...", "gain": 1.3}: o ganho normaliza o volume entre faixas
 // masterizadas em níveis diferentes (PONTIFICE_AUDIO_ANALYZE=1 mede o RMS de cada uma e
 // sugere o ganho para uma referência comum).
@@ -68,6 +71,7 @@ class Music {
   struct Category {
     std::string name;
     std::vector<Track> tracks;
+    bool random = false;  // ordem sorteada (ost.json "random")
   };
   void Analyze();  // PONTIFICE_AUDIO_ANALYZE=1: RMS e ganho sugerido de cada faixa (log)
 
@@ -91,6 +95,8 @@ class Music {
   uint64_t switch_left_ = 0;           // quadros restantes do fade out da troca
   uint64_t switch_total_ = 0;
   std::vector<Track> tracks_;          // faixas da categoria ativa
+  bool random_ = false;                // a categoria ativa toca em ordem sorteada
+  std::mt19937 rng_;                   // sorteio das faixas (thread de áudio, após Init)
   float track_gain_ = 1.0f;            // ganho da faixa atual
   std::map<std::string, float> scene_volumes_;  // "menu", "battle"...
   std::atomic<float> target_volume_{0.3f};

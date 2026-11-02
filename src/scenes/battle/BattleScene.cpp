@@ -201,6 +201,7 @@ const char* SlotName(int slot, char* buffer) {
 BattleScene::~BattleScene() {
   if (field_front_2d_ != nullptr) SDL_DestroyTexture(field_front_2d_);
   for (auto& [code, texture] : hud_faces_) SDL_DestroyTexture(texture);
+  for (auto& [code, texture] : hud_arts_) SDL_DestroyTexture(texture);
   if (gpu_ == nullptr) return;
   hand_.Clear();
   board_.Destroy(*gpu_);
@@ -399,6 +400,17 @@ BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
   // Hierarquia 1 (Divindades, Soberanos): carta foil.
   return {UploadSprite(cardface::Compose(frame, *card, ArtFor(*card))), card->hierarchy == 1,
           card};
+}
+
+SDL_Texture* BattleScene::HudArt(const CardInfo& card) {
+  if (renderer_ == nullptr) return nullptr;
+  if (const auto it = hud_arts_.find(card.code); it != hud_arts_.end()) return it->second;
+  const Image* art = ArtFor(card);
+  if (art == nullptr) return nullptr;
+  // 668x448 reduzida 4x (167x112): no painel a miniatura tem 64 px de altura.
+  SDL_Texture* texture = UploadHudSprite(renderer_, art->Downscaled(4));
+  if (texture != nullptr) hud_arts_[card.code] = texture;
+  return texture;
 }
 
 const Image* BattleScene::ArtFor(const CardInfo& card) const {
@@ -705,6 +717,7 @@ void BattleScene::PlayField(Side owner, const CardInfo& card) {
   info.buff = card.buff;
   info.nerf = card.nerf;
   info.image = HudFace(card);
+  info.art = HudArt(card);  // o painel mostra só a ilustração, se houver
   hud_.SetFieldCard(info);
   SDL_Log("%s ativou a carta de campo %s", owner == Side::kPlayer ? "Voce" : "Oponente",
           card.name.c_str());

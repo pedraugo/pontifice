@@ -189,6 +189,10 @@ class BattleScene : public Scene {
   // Ilustrações já ajustadas à janela (cardface::FitArt), por código; lidas no Preload.
   std::unordered_map<std::string, Image> arts_;
   const Image* ArtFor(const CardInfo& card) const;
+  // Ilustração como SDL_Texture (renderer 2D), para o painel de campo do HUD; em cache por
+  // código. Nulo se a carta não tem ilustração.
+  std::unordered_map<std::string, SDL_Texture*> hud_arts_;
+  SDL_Texture* HudArt(const CardInfo& card);
   std::unique_ptr<ButtonAction> end_turn_;
   SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
   // Pausa (Esc): a batalha congela, a trilha troca para a do menu e a janela pergunta se

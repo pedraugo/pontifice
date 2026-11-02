@@ -13,7 +13,8 @@ struct FieldCardInfo {
   Category favored = Category::kGood;  // recebe buff; a outra recebe nerf
   int buff = 0;
   int nerf = 0;
-  SDL_Texture* image = nullptr;  // frente da carta (não é dono)
+  SDL_Texture* image = nullptr;  // frente da carta (não é dono): só sem a ilustração
+  SDL_Texture* art = nullptr;    // ilustração da carta (não é dono): preferida no painel
 };
 
 // HUD da batalha (docs/hud.md): camada 2D fixa por cima do campo.

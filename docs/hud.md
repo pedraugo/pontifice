@@ -17,7 +17,7 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 
 ## Canto superior esquerdo: carta de campo ativa
 
-- Retângulo **compacto** (250 x 76 em 720p): a frente da carta em miniatura à esquerda e, à direita, o nome e uma linha para cada efeito: `+300 Bondosas` (buff, verde) e `-300 Malignas` (nerf, vermelho).
+- Retângulo **compacto** (384 x 96 em 1080p, mais largo se o nome pedir): a **ilustração** da carta em miniatura à esquerda (só a arte, sem a moldura; sem ilustração, a frente inteira) e, à direita, o nome e uma linha para cada efeito: `+300 Bondosas` (buff, verde) e `-300 Malignas` (nerf, vermelho).
 - Se não há carta de campo ativa, exibe "Sem campo".
 - Ao ser substituída, a nova carta de campo aparece neste espaço imediatamente.
 - O painel mostra o **efeito em vigor**: a carta em si já foi consumida e contada no cemitério do dono ao ser jogada.

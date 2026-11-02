@@ -1,5 +1,7 @@
 #include "scripts/music/Music.h"
 
+#include <algorithm>
+
 #define DR_MP3_IMPLEMENTATION
 #define DR_MP3_NO_STDIO
 #include <dr_mp3.h>
@@ -73,6 +75,16 @@ bool Music::Init(const std::string& base_path) {
     Category category{"ost", read_list(*tracks)};
     if (!category.tracks.empty()) categories_.push_back(std::move(category));
   }
+  // Categorias em ordem aleatória: "random": ["battle"].
+  if (const json::Value* random = root.Find("random"); random != nullptr && random->IsArray()) {
+    for (const json::Value& name : random->array) {
+      if (!name.IsString()) continue;
+      for (Category& category : categories_) {
+        if (category.name == name.string) category.random = true;
+      }
+    }
+  }
+  rng_.seed(static_cast<unsigned>(std::random_device{}() ^ SDL_GetTicksNS()));
   if (categories_.empty()) {
     SDL_Log("ost.json sem faixas; jogo segue sem musica");
     return false;
@@ -83,11 +95,13 @@ bool Music::Init(const std::string& base_path) {
     if (categories_[i].name == "ost") active_ = i;
   }
   tracks_ = categories_[active_].tracks;
+  random_ = categories_[active_].random;
   saved_.assign(categories_.size(), Saved{});
   if (SDL_getenv("PONTIFICE_AUDIO_ANALYZE") != nullptr) Analyze();
 
   decoder_ = new Decoder;
-  if (!OpenTrack(0)) {
+  current_ = tracks_.size();  // nenhuma tocou: sequencial começa na 0, aleatória sorteia
+  if (!OpenNextTrack()) {
     SDL_Log("Nenhuma faixa de ost.json pode ser aberta; jogo segue sem musica");
     Shutdown();
     return false;
@@ -202,11 +216,27 @@ void Music::Analyze() {
   }
 }
 
+// Próxima faixa da categoria ativa. current_ >= tracks_.size() = nenhuma tocou ainda.
+// Sequencial: a seguinte (começa na 0). Aleatória: qualquer uma menos a que acabou de tocar,
+// em ordem sorteada; se nenhuma abrir, tenta repetir a atual. Faixas que falham são puladas.
 bool Music::OpenNextTrack() {
-  for (size_t tries = 0; tries < tracks_.size(); ++tries) {
-    const size_t next = (current_ + 1) % tracks_.size();
-    if (OpenTrack(next)) return true;
-    current_ = next;  // pula a faixa que falhou
+  const size_t n = tracks_.size();
+  if (n == 0) return false;
+  if (random_ && n > 1) {
+    std::vector<size_t> order;
+    for (size_t i = 0; i < n; ++i) {
+      if (i != current_) order.push_back(i);
+    }
+    std::shuffle(order.begin(), order.end(), rng_);
+    for (size_t i : order) {
+      if (OpenTrack(i)) return true;
+    }
+    return current_ < n && OpenTrack(current_);
+  }
+  size_t at = current_ < n ? current_ : n - 1;
+  for (size_t tries = 0; tries < n; ++tries) {
+    at = (at + 1) % n;
+    if (OpenTrack(at)) return true;
   }
   return false;
 }
@@ -296,6 +326,7 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
       self->active_ = static_cast<size_t>(self->switching_to_);
       self->switching_to_ = -1;
       self->tracks_ = self->categories_[self->active_].tracks;
+      self->random_ = self->categories_[self->active_].random;
       const Saved saved = self->saved_[self->active_];
       bool resumed = false;
       if (self->switch_resume_ && saved.valid && saved.track < self->tracks_.size() &&
@@ -309,7 +340,8 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
       SDL_Log("Musica: categoria \"%s\"%s", self->categories_[self->active_].name.c_str(),
               resumed ? " (retomada)" : "");
       if (!resumed) {
-        self->current_ = self->tracks_.size() - 1;  // OpenNextTrack começa na faixa 0
+        // Nenhuma desta categoria tocou: sequencial começa na 0, aleatória sorteia.
+        self->current_ = self->tracks_.size();
         if (!self->OpenNextTrack()) return;
       }
       const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->mp3.channels),
