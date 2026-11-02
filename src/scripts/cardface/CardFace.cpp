@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -99,6 +100,19 @@ Image FitArt(const Image& source) {
   out.width = kArtWidth;
   out.height = kArtHeight;
   out.rgba.resize(static_cast<size_t>(kArtWidth) * kArtHeight * 4);
+  // Atalho: já no tamanho da janela (as ilustrações de 1340x900 ficam 670x450 depois da
+  // redução 2x), só recorta o excesso, centrado, sem amostragem por pixel.
+  if (scale > 0.99f && scale < 1.01f && src.width >= kArtWidth && src.height >= kArtHeight) {
+    const int cx0 = (src.width - kArtWidth) / 2, cy0 = (src.height - kArtHeight) / 2;
+    for (int y = 0; y < kArtHeight; ++y) {
+      const uint8_t* row =
+          &src.rgba[(static_cast<size_t>(y + cy0) * src.width + cx0) * 4];
+      std::copy(row, row + static_cast<size_t>(kArtWidth) * 4,
+                &out.rgba[static_cast<size_t>(y) * kArtWidth * 4]);
+    }
+    for (size_t i = 3; i < out.rgba.size(); i += 4) out.rgba[i] = 255;
+    return out;
+  }
   const float ox = (src.width - kArtWidth / scale) * 0.5f;  // corte centrado
   const float oy = (src.height - kArtHeight / scale) * 0.5f;
   auto at = [&src](int x, int y, int c) {
@@ -126,7 +140,30 @@ Image FitArt(const Image& source) {
   return out;
 }
 
+namespace {
+Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
+                  const std::string* stats_left, const std::string* stats_right);
+}  // namespace
+
 Image Compose(const Image& frame, const CardInfo& card, const Image* art) {
+  return ComposeWith(frame, card, art, nullptr, nullptr);
+}
+
+Image ComposeHidden(const Image& frame) {
+  CardInfo hidden;
+  hidden.name = "?";
+  hidden.description = "?";
+  hidden.hierarchy = 0;  // sem número de hierarquia
+  hidden.category = 'N';
+  const std::string left = i18n::Get("cardface.atk") + " ?";
+  const std::string right = i18n::Get("cardface.def") + " ?";
+  return ComposeWith(frame, hidden, nullptr, &left, &right);
+}
+
+namespace {
+// Compose com os textos de ATK/DEF opcionalmente substituídos (frente oculta).
+Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
+                  const std::string* stats_left, const std::string* stats_right) {
   Image img = frame;
   if (!img.Valid()) return img;
   const float sx = static_cast<float>(img.width) / kWidth;  // tolera moldura em outra escala
@@ -169,7 +206,10 @@ Image Compose(const Image& frame, const CardInfo& card, const Image* art) {
     const float px = kStatsPx * sy;
     const float y = CenteredTop(kStatsTop * sy, kStatsBottom * sy, px);
     std::string left, right;
-    if (card.IsField()) {
+    if (stats_left != nullptr && stats_right != nullptr) {
+      left = *stats_left;
+      right = *stats_right;
+    } else if (card.IsField()) {
       left = i18n::Get("cardface.buff") + " +" + std::to_string(card.buff);
       right = i18n::Get("cardface.nerf") + " -" + std::to_string(card.nerf);
     } else {
@@ -201,5 +241,6 @@ Image Compose(const Image& frame, const CardInfo& card, const Image* art) {
   }
   return img;
 }
+}  // namespace
 
 }  // namespace cardface

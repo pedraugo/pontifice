@@ -121,6 +121,18 @@ target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
 target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR}
                            ${dr_libs_SOURCE_DIR})
 target_link_libraries(pontifice PRIVATE SDL3::SDL3)
+# Decodificação de PNG (stb_image), rasterização da fonte (stb_truetype) e composição das
+# frentes das cartas rodam na carga da batalha sobre imagens grandes: sem otimização (Debug)
+# a carga leva vários segundos. Esses arquivos são compilados otimizados em qualquer build.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+  set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
+                              src/scripts/cardface/CardFace.cpp
+                              PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
+elseif(MSVC)
+  set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
+                              src/scripts/cardface/CardFace.cpp
+                              PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
+endif()
 target_compile_options(pontifice PRIVATE -Wall -Wextra)
 
 # Testes (ctest --test-dir build): componentes sem SDL, como o monte de cartas.

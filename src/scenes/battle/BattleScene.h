@@ -140,12 +140,21 @@ class BattleScene : public Scene {
     // como na sua mão, balançando para o arco-íris correr. Reaproveitada ao ir para a arena.
     SDL_GPUTexture* front3d = nullptr;
     bool foil = false;
+    // Saída da mão do oponente: pose da carta no dock (posição, escala e giro em Z do leque)
+    // quando ela saiu; a carta voa dali até o centro virando da frente oculta para a real.
+    bool from_hand = false;
+    math::Vec3 from_pos;
+    float from_scale = 1.0f;
+    float from_roll = 0.0f;
     std::string caption;          // "O oponente invoca"
     std::string detail;           // "Em ataque"; vazio para carta de campo
     float time = 0.0f;            // segundos desde o início
   };
   Reveal reveal_;
-  void StartReveal(const CardInfo& card, std::string caption, std::string detail);
+  // `from_world`: matriz da carta na mão do oponente (Hand::Remove), para ela sair dali.
+  void StartReveal(const CardInfo& card, std::string caption, std::string detail,
+                   const math::Mat4* from_world = nullptr);
+  float RevealDuration() const;  // voo da mão (se houver) + kRevealSeconds no centro
   void RenderReveal(SDL_Renderer* r, int width, int height) const;
   // Parte 3D da revelação (véu e carta), na camada da mão, antes de EndFrame.
   void RenderReveal3D(int width, int height);
@@ -180,6 +189,15 @@ class BattleScene : public Scene {
   std::vector<const CardInfo*> enemy_hand_;
   std::vector<Face> initial_hand_;
   Hand hand_;
+  // Mão do oponente (docs/batalha.md, "Mão do oponente"): as mesmas cartas 3D da sua mão, no
+  // dock de baixo, mas com a frente oculta (CardFrontEnemy, "?" em tudo). Só visual, sem
+  // mouse; aparece no turno dele e se recolhe no seu. Acompanha enemy_hand_ pelos helpers
+  // EnemyHandAdd/EnemyHandRemove.
+  Hand enemy_hand_view_;
+  SDL_GPUTexture* hidden_face_ = nullptr;
+  void EnemyHandAdd(const CardInfo* info);
+  // Tira a carta `index` da mão do oponente; `world` recebe a matriz dela no dock.
+  void EnemyHandRemove(size_t index, math::Mat4* world = nullptr);
   Board board_;        // seu lado do campo
   Board enemy_board_;  // lado do computador
   Sword sword_;        // efeito de golpe nos ataques

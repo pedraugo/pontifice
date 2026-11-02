@@ -1,9 +1,11 @@
 #include "scenes/battle/BattleScene.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "scripts/cardface/CardFace.h"
@@ -122,6 +124,8 @@ constexpr float kEnemyPause = 0.7f;
 // Revelação da carta jogada pelo oponente: tempo total no centro da tela (com entrada e saída
 // em fade), altura da carta (perto dos 557 px nativos da frente do HUD) e escala de entrada.
 constexpr float kRevealSeconds = 2.0f;
+constexpr float kRevealTravel = 0.5f;    // voo da mão do oponente até o centro, virando
+constexpr float kHandHideSeconds = 0.5f; // mão do oponente se recolhe antes da virada
 constexpr float kRevealFadeIn = 0.2f;
 constexpr float kRevealFadeOut = 0.25f;
 constexpr float kRevealCardH = ui::Grid(35);  // 560 px
@@ -305,6 +309,7 @@ BattleScene::~BattleScene() {
   for (auto& [code, texture] : hud_arts_) SDL_DestroyTexture(texture);
   if (gpu_ == nullptr) return;
   hand_.Clear();
+  enemy_hand_view_.Clear();
   board_.Destroy(*gpu_);
   enemy_board_.Destroy(*gpu_);
   sword_.Destroy(*gpu_);
@@ -365,22 +370,44 @@ void BattleScene::Preload(const PreloadInfo& info) {
   frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.png").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.png").Downscaled(2);
   frames_[3] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
+  // Frente oculta da mão do oponente: uma só textura para todas as cartas dele.
+  hidden_face_ =
+      UploadSprite(cardface::ComposeHidden(Image::LoadFile(base + "sprites/CardFrontEnemy.png").Downscaled(2)));
 
   // Montes: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) para cada lado, ANTES de
   // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
   // computador também compra 5 (só os dados; a frente é composta quando a carta entra).
   cards_ = cards::LoadAll(base);
   // Ilustrações (imageUrl de cada carta), ajustadas uma vez à janela da imagem. Cartas sem o
-  // arquivo ficam com a janela em branco.
+  // arquivo ficam com a janela em branco. Decodificar ~65 PNGs grandes é a parte mais lenta
+  // da carga: roda em várias threads (stb_image e FitArt não têm estado compartilhado).
   arts_.clear();
-  for (const CardInfo& card : cards_) {
-    if (card.image_url.empty()) continue;
-    const std::string path = base + card.image_url;
-    if (!SDL_GetPathInfo(path.c_str(), nullptr)) continue;
-    Image art = cardface::FitArt(Image::LoadFile(path));
-    if (art.Valid()) arts_[card.code] = std::move(art);
+  {
+    const Uint64 started = SDL_GetTicksNS();
+    std::vector<const CardInfo*> todo;
+    for (const CardInfo& card : cards_) {
+      if (card.image_url.empty()) continue;
+      if (SDL_GetPathInfo((base + card.image_url).c_str(), nullptr)) todo.push_back(&card);
+    }
+    std::vector<Image> results(todo.size());
+    std::atomic<size_t> next{0};
+    const unsigned workers =
+        SDL_clamp(std::thread::hardware_concurrency(), 1u, 8u);
+    std::vector<std::thread> pool;
+    for (unsigned k = 0; k < workers; ++k) {
+      pool.emplace_back([&] {
+        for (size_t i = next++; i < todo.size(); i = next++) {
+          results[i] = cardface::FitArt(Image::LoadFile(base + todo[i]->image_url));
+        }
+      });
+    }
+    for (std::thread& t : pool) t.join();
+    for (size_t i = 0; i < todo.size(); ++i) {
+      if (results[i].Valid()) arts_[todo[i]->code] = std::move(results[i]);
+    }
+    SDL_Log("Ilustracoes de cartas: %zu (%.0f ms, %u threads)", arts_.size(),
+            static_cast<double>(SDL_GetTicksNS() - started) / 1e6, workers);
   }
-  SDL_Log("Ilustracoes de cartas: %zu", arts_.size());
   // Depuração: PONTIFICE_SEED=n fixa o sorteio (montes, compras e quem começa) para repetir
   // uma partida igual.
   if (const char* env = SDL_getenv("PONTIFICE_SEED")) {
@@ -567,10 +594,24 @@ void BattleScene::DrawCard() {
   if (face.texture != nullptr) hand_.Add(face.texture, face.foil, face.info);
 }
 
+void BattleScene::EnemyHandAdd(const CardInfo* info) {
+  enemy_hand_.push_back(info);
+  if (hidden_face_ != nullptr) enemy_hand_view_.Add(hidden_face_, false, nullptr);
+}
+
+void BattleScene::EnemyHandRemove(size_t index, math::Mat4* world) {
+  if (index >= enemy_hand_.size()) return;
+  enemy_hand_.erase(enemy_hand_.begin() + static_cast<long>(index));
+  if (index < enemy_hand_view_.Size()) {
+    const Hand::Card removed = enemy_hand_view_.Remove(index);
+    if (world != nullptr) *world = removed.world;
+  }
+}
+
 void BattleScene::EnemyDraw() {
   const std::optional<std::string> code = enemy_deck_.Draw();
   if (!code) return;
-  if (const CardInfo* info = cards::Find(cards_, *code)) enemy_hand_.push_back(info);
+  if (const CardInfo* info = cards::Find(cards_, *code)) EnemyHandAdd(info);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -584,11 +625,25 @@ void BattleScene::ScheduleNext(float delay, std::function<void()> fn) {
   steps_.emplace_front(delay, std::move(fn));
 }
 
-void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::string detail) {
+float BattleScene::RevealDuration() const {
+  return (reveal_.from_hand ? kRevealTravel : 0.0f) + kRevealSeconds;
+}
+
+void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::string detail,
+                              const math::Mat4* from_world) {
   reveal_ = Reveal{};
   reveal_.card = &card;
   reveal_.caption = std::move(caption);
   reveal_.detail = std::move(detail);
+  // Pose de saída na mão: translação, escala (coluna X) e giro em Z do leque.
+  if (from_world != nullptr && ready_ && hidden_face_ != nullptr) {
+    const math::Mat4& m = *from_world;
+    reveal_.from_hand = true;
+    reveal_.from_pos = {m.m[3][0], m.m[3][1], m.m[3][2]};
+    reveal_.from_scale = std::sqrt(m.m[0][0] * m.m[0][0] + m.m[0][1] * m.m[0][1] +
+                                   m.m[0][2] * m.m[0][2]);
+    reveal_.from_roll = std::atan2(m.m[0][1], m.m[0][0]);
+  }
   if (ready_) {
     const Face face = MakeCardFace(card.code);
     reveal_.front3d = face.texture;
@@ -609,17 +664,14 @@ bool BattleScene::AttacksAllowed(Side side) const {
 
 void BattleScene::StartMatch() {
   started_ = true;
-  // Sorteio de quem começa (PONTIFICE_STARTER força, para depuração).
-  starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kEnemy;
-  if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
-    if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
-    if (std::strcmp(env, "enemy") == 0) starter_ = Side::kEnemy;
-  }
+  // Quem começa já foi sorteado na entrada (OnEnter), para a sua mão nem aparecer quando é o
+  // oponente: aqui o turno dele começa direto.
   SDL_Log("Sorteio: %s", starter_ == Side::kPlayer ? "voce comeca" : "o oponente comeca");
   if (starter_ == Side::kPlayer) {
     BeginPlayerTurn();
   } else {
     hand_.SetAway(true);
+    enemy_hand_view_.SetAway(false);  // a mão dele aparece no turno dele
     orbit_target_ = 1.0f;
     Schedule(kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
   }
@@ -634,6 +686,7 @@ void BattleScene::BeginPlayerTurn() {
   attack_drag_ = false;
   board_.ResetAttacks();
   hand_.SetAway(false);
+  enemy_hand_view_.SetAway(true);
   orbit_target_ = 0.0f;
   // Fase de compra: quem começou não compra no primeiro turno.
   if (!(starter_ == Side::kPlayer && turns_played_[0] == 0)) DrawCard();
@@ -648,8 +701,9 @@ void BattleScene::EndTurn() {
   attack_from_ = -1;
   attack_drag_ = false;
   DiscardExtraCards();
-  // Virada de campo e turno do computador.
+  // Virada de campo e turno do computador: a sua mão se recolhe e a dele aparece.
   hand_.SetAway(true);
+  enemy_hand_view_.SetAway(false);
   orbit_target_ = 1.0f;
   Schedule(kOrbitSeconds + 0.2f, [this] { RunEnemyTurn(); });
 }
@@ -691,9 +745,11 @@ void BattleScene::RunEnemyTurn() {
     const int index = ai::ChooseFieldCard(BuildEnemyView());
     if (index < 0) return;
     const CardInfo* card = enemy_hand_[static_cast<size_t>(index)];
-    enemy_hand_.erase(enemy_hand_.begin() + index);
-    StartReveal(*card, i18n::Get("battle.reveal.field"), "");
-    ScheduleNext(kRevealSeconds, [this, card] {
+    math::Mat4 from;
+    const bool had_view = static_cast<size_t>(index) < enemy_hand_view_.Size();
+    EnemyHandRemove(static_cast<size_t>(index), &from);
+    StartReveal(*card, i18n::Get("battle.reveal.field"), "", had_view ? &from : nullptr);
+    ScheduleNext(RevealDuration(), [this, card] {
       reveal_ = Reveal{};
       PlayField(Side::kEnemy, *card);
     });
@@ -706,10 +762,13 @@ void BattleScene::RunEnemyTurn() {
     }
     const CardInfo* card = enemy_hand_[static_cast<size_t>(summon->hand_index)];
     const bool defense = summon->defense;
-    enemy_hand_.erase(enemy_hand_.begin() + summon->hand_index);
+    math::Mat4 from;
+    const bool had_view = static_cast<size_t>(summon->hand_index) < enemy_hand_view_.Size();
+    EnemyHandRemove(static_cast<size_t>(summon->hand_index), &from);
     StartReveal(*card, i18n::Get("battle.reveal.summon"),
-                i18n::Get(defense ? "battle.reveal.defense" : "battle.reveal.attack"));
-    ScheduleNext(kRevealSeconds, [this, card, defense] {
+                i18n::Get(defense ? "battle.reveal.defense" : "battle.reveal.attack"),
+                had_view ? &from : nullptr);
+    ScheduleNext(RevealDuration(), [this, card, defense] {
       const Face face{reveal_.front3d, reveal_.foil, card};
       reveal_ = Reveal{};
       EnemySummon(card, defense, face.texture != nullptr ? &face : nullptr);
@@ -738,11 +797,15 @@ void BattleScene::FinishEnemyTurn() {
                                   [](const CardInfo* a, const CardInfo* b) {
                                     return a->attack < b->attack;
                                   });
-    enemy_hand_.erase(worst);
+    EnemyHandRemove(static_cast<size_t>(worst - enemy_hand_.begin()));
   }
   ++turn_;
-  orbit_target_ = 0.0f;
-  Schedule(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
+  // A mão do oponente se recolhe primeiro; só depois a arena vira para o seu lado.
+  enemy_hand_view_.SetAway(true);
+  ScheduleNext(kHandHideSeconds, [this] {
+    orbit_target_ = 0.0f;
+    ScheduleNext(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
+  });
 }
 
 ai::View BattleScene::BuildEnemyView() const {
@@ -999,6 +1062,25 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_.DelayDeal(0.8f);
   for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil, face.info);
   initial_hand_.clear();
+  // Sorteio de quem começa (PONTIFICE_STARTER força, para depuração). Feito já na entrada: se
+  // o oponente começa, a sua mão fica recolhida desde o início e só aparece no seu turno.
+  starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kEnemy;
+  if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
+    if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
+    if (std::strcmp(env, "enemy") == 0) starter_ = Side::kEnemy;
+  }
+  if (starter_ == Side::kEnemy) hand_.SetAwayNow(true);
+  // Mão do oponente: mesmas cartas 3D, frente oculta, um pouco mais à vista (sem o mouse ela
+  // não sobe); começa recolhida e aparece no turno dele.
+  enemy_hand_view_.SetModel(card_model_.get());
+  enemy_hand_view_.SetBack(back_);
+  enemy_hand_view_.SetNormalMaps(front_normal_, back_normal_);
+  enemy_hand_view_.GetLayout().hidden_drop = 0.35f;
+  enemy_hand_view_.Clear();
+  for (size_t i = 0; i < enemy_hand_.size() && hidden_face_ != nullptr; ++i) {
+    enemy_hand_view_.Add(hidden_face_, false, nullptr);
+  }
+  enemy_hand_view_.SetAwayNow(true);
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   arena_world_ = math::Mat4::Scale(kArenaScale);
 
@@ -1307,6 +1389,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
 
   hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
+  enemy_hand_view_.Update(dt_seconds, math::Vec2{-1.0f, -1.0f}, hand_view_proj_,
+                          ctx.logical_width, ctx.logical_height);
   // Destaques do campo: slots vazios em modo de invocação; moldura amarela no slot sob o
   // mouse quando dá para invocar nele, trocar a posição da carta ou, num arrasto de ataque,
   // no alvo do oponente.
@@ -1362,34 +1446,68 @@ void RevealCurve(float t, float& alpha, float& scale) {
 
 void BattleScene::RenderReveal3D(int width, int height) {
   if (reveal_.card == nullptr || reveal_.front3d == nullptr) return;
+  const float travel = reveal_.from_hand ? kRevealTravel : 0.0f;
+  const float hold = reveal_.time - travel;  // tempo no centro (negativo durante o voo)
   float alpha = 0.0f, scale = 1.0f;
-  RevealCurve(reveal_.time, alpha, scale);
+  RevealCurve(hold, alpha, scale);
+  float veil_alpha = alpha;
+  if (reveal_.from_hand) {
+    // Saindo da mão: a carta já chega opaca e no tamanho final (sem a entrada em fade); só a
+    // saída no fim vale. O véu escurece durante o voo.
+    RevealCurve(std::max(hold, kRevealFadeIn), alpha, scale);
+    veil_alpha = std::min(SmoothStep(reveal_.time / travel), alpha);
+  }
   const Hand::Layout& layout = hand_.GetLayout();
   // Véu: quad escuro atrás da carta cobrindo a vista (escurece a mesa e a sua mão).
   const float veil_z = layout.inspect_z - 1.0f;
   const float veil_h = 2.2f * (layout.camera_z - veil_z) * std::tan(layout.fov_y * 0.5f);
   const float aspect = static_cast<float>(width) / static_cast<float>(height);
   SDL_FColor veil = colors::GetF("background.overlay");
-  veil.a *= alpha;
+  veil.a *= veil_alpha;
   gpu_->Draw(veil_quad_, nullptr,
              math::Mat4::Translate({0.0f, 0.0f, veil_z}) *
                  math::Mat4::Scale({veil_h * aspect, veil_h, 1.0f}),
              hand_view_proj_, veil, Gpu::DrawMode::kEmissive);
-  // Carta: balança em Y (e um pouco em X), para o arco-íris do foil correr pela frente.
-  const float t = reveal_.time;
-  const float yaw = 0.42f * std::sin(t * 3.1f - 1.2f);
-  const float pitch = 0.1f * std::sin(t * 2.3f);
-  const math::Mat4 world =
-      hand_.CenterMatrix(kRevealCardH * scale / static_cast<float>(height), yaw, pitch);
+  math::Vec3 center;
+  float center_scale = 1.0f;
+  hand_.CenterPose(kRevealCardH * scale / static_cast<float>(height), center, center_scale);
+  if (reveal_.from_hand && hold < 0.0f) {
+    // Voo: da pose na mão até o centro, crescendo e endireitando o leque; vira em Y no
+    // caminho, com a frente oculta até 90° e a carta real depois.
+    const float u = SmoothStep(reveal_.time / travel);
+    const math::Vec3 pos = reveal_.from_pos + (center - reveal_.from_pos) * u;
+    const float s = math::Lerp(reveal_.from_scale, center_scale, u);
+    const float roll = math::Lerp(reveal_.from_roll, 0.0f, u);
+    const float flip = math::kPi * u;
+    const bool hidden = flip < math::kPi * 0.5f;
+    const math::Mat4 world =
+        Hand::PoseMatrix(pos, s, hidden ? flip : flip - math::kPi, 0.0f, roll);
+    hand_.DrawLoose(*gpu_, hand_view_proj_, world, hidden ? hidden_face_ : reveal_.front3d,
+                    !hidden && reveal_.foil, 1.0f);
+    return;
+  }
+  // No centro: balança em Y (e um pouco em X), para o arco-íris do foil correr pela frente; o
+  // balanço entra suave depois do voo.
+  const float t = std::max(hold, 0.0f);
+  const float sway = reveal_.from_hand ? SmoothStep(t / 0.3f) : 1.0f;
+  const float yaw = sway * 0.42f * std::sin(t * 3.1f);
+  const float pitch = sway * 0.1f * std::sin(t * 2.3f);
+  const math::Mat4 world = Hand::PoseMatrix(center, center_scale, yaw, pitch, 0.0f);
   hand_.DrawLoose(*gpu_, hand_view_proj_, world, reveal_.front3d, reveal_.foil, alpha);
 }
 
 void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   if (reveal_.card == nullptr) return;
   if (reveal_.front3d != nullptr) {
-    // Carta e véu já foram desenhados em 3D (RenderReveal3D): aqui só as legendas.
+    // Carta e véu já foram desenhados em 3D (RenderReveal3D): aqui só as legendas, que
+    // entram depois do voo da mão.
     float alpha = 0.0f, scale = 1.0f;
-    RevealCurve(reveal_.time, alpha, scale);
+    const float hold = reveal_.time - (reveal_.from_hand ? kRevealTravel : 0.0f);
+    RevealCurve(hold, alpha, scale);
+    if (reveal_.from_hand) {
+      float unused = 0.0f;
+      RevealCurve(std::max(hold, kRevealFadeIn), unused, scale);  // mesma escala da carta 3D
+    }
     const auto with_alpha = [alpha](SDL_Color c) {
       c.a = static_cast<Uint8>(c.a * alpha);
       return c;
@@ -1634,6 +1752,7 @@ void BattleScene::Render(SceneContext& ctx) {
     gpu_->NewLayer();  // a mão fica sempre por cima da arena
     gpu_->SetAtmosphere(hand_atmosphere_);
     hand_.Render(*gpu_, hand_view_proj_);
+    enemy_hand_view_.Render(*gpu_, hand_view_proj_);
     RenderReveal3D(ctx.logical_width, ctx.logical_height);
     gpu_->EndFrame();
 

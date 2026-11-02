@@ -338,14 +338,28 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
   }
 }
 
-math::Mat4 Hand::CenterMatrix(float height_fraction, float yaw, float pitch) const {
-  if (model_ == nullptr) return math::Mat4::Identity();
+void Hand::CenterPose(float height_fraction, math::Vec3& pos, float& scale) const {
+  pos = {0.0f, layout_.inspect_y, layout_.inspect_z};
+  scale = 1.0f;
+  if (model_ == nullptr) return;
   const float visible_h =
       2.0f * (layout_.camera_z - layout_.inspect_z) * std::tan(layout_.fov_y * 0.5f);
   const float card_h = model_->BoundsMax().y - model_->BoundsMin().y;
-  const float scale = height_fraction * visible_h / std::max(card_h, 1e-3f);
-  return math::Mat4::Translate({0.0f, layout_.inspect_y, layout_.inspect_z}) *
-         math::Mat4::RotateY(yaw) * math::Mat4::RotateX(pitch) * math::Mat4::Scale(scale);
+  scale = height_fraction * visible_h / std::max(card_h, 1e-3f);
+}
+
+math::Mat4 Hand::PoseMatrix(const math::Vec3& pos, float scale, float yaw, float pitch,
+                            float roll) {
+  return math::Mat4::Translate(pos) * math::Mat4::RotateZ(roll) * math::Mat4::RotateY(yaw) *
+         math::Mat4::RotateX(pitch) * math::Mat4::Scale(scale);
+}
+
+math::Mat4 Hand::CenterMatrix(float height_fraction, float yaw, float pitch) const {
+  if (model_ == nullptr) return math::Mat4::Identity();
+  math::Vec3 pos;
+  float scale = 1.0f;
+  CenterPose(height_fraction, pos, scale);
+  return PoseMatrix(pos, scale, yaw, pitch, 0.0f);
 }
 
 void Hand::DrawLoose(Gpu& gpu, const math::Mat4& view_proj, const math::Mat4& world,

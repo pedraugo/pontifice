@@ -26,4 +26,8 @@ Image FitArt(const Image& source);
 // para a janela da imagem antes dos textos. CPU só: pode rodar em outra thread.
 Image Compose(const Image& frame, const CardInfo& card, const Image* art = nullptr);
 
+// Frente oculta das cartas na mão do oponente (`frame` = CardFrontEnemy reduzida 2x): nome
+// "?", "ATK ?" e "DEF ?", descrição "?" e sem hierarquia, para não revelar a carta real.
+Image ComposeHidden(const Image& frame);
+
 }  // namespace cardface

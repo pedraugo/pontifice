@@ -82,6 +82,14 @@ Quando a carta atacada está em modo de defesa, um escudo dourado e prateado com
 
 Quando uma carta é destruída em combate, de qualquer lado, a arena treme por menos de meio segundo, forte no golpe e sumindo em seguida. A mão e o HUD não tremem.
 
+## Quem começa
+
+O sorteio de quem começa acontece na entrada da batalha. Se o oponente começa, a sua mão não aparece: assim que as tochas acendem a arena vira para o lado dele e o turno dele começa; a sua mão só sobe no seu primeiro turno.
+
+## Mão do oponente
+
+No turno do oponente a mão dele aparece embaixo, no lugar da sua, que se recolhe. As cartas usam a frente oculta (`sprites/CardFrontEnemy.png`): nome, ATK, DEF e descrição aparecem como "?", e a hierarquia não é mostrada, então o jogador vê quantas cartas ele tem, mas não quais. A mão acompanha as compras, as jogadas e os descartes dele. Quando ele joga uma carta, ela sai do lugar dela na mão, voa até o centro da tela e vira no caminho, da frente oculta para a carta real. No fim do turno dele a mão se recolhe primeiro, e só então a arena gira de volta para o seu lado.
+
 ## Jogadas do oponente
 
 Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no centro da tela por 2 segundos antes de ir para a arena. A legenda diz o que ele está fazendo e, na invocação, em que posição a carta entra. Assim o jogador lê nome, ATK, DEF e descrição antes de a carta descer na mesa. A carta aparece em 3D, igual às da sua mão: cartas foil (hierarquia 1) brilham com a aura e mostram o arco-íris enquanto balançam.

@@ -91,6 +91,11 @@ class Hand {
   // Matriz no centro da tela, na profundidade da inspeção: altura = fração da altura
   // visível; yaw/pitch giram a carta (Y e X).
   math::Mat4 CenterMatrix(float height_fraction, float yaw, float pitch) const;
+  // Posição e escala da carta no centro (as de CenterMatrix), para animar até lá.
+  void CenterPose(float height_fraction, math::Vec3& pos, float& scale) const;
+  // Matriz de uma pose: translação, giros (Z na mão em leque, Y, X) e escala uniforme.
+  static math::Mat4 PoseMatrix(const math::Vec3& pos, float scale, float yaw, float pitch,
+                               float roll);
   void DrawLoose(Gpu& gpu, const math::Mat4& view_proj, const math::Mat4& world,
                  SDL_GPUTexture* front, bool foil, float alpha = 1.0f) const;
   void SetBack(SDL_GPUTexture* back) { back_ = back; }
@@ -107,6 +112,11 @@ class Hand {
   // Recolhe a mão para fora da tela (turno do oponente) e a traz de volta; sem interação
   // enquanto recolhida.
   void SetAway(bool away) { away_ = away; }
+  // Como SetAway, sem animação (ex.: mão do oponente começa escondida).
+  void SetAwayNow(bool away) {
+    away_ = away;
+    away_t_ = away ? 1.0f : 0.0f;
+  }
   bool Away() const { return away_; }
   // Atrasa a entrada das próximas cartas em pelo menos `seconds` (ex.: esperar o fade in).
   void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
