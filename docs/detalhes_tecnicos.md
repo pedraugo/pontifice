@@ -94,7 +94,7 @@ src/
     CardsNeutral.json
     CardsField.json
   sounds/             músicas de fundo (MP3) listadas em assets/ost.json
-  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png) e fontes de arte (PSD)
+  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png), logotipo (Logo.png) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
   icons/
@@ -114,12 +114,14 @@ src/
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
     ui.jpg            ilustração de referência da moldura da interface (placa de pedra); vira sprites/UiFrameButton.png e UiFrameWindow.png
+    logo.png          logotipo PONTIFICE em pedra, com margens brancas; vira sprites/Logo.png (menu)
     Door.jpg          ilustração de referência do portão da tela de loading
     DoorAtlas.png     atlas gerado para o portão (1024x1024): pedra procedural, madeira e ferro da arena
     torch.webp        ilustração de referência da tocha
     TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
+  make_logo.py        gera sprites/Logo.png (logotipo do menu) a partir de art/logo.png: fundo branco transparente, recorte com margem
   make_ui_frame.py    gera sprites/UiFrameButton.png e UiFrameWindow.png (placas da interface) a partir de art/ui.jpg: fundo transparente, placa sem a margem, centro em tile; Window mais escura e cinza
   make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
   make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)

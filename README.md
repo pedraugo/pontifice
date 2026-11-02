@@ -1,3 +1,5 @@
+<p align="center"><img src="src/assets/icon.png" alt="Ícone do PONTIFICE" width="160"></p>
+
 # PONTIFICE
 
 ![Batalha do PONTIFICE: arena 3D, mão de cartas e HUD](docs/cover.png)

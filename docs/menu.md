@@ -27,7 +27,8 @@ Tela simples, centralizada horizontalmente, fundo escuro sólido.
 
 | Elemento | Posição | Conteúdo |
 |---|---|---|
-| Título | Topo, centralizado | Texto `PONTIFICE`, fonte grande |
+| Ícone | Topo, centralizado | `assets/icon.png` com 128 px (8 células da grade), centro em y = 6 células |
+| Título | Abaixo do ícone, centralizado | Logotipo `sprites/Logo.png` (letras de pedra, 640 px de largura, centro em y = 16 células); sem o arquivo, texto `PONTIFICE` em fonte grande |
 | Botão Jogar | Centro, em cima | Texto `Jogar` |
 | Botão Nível | Centro, no meio | Texto `Nível: Fácil`, `Médio`, `Difícil` ou `Impossível`; cada clique passa ao próximo |
 | Botão Sair | Centro, embaixo | Texto `Sair` |

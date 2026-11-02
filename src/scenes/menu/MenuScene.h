@@ -13,6 +13,8 @@ class MenuScene : public Scene {
  public:
   MenuScene();
 
+  ~MenuScene() override;
+
   void OnEnter(SceneContext& ctx) override;
   void HandleEvent(SceneContext& ctx, const SDL_Event& event) override;
   void Update(SceneContext& ctx, float dt_seconds) override;
@@ -27,6 +29,10 @@ class MenuScene : public Scene {
   Button* difficulty_button_ = nullptr;  // "Nível: Fácil/Médio/Difícil/Impossível", cicla
   Clouds clouds_;  // nuvens atrás do texto e névoa na frente
   SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
+  SDL_Texture* logo_ = nullptr;  // sprites/Logo.png (título); nulo cai no texto
+  int logo_w_ = 0;
+  int logo_h_ = 0;
+  SDL_Texture* icon_ = nullptr;  // assets/icon.png, acima do logo
   bool clouds_ready_ = false;
   int focused_ = 0;
 };
