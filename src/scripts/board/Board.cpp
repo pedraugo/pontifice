@@ -269,8 +269,9 @@ void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   }
   if (highlight_quad_.index_count == 0) return;
   // Modo de invocação: slots vazios com quad translúcido um pouco acima do ladrilho,
-  // pulsando. O slot sob o mouse (vazio ou com carta) recebe uma moldura quadrada amarela.
-  // Cores de assets/colors.json ("board.*").
+  // pulsando. O slot sob o mouse (vazio ou com carta) recebe uma moldura quadrada (amarela;
+  // a batalha troca o papel com carta de campo ativa, SetHoverRole). Cores de
+  // assets/colors.json ("board.*").
   const float side = layout_.tile * layout_.arena_scale * layout_.highlight_inset;
   const float y = layout_.highlight_lift;
   if (highlight_) {
@@ -291,7 +292,7 @@ void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
     gpu.Draw(frame_quad_, nullptr,
              math::Mat4::Translate({p.x, p.y + y * 1.5f, p.z}) *
                  math::Mat4::Scale({side, 1.0f, side}),
-             view_proj, colors::GetF("board.slotHover"), Gpu::DrawMode::kEmissive);
+             view_proj, colors::GetF(hover_role_), Gpu::DrawMode::kEmissive);
   }
 }
 

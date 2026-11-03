@@ -50,10 +50,6 @@ class Hud {
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }
 
-  // Borda esquerda do painel do monte (px lógicos); por padrão a margem. A batalha a empurra
-  // para a direita do botão de som.
-  void SetDeckPanelLeft(float x) { deck_panel_left_ = x; }
-
   // Mouse em px lógicos: com o mouse sobre a ilustração do painel de campo, ela cresce da
   // miniatura até o tamanho nativo logo abaixo do painel (animação de kZoomSeconds). Também
   // anima o tremor do painel de vida e os números de dano.
@@ -74,8 +70,8 @@ class Hud {
   void RenderFieldPanel(SDL_Renderer* r) const;
   void RenderFieldZoom(SDL_Renderer* r) const;
   void RenderLifePanel(SDL_Renderer* r, int width) const;
-  void RenderDeckPanel(SDL_Renderer* r, int height) const;
-  void RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const;
+  // Monte e cemitério no mesmo painel, no canto inferior direito.
+  void RenderPilesPanel(SDL_Renderer* r, int width, int height) const;
   void RenderResult(SDL_Renderer* r, int width, int height) const;
   void RenderDamagePopups(SDL_Renderer* r, int width) const;
   void OnDamage(bool player, int amount);
@@ -100,7 +96,6 @@ class Hud {
   int deck_used_ = 0;
   int deck_remaining_ = kDeckSize;
   int graveyard_ = 0;
-  float deck_panel_left_ = -1.0f;  // < 0: margem padrão
-  float zoom_t_ = 0.0f;            // 0 miniatura .. 1 ilustração ampliada
+  float zoom_t_ = 0.0f;  // 0 miniatura .. 1 ilustração ampliada
   bool zoom_hover_ = false;
 };

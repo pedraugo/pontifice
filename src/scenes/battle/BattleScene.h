@@ -113,6 +113,9 @@ class BattleScene : public Scene {
   bool CanAct() const;     // seu turno, sem inspeção, sem passos pendentes
   bool CanSummon() const;  // CanAct, carta selecionada, invocação ainda disponível
   bool CandidateIsField() const;  // a carta selecionada é de campo
+  // Cor (papel em colors.json) da moldura de seleção do slot e da seta de ataque: rosa com
+  // carta de campo ativa ou selecionada, amarela sem.
+  const char* HoverRole() const;
   void Summon(int slot);   // carta selecionada entra no slot (ou ativa a carta de campo)
   void PlayField(Side owner, const CardInfo& card);
 
@@ -264,6 +267,12 @@ class BattleScene : public Scene {
   Atmosphere arena_atmosphere_;
   SDL_FColor fog_color_{};
   SDL_FColor mist_color_{};
+  // Carta de campo ativa (ou selecionada na mão): arena dourada, névoa de chão e fundo do
+  // ambiente na cor da categoria que ela favorece (verde benévola, vermelha maligna).
+  // field_glow_ anima de 0 (normal) a 1.
+  float field_glow_ = 0.0f;
+  SDL_FColor field_mist_color_{};
+  SDL_FColor field_fog_color_{};
   std::vector<MistLayer> mist_layers_;        // névoa da base (Fog.json, battle.mist)
   std::vector<MistLayer> intro_mist_layers_;  // manto da abertura (battle.introMist)
   float torch_light_ = 2.6f;                  // intensidade de cada chama (Light.json)

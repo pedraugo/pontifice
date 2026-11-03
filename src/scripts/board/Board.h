@@ -129,6 +129,9 @@ class Board {
   // Destaque dos slots vazios (modo de invocação) e moldura do slot sob o mouse.
   void SetHighlight(bool on) { highlight_ = on; }
   void SetHoverSlot(int slot) { hover_slot_ = slot; }
+  // Papel de cor (assets/colors.json) da moldura do slot sob o mouse; padrão board.slotHover.
+  // `role` precisa viver enquanto o Board usar (literal).
+  void SetHoverRole(const char* role) { hover_role_ = role; }
   // Carta sob o mouse: cresce e sobe (animado); -1 nenhuma.
   void SetHoverCard(int slot) { hover_card_ = slot; }
 
@@ -162,6 +165,7 @@ class Board {
   GpuMesh frame_quad_;  // anel quadrado (4 tiras) de lado 1, em y = 0
   bool highlight_ = false;
   int hover_slot_ = -1;
+  const char* hover_role_ = "board.slotHover";
   int hover_card_ = -1;
   float time_ = 0.0f;
 };

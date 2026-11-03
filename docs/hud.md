@@ -5,19 +5,19 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 ```
 +----------------+----------------------------+----------------------+
 | [img] Nome     |                            | Oponente  4200 / 5000|
-|  +300 Bondosas |                            | Jogador   5000 / 5000|
-|  -300 Malignas |                            +----------------------+
+| +300 Benévolas |                            | Jogador   5000 / 5000|
+| -300 Malignas  |                            +----------------------+
 +----------------+                                                    |
 |                              CAMPO                                   |
 |                                                                      |
 |                                                                      |
-| [🔊] [Monte 28/40]    [MÃO DE CARTAS]              [Cemitério 7]     |
+| [🔊]           [MÃO DE CARTAS]        [Monte 28/40     Cemitério 7]  |
 +----------------------------------------------------------------------+
 ```
 
 ## Canto superior esquerdo: carta de campo ativa
 
-- Retângulo **compacto** (384 x 96 em 1080p, mais largo se o nome pedir): a **ilustração** da carta em miniatura à esquerda (só a arte, sem a moldura; sem ilustração, a frente inteira) e, à direita, o nome e uma linha para cada efeito: `+300 Bondosas` (buff, verde) e `-300 Malignas` (nerf, vermelho).
+- Retângulo **compacto** (384 x 96 em 1080p, mais largo se o nome pedir): a **ilustração** da carta em miniatura à esquerda (só a arte, sem a moldura; sem ilustração, a frente inteira) e, à direita, o nome e uma linha para cada efeito: `+300 Benévolas` (buff, verde) e `-300 Malignas` (nerf, vermelho).
 - Com o **mouse sobre a ilustração**, ela cresce da miniatura até o tamanho nativo (668 x 448) logo abaixo do painel, numa placa de janela (0,15 s), para ver a arte em detalhe; tirando o mouse, volta.
 - Se não há carta de campo ativa, exibe "Sem campo".
 - Ao ser substituída, a nova carta de campo aparece neste espaço imediatamente.
@@ -32,10 +32,17 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 - O valor é atualizado logo após cada cálculo de dano.
 - Ao chegar a `0`, a batalha termina e o resultado é exibido.
 
-## Canto inferior esquerdo: som e monte
+## Canto inferior esquerdo: som
 
 - **Botão de som**: quadrado com ícone de alto-falante (desenhado com primitivas, sem sprite). Clique liga/desliga a música (volume vai a zero e volta em rampa de 1 s). Desligada, o ícone fica esmaecido, sem ondas e com um X vermelho. O mesmo botão existe no menu.
-- À direita dele, o painel do monte. Uma linha: `Monte restantes/40`, por exemplo `Monte 35/40` logo após a compra da mão inicial.
+
+## Canto inferior direito: monte e cemitério
+
+Um único painel, em uma linha: `[Monte 35/40      Cemitério 0]`. O monte fica à esquerda e o cemitério alinhado à direita. A largura é medida com os maiores valores (`40/40` e dois dígitos), então o painel não muda de tamanho a cada compra ou descarte.
+
+### Monte
+
+- `Monte restantes/40`, por exemplo `Monte 35/40` logo após a compra da mão inicial.
 - Descrição antiga (duas linhas), mantida como referência do que o número resume:
   - **Cartas usadas**: quantas cartas já saíram do monte (compradas para a mão ou retiradas por efeito).
   - **Cartas restantes**: quantas cartas ainda estão no monte.
@@ -44,9 +51,9 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 - O valor é atualizado logo após cada compra.
 - Quando `restantes` chega a `0`, o número fica em destaque e o jogador não compra mais na Fase de Compra.
 
-## Canto inferior direito: cemitério
+### Cemitério
 
-- Uma linha: `Cemitério N`, a **quantidade de cartas no seu cemitério**: cartas destruídas ou descartadas.
+- `Cemitério N`, a **quantidade de cartas no seu cemitério**: cartas destruídas ou descartadas.
 - Começa em `0` e é atualizado logo após cada destruição ou descarte.
 - Mostra apenas a quantidade. O conteúdo do cemitério **não pode ser consultado** por nenhum jogador (ver [Campo](campo.md)).
 

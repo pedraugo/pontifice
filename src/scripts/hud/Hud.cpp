@@ -148,8 +148,7 @@ void Hud::Render(SDL_Renderer* r, int width, int height) const {
 
   RenderFieldPanel(r);
   RenderLifePanel(r, width);
-  RenderDeckPanel(r, height);
-  RenderGraveyardPanel(r, width, height);
+  RenderPilesPanel(r, width, height);
   RenderFieldZoom(r);  // por cima dos outros painéis
   RenderDamagePopups(r, width);
   if (Over()) RenderResult(r, width, height);
@@ -305,46 +304,42 @@ void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
   }
 }
 
-// Painel de contador em uma linha: "[Título valor]", largura pelo texto arredondada à grade.
 namespace {
-
 constexpr float kCounterGap = ui::Grid(1);  // entre título e valor
-
-float CounterPanelWidth(const char* title, const std::string& value) {
-  return ui::SnapUp(2 * kPadding + text::Width(title, kLineScale) + kCounterGap +
-                    text::Width(value.c_str(), kLineScale));
-}
-
-void CounterPanel(SDL_Renderer* r, const SDL_FRect& panel, const char* title,
-                  const std::string& value, SDL_Color value_color) {
-  Panel(r, panel);
-  const float y = panel.y + (panel.h - kLineHeight) / 2.0f;
-  text::Draw(r, title, panel.x + kPadding, y, kLineScale, colors::Get("panel.title"));
-  DrawRight(r, value.c_str(), panel.x + panel.w - kPadding, y, kLineScale, value_color);
-}
-
+constexpr float kPilesGap = ui::Grid(3);    // entre o monte e o cemitério
 }  // namespace
 
-void Hud::RenderDeckPanel(SDL_Renderer* r, int height) const {
-  // "Monte restantes/total"; monte vazio em destaque: o jogador não compra mais.
-  const std::string value = std::to_string(deck_remaining_) + "/" + std::to_string(kDeckSize);
-  const float panel_h = kCounterHeight;
-  const float left = deck_panel_left_ >= 0.0f ? deck_panel_left_ : kMargin;
-  const std::string title = i18n::Get("hud.deck");
-  const SDL_FRect panel{left, height - kMargin - panel_h,
-                        CounterPanelWidth(title.c_str(), value), panel_h};
-  CounterPanel(r, panel, title.c_str(), value,
-               deck_remaining_ > 0 ? colors::Get("hud.counterValue")
-                                   : colors::Get("hud.deckEmpty"));
-}
-
-void Hud::RenderGraveyardPanel(SDL_Renderer* r, int width, int height) const {
-  const std::string value = std::to_string(graveyard_);
-  const float panel_h = kCounterHeight;
-  const std::string title = i18n::Get("hud.graveyard");
-  const float panel_w = CounterPanelWidth(title.c_str(), value);
-  const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - panel_h, panel_w, panel_h};
-  CounterPanel(r, panel, title.c_str(), value, colors::Get("hud.counterValue"));
+void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
+  // Uma linha: "[Monte restantes/total      Cemitério N]". Monte à esquerda; monte vazio em
+  // destaque (o jogador não compra mais). Cemitério alinhado à direita. A largura é medida
+  // com os maiores valores ("40/40" e dois dígitos) para o painel não mudar a cada compra.
+  const std::string deck_title = i18n::Get("hud.deck");
+  const std::string deck_value =
+      std::to_string(deck_remaining_) + "/" + std::to_string(kDeckSize);
+  const std::string grave_title = i18n::Get("hud.graveyard");
+  const std::string grave_value = std::to_string(graveyard_);
+  const std::string widest_deck = std::to_string(kDeckSize) + "/" + std::to_string(kDeckSize);
+  const std::string widest_grave = graveyard_ > 99 ? grave_value : std::string("99");
+  const float deck_title_w = text::Width(deck_title.c_str(), kLineScale);
+  const float panel_w =
+      ui::SnapUp(2 * kPadding + deck_title_w + kCounterGap +
+                 text::Width(widest_deck.c_str(), kLineScale) + kPilesGap +
+                 text::Width(grave_title.c_str(), kLineScale) + kCounterGap +
+                 text::Width(widest_grave.c_str(), kLineScale));
+  const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - kCounterHeight, panel_w,
+                        kCounterHeight};
+  Panel(r, panel);
+  const float y = panel.y + (panel.h - kLineHeight) / 2.0f;
+  const float left = panel.x + kPadding;
+  const float right = panel.x + panel.w - kPadding;
+  text::Draw(r, deck_title.c_str(), left, y, kLineScale, colors::Get("panel.title"));
+  text::Draw(r, deck_value.c_str(), left + deck_title_w + kCounterGap, y, kLineScale,
+             deck_remaining_ > 0 ? colors::Get("hud.counterValue")
+                                 : colors::Get("hud.deckEmpty"));
+  DrawRight(r, grave_value.c_str(), right, y, kLineScale, colors::Get("hud.counterValue"));
+  DrawRight(r, grave_title.c_str(),
+            right - text::Width(grave_value.c_str(), kLineScale) - kCounterGap, y, kLineScale,
+            colors::Get("panel.title"));
 }
 
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {

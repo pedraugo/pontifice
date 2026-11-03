@@ -2,7 +2,7 @@
 
 ## Categorias
 
-As cartas são separadas em três categorias, sendo Bondosas, Malignas e Neutras. As cartas Bondosas representam o Deus, Anjos, Apóstolos e Santos. A malignas, Satanás e Demonios. E a Neutra como, humanos e espiritos.
+As cartas são separadas em três categorias, sendo Benévolas, Malignas e Neutras. As cartas Benévolas representam o Deus, Anjos, Apóstolos e Santos. A malignas, Satanás e Demonios. E a Neutra como, humanos e espiritos.
 
 OBS.: A categoria não representa nenhuma vantagem sobre a outra.
 
@@ -10,7 +10,7 @@ OBS.: A categoria não representa nenhuma vantagem sobre a outra.
 
 Cada uma das categorias tem a sua prória hierarquia sendo dividida dessa forma:
 
-**Bondosa**:
+**Benévola**:
 1. Divindade
 2. Arcanjos
 3. Anjos

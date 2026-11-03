@@ -5,6 +5,8 @@
     "palette: tons medidos no ícone, do mais escuro (900) ao mais claro (50).",
     "roles: para que serve cada cor no jogo. Formato #rrggbb ou #rrggbbaa.",
     "status.buff, status.nerf e board.slotHover (amarelo) não existem no ícone: escolhidos para contrastar com a paleta.",
+    "board.slotHoverField: moldura de seleção do slot e seta de ataque com carta de campo ativa (ou selecionada), rosa para não sumir na arena dourada.",
+    "board.fieldArena: tint dourado da arena enquanto há carta de campo ativa (ou uma selecionada na mão) (multiplica a pedra, reforçado 1,5x no código). board.fieldMistGood / fieldMistEvil: névoa de chão nesse estado; board.fieldFogGood / fieldFogEvil: fundo do ambiente (cor de limpeza e névoa por distância), tom escuro da categoria, conforme a categoria que a carta favorece.",
     "board.status: linha de situação da batalha, branca opaca. board.hint: dica abaixo dela, com 75% de opacidade (bf).",
     "button.danger*: vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono) quando as placas (sprites/UiFrame*.png) não carregam."
   ],
@@ -84,8 +86,14 @@
     "board": {
       "slot": "#ced8e74d",
       "slotHover": "#f2d35b",
+      "slotHoverField": "#ff5fae",
       "status": "#ffffff",
-      "hint": "#e1e9f4bf"
+      "hint": "#e1e9f4bf",
+      "fieldArena": "#ffc94a",
+      "fieldMistGood": "#4fe06a",
+      "fieldMistEvil": "#ff3b2f",
+      "fieldFogGood": "#12301e",
+      "fieldFogEvil": "#381418"
     },
     "status": {
       "buff": "#8fcf86",

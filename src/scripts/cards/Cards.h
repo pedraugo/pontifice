@@ -10,7 +10,7 @@ struct CardInfo {
   std::string code;         // "G101", "E203", "N301", "FE01"
   std::string name;
   std::string description;
-  char category = 'N';      // 'G' bondosa, 'E' maligna, 'N' neutra, 'F' campo
+  char category = 'N';      // 'G' benévola, 'E' maligna, 'N' neutra, 'F' campo
   std::string category_name;   // "good", "evil", "neutral", "field"
   int hierarchy = 0;        // 1 (mais rara) a 4; 0 para cartas de campo
   std::string hierarchy_name;  // ex.: "Arcanjos" (traduzido); vazio em cartas de campo

@@ -6,7 +6,7 @@ PONTIFICE é um jogo de cartas para dois jogadores, disputado em turnos. Cada jo
 
 ## Componentes
 
-- **Cartas de batalha**: Bondosas, Malignas e Neutras. Têm ataque e defesa. Veja [Cartas](cartas.md).
+- **Cartas de batalha**: Benévolas, Malignas e Neutras. Têm ataque e defesa. Veja [Cartas](cartas.md).
 - **Cartas de campo**: alteram o campo, dando buff a uma categoria e nerf à outra. Veja [Cartas](cartas.md).
 - **Campo**: arena 5x2 por lado, com slot de campo e monte. Veja [Campo](campo.md).
 - **HUD**: informações fixas na tela. Veja [HUD](hud.md).

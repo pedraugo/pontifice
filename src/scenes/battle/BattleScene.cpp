@@ -79,9 +79,8 @@ constexpr float kButtonMargin = ui::Grid(1);   // botão de som no canto inferio
 constexpr float kEndTurnTop = ui::Grid(6);     // 96 px: dica centrada em 64 px, 18 px de linha
 // Dica menor que a linha de situação (24 px de linha): 18 px.
 constexpr float kHintScale = 1.5f * ui::kScale;
-// Botão de som: 3 x 3 células no canto inferior esquerdo; o painel do monte fica à direita.
+// Botão de som: 3 x 3 células no canto inferior esquerdo.
 constexpr float kSoundButtonSize = ui::Grid(3);
-constexpr float kSoundButtonGap = ui::Grid(1);
 // Tooltip da carta no campo: imagem da carta à esquerda, textos à direita.
 constexpr float kTipScale = 2.0f * ui::kScale;        // 24 px
 constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 18 px
@@ -123,6 +122,16 @@ constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ata
 constexpr int kHandLimit = 6;
 // Pausas do turno do computador (s), para o jogador acompanhar cada jogada.
 constexpr float kOpponentPause = 0.7f;
+// Carta de campo ativa ou selecionada: velocidade da transição da arena dourada e da névoa colorida
+// (maior = mais rápida) e reforço do dourado (o tint multiplica a pedra; acima de 1 ela
+// brilha em vez de só escurecer).
+constexpr float kFieldGlowSpeed = 6.0f;
+constexpr float kFieldArenaBoost = 1.5f;
+
+SDL_FColor LerpColor(SDL_FColor a, SDL_FColor b, float t) {
+  return SDL_FColor{a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t,
+                    a.a + (b.a - a.a) * t};
+}
 // Revelação da carta jogada pelo oponente: tempo total no centro da tela (com entrada e saída
 // em fade), altura da carta (perto dos 557 px nativos da frente do HUD) e escala de entrada.
 constexpr float kRevealSeconds = 2.0f;
@@ -876,6 +885,11 @@ bool BattleScene::CanSummon() const {
   return CandidateIsField() || !summoned_;
 }
 
+const char* BattleScene::HoverRole() const {
+  // Com a arena dourada (carta de campo ativa ou selecionada), o amarelo some nela: rosa.
+  return field_.active || CandidateIsField() ? "board.slotHoverField" : "board.slotHover";
+}
+
 bool BattleScene::CandidateIsField() const {
   const int index = hand_.Candidate();
   if (index < 0) return false;
@@ -1027,7 +1041,6 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   end_turn_->SetRect(rect);
   sound_button_.SetRect(SDL_FRect{kButtonMargin, ctx.logical_height - kButtonMargin - kSoundButtonSize,
                                   kSoundButtonSize, kSoundButtonSize});
-  hud_.SetDeckPanelLeft(kButtonMargin + kSoundButtonSize + kSoundButtonGap);
   started_ = false;
   player_turn_ = false;
   summoned_ = false;
@@ -1411,6 +1424,22 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
   opponent_hand_view_.Update(dt_seconds, math::Vec2{-1.0f, -1.0f}, hand_view_proj_,
                              ctx.logical_width, ctx.logical_height);
+  // Carta de campo ativa (de qualquer jogador): arena dourada e névoa na cor da categoria
+  // que ela favorece. Uma carta de campo selecionada na mão mostra a cor dela por cima (prévia
+  // de como fica ao ativar). Sem nenhuma das duas, volta ao normal com a última cor.
+  const bool field_selected = CandidateIsField();
+  if (field_selected || field_.active) {
+    bool evil = field_.favored == 'E';
+    if (field_selected) {
+      evil = hand_.CardAt(static_cast<size_t>(hand_.Candidate())).info->favored == "evil";
+    }
+    field_mist_color_ = colors::GetF(evil ? "board.fieldMistEvil" : "board.fieldMistGood");
+    field_fog_color_ = colors::GetF(evil ? "board.fieldFogEvil" : "board.fieldFogGood");
+  }
+  field_glow_ += ((field_selected || field_.active ? 1.0f : 0.0f) - field_glow_) *
+                 std::min(1.0f, dt_seconds * kFieldGlowSpeed);
+  // Fundo do ambiente (cor de limpeza e névoa por distância) no tom escuro da categoria.
+  arena_atmosphere_.fog_color = LerpColor(fog_color_, field_fog_color_, field_glow_);
   // Destaques do campo: slots vazios em modo de invocação; moldura amarela no slot sob o
   // mouse quando dá para invocar nele, trocar a posição da carta ou, num arrasto de ataque,
   // no alvo do oponente.
@@ -1431,6 +1460,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
   board_.SetHoverSlot(hover);
   opponent_board_.SetHoverSlot(opponent_hover);
+  board_.SetHoverRole(HoverRole());
+  opponent_board_.SetHoverRole(HoverRole());
   board_.Update(dt_seconds);
   opponent_board_.Update(dt_seconds);
   sword_.Update(dt_seconds);
@@ -1828,10 +1859,14 @@ void BattleScene::Render(SceneContext& ctx) {
       gpu_->EndShadowPass();
     }
   }
-  if (ready_ && gpu_->BeginFrame(fog_color_)) {
+  if (ready_ && gpu_->BeginFrame(arena_atmosphere_.fog_color)) {
     gpu_->SetAtmosphere(arena_atmosphere_);
     if (arena_model_ != nullptr) {
-      arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_, SDL_FColor{1, 1, 1, 1});
+      SDL_FColor gold = colors::GetF("board.fieldArena");
+      gold = SDL_FColor{gold.r * kFieldArenaBoost, gold.g * kFieldArenaBoost,
+                        gold.b * kFieldArenaBoost, 1.0f};
+      arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_,
+                         LerpColor(SDL_FColor{1, 1, 1, 1}, gold, field_glow_));
     }
     if (torch_ != nullptr) {
       for (const math::Mat4& world : torch_world_) {
@@ -1844,10 +1879,10 @@ void BattleScene::Render(SceneContext& ctx) {
     sword_.Render(*gpu_, arena_view_proj_);
     shield_.Render(*gpu_, arena_view_proj_);
     // Névoa depois da arena (transparente): de baixo para cima.
+    const SDL_FColor mist = LerpColor(mist_color_, field_mist_color_, field_glow_);
     for (const MistLayer& layer : mist_layers_) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
-                 SDL_FColor{mist_color_.r, mist_color_.g, mist_color_.b, layer.alpha},
-                 Gpu::DrawMode::kMist);
+                 SDL_FColor{mist.r, mist.g, mist.b, layer.alpha}, Gpu::DrawMode::kMist);
     }
     // Abertura: névoa densa acima da base, que se dissipa conforme a arena emerge.
     if (intro_ < 1.0f) {
@@ -1907,7 +1942,7 @@ void BattleScene::Render(SceneContext& ctx) {
         ScreenOf(board_.CardPosition(attack_from_), ctx.logical_width, ctx.logical_height);
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
     DrawAttackArc(r, SDL_FPoint{from.x, from.y}, SDL_FPoint{mouse_.x, mouse_.y},
-                  colors::Get("board.slotHover"),
+                  colors::Get(HoverRole()),
                   static_cast<float>(SDL_GetTicks()) / 1000.0f);
   }
   // Dica do que fazer agora, abaixo da situação do turno.

@@ -14,7 +14,7 @@ O cemitério existe como pilha de cartas destruídas ou descartadas, mas **não 
 Um **slot** é um espaço fixo do campo onde uma única carta pode ser colocada. Cada slot:
 
 - comporta **no máximo uma carta** por vez;
-- aceita cartas Bondosas, Malignas e Neutras;
+- aceita cartas Benévolas, Malignas e Neutras;
 - pertence a **um único jogador**. Você só coloca cartas nos seus slots, nunca nos do oponente;
 - é identificado por **linha e coluna**. Exemplo: slot `A3` é a linha A, coluna 3.
 
@@ -39,7 +39,7 @@ Se um slot está ocupado, nenhuma outra carta pode ser colocada nele até que a 
               1       2       3       4       5
 ```
 
-**Slots de carta (A1 a B5)**: 10 slots iguais, tanto no seu lado quanto no do oponente. Qualquer um recebe cartas Bondosas, Malignas e Neutras, em modo de ataque ou defesa. Não há diferença de regra entre a linha A e a linha B: toda carta em qualquer slot pode **atacar e ser atacada**. As letras e números servem apenas para identificar a posição.
+**Slots de carta (A1 a B5)**: 10 slots iguais, tanto no seu lado quanto no do oponente. Qualquer um recebe cartas Benévolas, Malignas e Neutras, em modo de ataque ou defesa. Não há diferença de regra entre a linha A e a linha B: toda carta em qualquer slot pode **atacar e ser atacada**. As letras e números servem apenas para identificar a posição.
 
 **Monte**: fica fora da grade, virado para baixo.
 
