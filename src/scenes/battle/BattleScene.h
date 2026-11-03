@@ -50,7 +50,7 @@
 // Esc sai da inspeção; senão pausa e pergunta se abandona a batalha (com a partida
 // encerrada, volta direto ao menu). Teclas de depuração: F alterna uma carta de campo de
 // exemplo; 1 e 2 tiram 700 pontos de vida do oponente e de você; D compra; G soma 1 ao
-// cemitério. PONTIFICE_STARTER=player|enemy força quem começa.
+// cemitério. PONTIFICE_STARTER=player|opponent força quem começa.
 class BattleScene : public Scene {
  public:
   ~BattleScene() override;
@@ -62,9 +62,9 @@ class BattleScene : public Scene {
   void Render(SceneContext& ctx) override;
 
  private:
-  enum class Side { kPlayer, kEnemy };
+  enum class Side { kPlayer, kOpponent };
   static int Index(Side side) { return side == Side::kPlayer ? 0 : 1; }
-  static Side Other(Side side) { return side == Side::kPlayer ? Side::kEnemy : Side::kPlayer; }
+  static Side Other(Side side) { return side == Side::kPlayer ? Side::kOpponent : Side::kPlayer; }
 
   // Frente pronta para a mão/campo: textura composta, se é foil (hierarquia 1) e os dados.
   struct Face {
@@ -104,9 +104,9 @@ class BattleScene : public Scene {
   void StartMatch();
   void BeginPlayerTurn();
   void EndTurn();  // botão "Passar turno"
-  void RunEnemyTurn();
-  void EnemyAttackStep();
-  void FinishEnemyTurn();
+  void RunOpponentTurn();
+  void OpponentAttackStep();
+  void FinishOpponentTurn();
   bool AttacksAllowed(Side side) const;  // quem começou não ataca no primeiro turno
 
   // Ações do jogador.
@@ -117,18 +117,18 @@ class BattleScene : public Scene {
   void PlayField(Side owner, const CardInfo& card);
 
   // Combate: investida e, 0,25 s depois, dano e destruição (docs/batalha.md).
-  Board& BoardOf(Side side) { return side == Side::kPlayer ? board_ : enemy_board_; }
+  Board& BoardOf(Side side) { return side == Side::kPlayer ? board_ : opponent_board_; }
   void PerformAttack(Side attacker, int slot, int target_slot);  // target -1 = direto
   void ResolveAttack(Side attacker, int slot, int target_slot);
   void Destroy(Side owner, int slot);
   void ApplyDamage(Side side, int damage);
 
   // Computador.
-  ai::View BuildEnemyView() const;
-  void EnemyDraw();
+  ai::View BuildOpponentView() const;
+  void OpponentDraw();
   // A carta já saiu da mão dele. `face`: frente já composta (a da revelação), ou nulo para
   // compor aqui.
-  void EnemySummon(const CardInfo* info, bool defense, const Face* face = nullptr);
+  void OpponentSummon(const CardInfo* info, bool defense, const Face* face = nullptr);
 
   // Revelação da carta do oponente: antes de ir à arena, a carta que ele joga (invocação ou
   // carta de campo) aparece grande no centro da tela por kRevealSeconds, com a legenda da
@@ -165,6 +165,9 @@ class BattleScene : public Scene {
   math::Vec2 ScreenOf(const math::Vec3& world, int width, int height) const;
   // Tooltip da carta sob o mouse no campo: nome, ataque e defesa efetivos, posição e dono.
   void RenderTooltip(SDL_Renderer* r, int width, int height) const;
+  // Dica do topo (battle.hint.* em translate.json): o que fazer agora, conforme o turno, a
+  // carta selecionada ou arrastada e o que está sob o mouse. Vazia quando não há dica.
+  std::string Hint(int width, int height) const;
 
   bool preloaded_ = false;
   Image hud_field_;
@@ -184,23 +187,23 @@ class BattleScene : public Scene {
   const Image& FrameFor(const CardInfo& card) const;
   std::vector<CardInfo> cards_;
   std::mt19937 rng_;
-  deck::Deck deck_;        // seu monte
-  deck::Deck enemy_deck_;  // monte do computador
-  std::vector<const CardInfo*> enemy_hand_;
+  deck::Deck deck_;           // seu monte
+  deck::Deck opponent_deck_;  // monte do computador
+  std::vector<const CardInfo*> opponent_hand_;
   std::vector<Face> initial_hand_;
   Hand hand_;
   // Mão do oponente (docs/batalha.md, "Mão do oponente"): as mesmas cartas 3D da sua mão, no
-  // dock de baixo, mas com a frente oculta (CardFrontEnemy, "?" em tudo). Só visual, sem
-  // mouse; aparece no turno dele e se recolhe no seu. Acompanha enemy_hand_ pelos helpers
-  // EnemyHandAdd/EnemyHandRemove.
-  Hand enemy_hand_view_;
+  // dock de baixo, mas com a frente oculta (CardFrontOpponent, "?" em tudo). Só visual, sem
+  // mouse; aparece no turno dele e se recolhe no seu. Acompanha opponent_hand_ pelos helpers
+  // OpponentHandAdd/OpponentHandRemove.
+  Hand opponent_hand_view_;
   SDL_GPUTexture* hidden_face_ = nullptr;
-  void EnemyHandAdd(const CardInfo* info);
+  void OpponentHandAdd(const CardInfo* info);
   // Tira a carta `index` da mão do oponente; `world` recebe a matriz dela no dock.
-  void EnemyHandRemove(size_t index, math::Mat4* world = nullptr);
-  Board board_;        // seu lado do campo
-  Board enemy_board_;  // lado do computador
-  Sword sword_;        // efeito de golpe nos ataques
+  void OpponentHandRemove(size_t index, math::Mat4* world = nullptr);
+  Board board_;           // seu lado do campo
+  Board opponent_board_;  // lado do computador
+  Sword sword_;           // efeito de golpe nos ataques
   Shield shield_;  // escudo quando a carta atacada está em defesa
   Hud hud_;
   SDL_Renderer* renderer_ = nullptr;

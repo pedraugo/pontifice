@@ -88,7 +88,7 @@ O sorteio de quem começa acontece na entrada da batalha. Se o oponente começa,
 
 ## Mão do oponente
 
-No turno do oponente a mão dele aparece embaixo, no lugar da sua, que se recolhe. As cartas usam a frente oculta (`sprites/CardFrontEnemy.png`): nome, ATK, DEF e descrição aparecem como "?", e a hierarquia não é mostrada, então o jogador vê quantas cartas ele tem, mas não quais. A mão acompanha as compras, as jogadas e os descartes dele. Quando ele joga uma carta, ela sai do lugar dela na mão, voa até o centro da tela e vira no caminho, da frente oculta para a carta real. No fim do turno dele a mão se recolhe primeiro, e só então a arena gira de volta para o seu lado.
+No turno do oponente a mão dele aparece embaixo, no lugar da sua, que se recolhe. As cartas usam a frente oculta (`sprites/CardFrontOpponent.png`): nome, ATK, DEF e descrição aparecem como "?", e a hierarquia não é mostrada, então o jogador vê quantas cartas ele tem, mas não quais. A mão acompanha as compras, as jogadas e os descartes dele. Quando ele joga uma carta, ela sai do lugar dela na mão, voa até o centro da tela e vira no caminho, da frente oculta para a carta real. No fim do turno dele a mão se recolhe primeiro, e só então a arena gira de volta para o seu lado.
 
 ## Jogadas do oponente
 

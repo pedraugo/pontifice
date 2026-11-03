@@ -38,7 +38,7 @@ src/
     frame/
       Frame.*         moldura da interface: UiFrameButton.png (botões), UiFrameWindow.png (janelas, painéis, tooltip) e UiFrameButtonDanger.png (botões de ação destrutiva, pedra vermelha) em 9 tiles iguais montados por elemento
     text/
-      Text.*          texto com a fonte do jogo (assets/PirataOne.ttf) via stb_truetype: atlas 16/32/64 px, ASCII e Latin-1; sem a fonte, cai na de depuração do SDL
+      Text.*          texto com as fontes do jogo via stb_truetype (text::Face: kTitle = assets/PirataOne.ttf, kBody = assets/Newsreader.ttf): atlas 16/32/64 px por fonte, ASCII e Latin-1; sem a de corpo, usa a de título; sem a de título, cai na de depuração do SDL
     button/
       Button.*        botão base (hover, foco, clique)
       ButtonPlay.*    botão Jogar
@@ -100,7 +100,8 @@ src/
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
     ost.json          trilha sonora: volume por cena (menu 0,15; batalha 0,25), categorias "ost" (menu/loading) e "battle" de MP3 em sounds/ e quais tocam em ordem aleatória ("random": batalha)
-    PirataOne.ttf     fonte do jogo (tem acentos Latin-1)
+    PirataOne.ttf     fonte de título do jogo: títulos, botões, painéis, rótulos (tem acentos Latin-1)
+    Newsreader.ttf    fonte de corpo: linha de situação e dica da batalha, descrição da carta (frente e tooltip)
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
     CardsGood.json
     CardsEvil.json
@@ -225,7 +226,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Carga**: as 65 ilustrações são decodificadas e ajustadas em paralelo (até 8 threads) no `Preload`, e `Image.cpp`, `Text.cpp` e `CardFace.cpp` são compilados com `-O2` mesmo em Debug (stb_image, stb_truetype e composição das frentes); o log mostra o tempo (`Ilustracoes de cartas: 65 (… ms)`).
 
-**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|enemy` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
+**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|opponent` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
 
 **Seu turno** (botão **Passar turno** no centro superior da tela, logo abaixo da dica, visível sempre que você pode agir):
 
@@ -239,9 +240,22 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 8. **Ver uma carta no campo**: passar o mouse sobre qualquer carta em campo (sua ou do oponente, em qualquer momento) a **amplia** (1,45x, sobe um pouco, desenhada por cima das vizinhas; `Board::SetHoverCard`) e abre um **tooltip** ao lado do cursor (`RenderTooltip`): frente composta da carta à esquerda (mesma textura do HUD, em cache por código), e à direita nome, categoria e hierarquia (número e nome, ex.: "Maligna - Hierarquia 3 (Criaturas)"), **ATK** e **DEF** efetivos (verde/vermelho e "(base n)" quando a carta de campo altera), descrição com quebra de linha, dono e posição. Na mão, a carta sob o mouse cresce 1,64x (`Hand::Layout::hover_scale`).
 9. **Passar turno**: com mais de 6 cartas na mão, as de menor ataque são descartadas. A câmera orbita 180° (1 s), a mão se recolhe e começa o turno do computador.
 
-**Turno do computador** (`RunEnemyTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se consegue destruir alguma carta do jogador ou se o campo dele está vazio, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos, aceita troca igual; nunca ataca quem ganharia dela; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
+**Dica** (linha abaixo da situação do turno, `BattleScene::Hint`, chaves `battle.hint.*`): uma frase curta com o que fazer agora. Vale a primeira situação da lista:
 
-**Mão do oponente**: no turno dele a mão aparece no dock de baixo (`enemy_hand_view_`, um segundo `Hand`, só visual, sem mouse), no lugar da sua, que se recolhe. Todas as cartas usam a mesma frente oculta, composta uma vez no Preload (`cardface::ComposeHidden` sobre `sprites/CardFrontEnemy.png`: nome "?", "ATK ?", "DEF ?", descrição "?", sem hierarquia). `EnemyHandAdd`/`EnemyHandRemove` mantêm a mão visível igual a `enemy_hand_` (compras, cartas jogadas, descarte acima de 6). A carta jogada sai da pose dela no dock (`Hand::Remove` devolve a matriz) e voa 0,5 s até o centro (`Hand::CenterPose`/`PoseMatrix`), crescendo, endireitando o leque e virando em Y: frente oculta até 90°, carta real depois; a revelação de 2 s começa ao chegar. No fim do turno dele a mão se recolhe (0,5 s) antes de a câmera orbitar de volta.
+1. Carta da mão em inspeção: os controles (girar, virar, zoom, Esc).
+2. Turno do computador: aguardar e passar o mouse nas cartas; some durante a revelação da carta dele, que já tem legenda.
+3. Animação em curso no seu turno (investida, golpe, câmera): sem dica.
+4. Arrasto de ataque: sobre uma carta do oponente, o **resultado** se soltar ali, pelas mesmas regras de `rules::Resolve` com os valores efetivos (`preview.win`, `winDefense`, `lose`, `tie`, `blocked`, `even`, com o dano); fora de um alvo, "solte sobre uma carta"; com o lado dele vazio, o dano do ataque direto.
+5. Carta da mão selecionada: carta de campo, onde ativar (ou que substitui a atual); invocação já usada, como desmarcar; mouse sobre um slot seu ocupado, que a carta dele vai para o cemitério; seu lado cheio, como trocar; senão, onde invocar.
+6. Mouse sobre uma carta da mão: os gestos (cima joga, baixo inspeciona).
+7. Mouse sobre uma carta sua no campo: em defesa, como voltar ao ataque; no 1º turno de quem começa, que não ataca; já atacou; senão, arrastar para atacar ou clicar para defesa.
+8. Próxima jogada: atacar (ou ataque direto, com o lado dele vazio); invocar, se ainda não invocou e tem carta de batalha; aviso de mais de 6 cartas na mão; carta de campo na mão (não gasta a invocação); por fim, passar o turno (no 1º turno de quem começa, lembrando que não há ataque).
+
+A linha de situação sai em branco opaco (`board.status`, linha de 24 px) e a dica, menor, com 75% de opacidade (`board.hint`, linha de 18 px), ambas na Newsreader; as frases da dica cabem entre os painéis do topo nos três idiomas.
+
+**Turno do computador** (`RunOpponentTurn`, passos agendados com 0,7 s de pausa para o jogador acompanhar; a entrada fica bloqueada): compra; trocas de posição (`ai::ChoosePositionChanges`); carta de campo se favorece sua categoria dominante (`ai::ChooseFieldCard`); invocação (`ai::ChooseSummon`: a de maior ataque efetivo, em ataque se consegue destruir alguma carta do jogador ou se o campo dele está vazio, senão a de maior defesa em modo de defesa; slot pela linha de trás e centro; campo cheio substitui a mais fraca); ataques um a um, reavaliando o campo a cada vez (`ai::ChooseAttack`: prefere destruir com dano, depois tirar escudos, aceita troca igual; nunca ataca quem ganharia dela; ataque direto com campo vazio); fim de turno com descarte acima de 6; a câmera volta e seu turno começa com a compra. Pontos de vida em 0 encerram a batalha (HUD mostra o resultado).
+
+**Mão do oponente**: no turno dele a mão aparece no dock de baixo (`opponent_hand_view_`, um segundo `Hand`, só visual, sem mouse), no lugar da sua, que se recolhe. Todas as cartas usam a mesma frente oculta, composta uma vez no Preload (`cardface::ComposeHidden` sobre `sprites/CardFrontOpponent.png`: nome "?", "ATK ?", "DEF ?", descrição "?", sem hierarquia). `OpponentHandAdd`/`OpponentHandRemove` mantêm a mão visível igual a `opponent_hand_` (compras, cartas jogadas, descarte acima de 6). A carta jogada sai da pose dela no dock (`Hand::Remove` devolve a matriz) e voa 0,5 s até o centro (`Hand::CenterPose`/`PoseMatrix`), crescendo, endireitando o leque e virando em Y: frente oculta até 90°, carta real depois; a revelação de 2 s começa ao chegar. No fim do turno dele a mão se recolhe (0,5 s) antes de a câmera orbitar de volta.
 
 **Revelação da carta do oponente**: toda carta que o computador joga (invocação ou carta de campo) sai da mão dele e aparece **grande no centro da tela por 2 s** (`StartReveal`/`RenderReveal`, `kRevealSeconds`) antes de ir à arena: véu escuro sobre a mesa e a carta **em 3D** na camada da mão, com a mesma luz, foil e aura das cartas da sua mão, balançando de leve (560 px de altura; entra crescendo de 85% em 0,2 s, sai em 0,25 s); sem o render 3D cai na frente composta em 2D, a legenda acima ("O oponente invoca" ou "O oponente ativa a carta de campo") e, na invocação, a posição abaixo ("Em ataque" ou "Em defesa"). A colocação na arena é agendada com `ScheduleNext` (frente da fila), então acontece logo depois da revelação e antes dos passos seguintes. A pausa (Esc) congela a revelação junto com o resto.
 
@@ -265,7 +279,7 @@ Quando o turno passa para o computador, a **câmera orbita 180°** em torno do c
 - A rotação é uma **animação contínua** (cerca de 1 segundo, com easing), não um corte.
 - Durante a animação, a entrada do jogador fica **bloqueada**.
 - Ao final, o lado do computador aparece na parte de baixo da tela e o lado do jogador na parte de cima. As cartas viradas para baixo do jogador continuam mostrando o verso.
-- A mão do jogador se recolhe para fora da tela (`Hand::SetAway`). O dock do computador com o verso das cartas ainda não é desenhado; a quantidade de cartas na mão dele aparece na linha de situação sob o título.
+- A mão do jogador se recolhe para fora da tela (`Hand::SetAway`). A linha de situação no topo mostra só o turno e de quem é a vez (`battle.status`: "Turno {0} - {1}").
 - O **HUD não gira**: carta de campo ativa segue no canto superior esquerdo e os pontos de vida no canto superior direito, com os nomes "Você" e "Oponente" inalterados.
 - Quando o turno volta ao jogador, a câmera orbita os 180° de volta, com a mesma animação.
 
@@ -306,7 +320,7 @@ Modos de desenho (`Gpu::DrawMode`): `kMesh` (iluminado: luz direcional opcional,
 
 ## Frente da carta
 
-`cardface::Compose` recebe a moldura da categoria reduzida 2x (800x1115; `CardFrontGood`, `CardFrontEvil`, `CardFrontNeutral` ou `CardFrontField`, uma por categoria, todas com as mesmas faixas) e desenha os textos com a fonte do jogo na CPU (`text::DrawOnImage`), antes de a imagem virar textura. Áreas, em px da imagem de 800x1115:
+`cardface::Compose` recebe a moldura da categoria reduzida 2x (800x1115; `CardFrontGood`, `CardFrontEvil`, `CardFrontNeutral` ou `CardFrontField`, uma por categoria, todas com as mesmas faixas) e desenha os textos na CPU (`text::DrawOnImage`): nome, hierarquia e ATK/DEF na PirataOne, descrição na Newsreader (`text::Face::kBody`), antes de a imagem virar textura. Áreas, em px da imagem de 800x1115:
 
 | Área | Posição | Conteúdo |
 |---|---|---|
@@ -368,7 +382,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia; `=1920x1080` (ou outro LxA) abre nesse tamanho, útil para screenshots em resolução cheia |
 | `PONTIFICE_SEED=n` | Fixa o sorteio da batalha (montes, compras e quem começa), para repetir uma partida igual em testes |
-| `PONTIFICE_ENEMY_HAND=G101,E101,...` | Força a mão inicial do computador (até 5), para testar a revelação de cartas específicas |
+| `PONTIFICE_OPPONENT_HAND=G101,E101,...` | Força a mão inicial do computador (até 5), para testar a revelação de cartas específicas |
 | `PONTIFICE_HAND=G101,E101,...` | Força os códigos da mão inicial (até 5), para testar cartas específicas (ex.: foil de hierarquia 1) |
 | `PONTIFICE_DRAG=...` | Sequência de gestos separados por `;`: `x0,y0,x1,y1,t` arrasta o botão esquerdo de (x0,y0) a (x1,y1) a partir de `t` s (mesmo ponto = clique); `w,dy,t` gira a roda. Testa seleção, inspeção, virar e zoom |
 | `PONTIFICE_KEYS=Escape,4;Return,6` | Aperta teclas (nomes do SDL) nos instantes dados, em segundos. Testa a pausa e os diálogos |
@@ -379,7 +393,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 | `PONTIFICE_AUDIO_LOG=1` | A cada segundo loga volume aplicado e alvo, pico e RMS do áudio enviado |
 | `PONTIFICE_AUDIO_ANALYZE=1` | Na inicialização, mede o RMS de cada faixa de ost.json e sugere o ganho de normalização |
-| `PONTIFICE_STARTER=player\|enemy` | Força quem começa a batalha |
+| `PONTIFICE_STARTER=player\|opponent` | Força quem começa a batalha |
 | `PONTIFICE_DIFFICULTY=easy\|medium\|hard\|impossible` | Força o nível do oponente |
 
 Exemplo: `PONTIFICE_WINDOWED=1 PONTIFICE_SCENE=battle PONTIFICE_MOUSE=960,840 PONTIFICE_SCREENSHOT=/tmp/hand.bmp ./build/pontifice`

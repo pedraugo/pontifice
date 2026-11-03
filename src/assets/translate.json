@@ -4,7 +4,7 @@
     "{0}, {1}... são substituídos em tempo de execução (i18n::Format).",
     "Cartas: card.<code>.name e card.<code>.description, um par por carta de assets/Cards*.json.",
     "Hierarquias: hierarchy.<categoryName>.<hierarchy>. Sem chave, o jogo usa o texto do JSON da carta.",
-    "A fonte (PirataOne) cobre ASCII e Latin-1 (0xA0..0xFF): acentos, ñ, ç, ¿ e ¡ funcionam."
+    "As fontes (PirataOne e Newsreader) cobrem ASCII e Latin-1 (0xA0..0xFF): acentos, ñ, ç, ¿ e ¡ funcionam."
   ],
   "languages": [
     {
@@ -95,44 +95,159 @@
       "es": "Render 3D no disponible. Mira el log."
     },
     "battle.status": {
-      "pt": "Turno {0} - {1} - oponente ({2}) com {3} cartas na mão",
-      "en": "Turn {0} - {1} - opponent ({2}) with {3} cards in hand",
-      "es": "Turno {0} - {1} - oponente ({2}) con {3} cartas en la mano"
+      "pt": "Turno {0} - {1}",
+      "en": "Turn {0} - {1}",
+      "es": "Turno {0} - {1}"
     },
     "battle.status.yourTurn": {
-      "pt": "sua vez",
-      "en": "your turn",
-      "es": "tu turno"
+      "pt": "Sua vez",
+      "en": "Your turn",
+      "es": "Tu turno"
     },
     "battle.status.opponent": {
-      "pt": "oponente",
-      "en": "opponent",
-      "es": "oponente"
+      "pt": "Oponente",
+      "en": "Opponent",
+      "es": "Oponente"
+    },
+    "battle.hint.inspect": {
+      "pt": "Arraste: gira - Clique: vira - Roda: zoom - Esc: volta",
+      "en": "Drag: rotate - Click: flip - Wheel: zoom - Esc: back",
+      "es": "Arrastra: gira - Clic: voltea - Rueda: zoom - Esc: vuelve"
+    },
+    "battle.hint.opponentTurn": {
+      "pt": "Vez do oponente: passe o mouse nas cartas para ver detalhes",
+      "en": "Opponent's turn: hover over cards to see their details",
+      "es": "Turno del oponente: pasa el ratón por las cartas para ver datos"
     },
     "battle.hint.directAttack": {
-      "pt": "Solte no lado do oponente: ataque direto",
-      "en": "Drop on the opponent's side: direct attack",
-      "es": "Suelta en el lado del oponente: ataque directo"
+      "pt": "Solte no lado do oponente: ele perde {0} de vida",
+      "en": "Drop on the opponent's side: they lose {0} life",
+      "es": "Suelta en el lado del oponente: pierde {0} de vida"
     },
     "battle.hint.attackCard": {
-      "pt": "Solte sobre uma carta do oponente para atacar",
-      "en": "Drop onto an opponent's card to attack",
-      "es": "Suelta sobre una carta del oponente para atacar"
+      "pt": "Solte sobre uma carta do oponente para atacá-la",
+      "en": "Drop onto an opponent's card to attack it",
+      "es": "Suelta sobre una carta del oponente para atacarla"
+    },
+    "battle.hint.preview.win": {
+      "pt": "Sua carta vence: a dele é destruída e ele perde {0} de vida",
+      "en": "Your card wins: theirs is destroyed and they lose {0} life",
+      "es": "Tu carta gana: la suya es destruida y pierde {0} de vida"
+    },
+    "battle.hint.preview.winDefense": {
+      "pt": "Sua carta vence: a dele é destruída, sem dano (está em defesa)",
+      "en": "Your card wins: theirs is destroyed, no damage (it's in defense)",
+      "es": "Tu carta gana: la suya es destruida, sin daño (está en defensa)"
+    },
+    "battle.hint.preview.lose": {
+      "pt": "Sua carta perde: ela é destruída e você perde {0} de vida",
+      "en": "Your card loses: it is destroyed and you lose {0} life",
+      "es": "Tu carta pierde: es destruida y pierdes {0} de vida"
+    },
+    "battle.hint.preview.tie": {
+      "pt": "Empate: as duas cartas são destruídas, sem dano",
+      "en": "Tie: both cards are destroyed, no damage",
+      "es": "Empate: ambas cartas son destruidas, sin daño"
+    },
+    "battle.hint.preview.blocked": {
+      "pt": "A defesa aguenta: nada é destruído e você perde {0} de vida",
+      "en": "The defense holds: nothing is destroyed and you lose {0} life",
+      "es": "La defensa resiste: nada se destruye y pierdes {0} de vida"
+    },
+    "battle.hint.preview.even": {
+      "pt": "Ataque igual à defesa: nada acontece",
+      "en": "Attack equals defense: nothing happens",
+      "es": "Ataque igual a la defensa: no pasa nada"
     },
     "battle.hint.playField": {
       "pt": "Clique na arena para ativar a carta de campo",
       "en": "Click the arena to activate the field card",
       "es": "Haz clic en la arena para activar la carta de campo"
     },
+    "battle.hint.replaceField": {
+      "pt": "Clique na arena: esta carta de campo substitui a atual",
+      "en": "Click the arena: this field card replaces the current one",
+      "es": "Haz clic en la arena: esta carta de campo reemplaza a la actual"
+    },
     "battle.hint.summon": {
-      "pt": "Clique em um slot do seu lado para invocar a carta",
-      "en": "Click a slot on your side to summon the card",
-      "es": "Haz clic en una casilla de tu lado para invocar la carta"
+      "pt": "Clique num slot do seu lado para invocar a carta em ataque",
+      "en": "Click a slot on your side to summon the card in attack",
+      "es": "Haz clic en una casilla de tu lado para invocarla en ataque"
+    },
+    "battle.hint.summonReplace": {
+      "pt": "Invocar aqui manda a carta deste slot para o cemitério",
+      "en": "Summoning here sends this slot's card to the graveyard",
+      "es": "Invocar aquí envía la carta de esta casilla al cementerio"
+    },
+    "battle.hint.boardFull": {
+      "pt": "Seu lado está cheio: clique numa carta sua para trocá-la",
+      "en": "Your side is full: click one of your cards to replace it",
+      "es": "Tu lado está lleno: haz clic en una carta tuya para cambiarla"
+    },
+    "battle.hint.alreadySummoned": {
+      "pt": "Só uma invocação por turno: arraste para cima para desmarcar",
+      "en": "One summon per turn: drag the card up again to deselect it",
+      "es": "Una invocación por turno: arrástrala arriba para desmarcarla"
+    },
+    "battle.hint.handCard": {
+      "pt": "Arraste para cima para jogar ou para baixo para ver de perto",
+      "en": "Drag up to play it or down to take a closer look",
+      "es": "Arrastra hacia arriba para jugarla o hacia abajo para verla"
+    },
+    "battle.hint.cardAttack": {
+      "pt": "Arraste ao oponente para atacar ou clique para pôr em defesa",
+      "en": "Drag to the opponent to attack or click to switch to defense",
+      "es": "Arrástrala al oponente para atacar o haz clic para defender"
+    },
+    "battle.hint.cardAttacked": {
+      "pt": "Esta carta já atacou neste turno. Clique para pôr em defesa",
+      "en": "This card already attacked this turn. Click to switch to defense",
+      "es": "Esta carta ya atacó en este turno. Haz clic para defender"
+    },
+    "battle.hint.cardFirstTurn": {
+      "pt": "Quem começa não ataca no 1º turno. Clique para pôr em defesa",
+      "en": "The first player can't attack on turn 1. Click to defend",
+      "es": "Quien empieza no ataca en el primer turno. Clic para defender"
+    },
+    "battle.hint.cardDefense": {
+      "pt": "Em defesa a carta não ataca. Clique para voltar ao ataque",
+      "en": "Cards in defense can't attack. Click to switch to attack",
+      "es": "En defensa la carta no ataca. Haz clic para volver al ataque"
     },
     "battle.hint.attack": {
-      "pt": "Arraste uma carta sua em ataque até o oponente para atacar",
-      "en": "Drag one of your attacking cards to the opponent to attack",
-      "es": "Arrastra una carta tuya en ataque hasta el oponente para atacar"
+      "pt": "Para atacar, arraste uma carta sua até uma carta do oponente",
+      "en": "To attack, drag one of your cards onto an opponent's card",
+      "es": "Para atacar, arrastra una carta tuya hasta una del oponente"
+    },
+    "battle.hint.attackDirect": {
+      "pt": "O oponente está sem cartas: arraste uma sua até o lado dele",
+      "en": "The opponent has no cards: drag one of yours to their side",
+      "es": "El oponente no tiene cartas: arrastra una tuya hasta su lado"
+    },
+    "battle.hint.select": {
+      "pt": "Para invocar, arraste uma carta da mão para cima",
+      "en": "To summon, drag a card from your hand upward",
+      "es": "Para invocar, arrastra una carta de la mano hacia arriba"
+    },
+    "battle.hint.fieldLeft": {
+      "pt": "Carta de campo não gasta a invocação: arraste uma para cima",
+      "en": "Field cards don't use your summon: drag one up to play it",
+      "es": "La carta de campo no gasta la invocación: arrastra una arriba"
+    },
+    "battle.hint.handLimit": {
+      "pt": "Mais de 6 cartas: ao passar, as mais fracas são descartadas",
+      "en": "Over 6 cards: ending the turn discards the weakest ones",
+      "es": "Más de 6 cartas: al pasar, se descartan las más débiles"
+    },
+    "battle.hint.firstTurn": {
+      "pt": "Quem começa não ataca no 1º turno. Clique em {0}",
+      "en": "The first player can't attack on turn 1. Click {0}",
+      "es": "Quien empieza no ataca en el primer turno. Pulsa {0}"
+    },
+    "battle.hint.endTurn": {
+      "pt": "Quando terminar, clique em {0}",
+      "en": "When you're done, click {0}",
+      "es": "Cuando termines, pulsa {0}"
     },
     "battle.tooltip.hierarchy": {
       "pt": "Hierarquia {0}",

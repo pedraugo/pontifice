@@ -48,14 +48,16 @@ void Label(Image& img, const std::string& s, float x, float y, float px) {
   text::DrawOnImage(img, str, x, y, px, kWhite);
 }
 
-// Quebra em linhas que cabem em `max_width` (por palavras; palavra maior que a linha fica só).
-std::vector<std::string> Wrap(const std::string& textstr, float px, float max_width) {
+// Quebra em linhas que cabem em `max_width` na fonte `face` (por palavras; palavra maior que a
+// linha fica só).
+std::vector<std::string> Wrap(const std::string& textstr, float px, float max_width,
+                              text::Face face) {
   std::vector<std::string> lines;
   std::string line, word;
   auto flush_word = [&]() {
     if (word.empty()) return;
     const std::string candidate = line.empty() ? word : line + " " + word;
-    if (text::ImageWidth(candidate.c_str(), px) <= max_width || line.empty()) {
+    if (text::ImageWidth(candidate.c_str(), px, face) <= max_width || line.empty()) {
       line = candidate;
     } else {
       lines.push_back(line);
@@ -220,7 +222,8 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     Label(img, right, kRight * sx - text::ImageWidth(right.c_str(), px), y, px);
   }
 
-  // Descrição na área branca de baixo, com quebra de linha e centralizada.
+  // Descrição na área branca de baixo, com quebra de linha e centralizada, na fonte de corpo
+  // (Newsreader).
   {
     const float px = kDescPx * sy;
     const float line_h = kDescLine * sy;
@@ -230,12 +233,12 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
           i18n::Get(card.favored == "evil" ? "category.evil.plural" : "category.good.plural");
       body += "\n" + i18n::Format("cardface.favors", {favored});
     }
-    const std::vector<std::string> lines = Wrap(body, px, (kRight - kLeft) * sx);
+    const std::vector<std::string> lines = Wrap(body, px, (kRight - kLeft) * sx, text::Face::kBody);
     const float block_h = static_cast<float>(lines.size()) * line_h;
     float y = CenteredTop(kDescTop * sy, kDescBottom * sy, block_h);
     for (const std::string& line : lines) {
-      const float w = text::ImageWidth(line.c_str(), px);
-      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, kInk);
+      const float w = text::ImageWidth(line.c_str(), px, text::Face::kBody);
+      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, kInk, text::Face::kBody);
       y += line_h;
     }
   }

@@ -158,8 +158,10 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   const char* env_lang = std::getenv("PONTIFICE_LANG");
   if (env_lang != nullptr) i18n::SetLanguage(env_lang);
-  // Fonte do jogo (atlas de glifos no renderer); sem ela o texto usa a fonte de depuração.
-  text::Init(app.renderer, base + "assets/PirataOne.ttf");
+  // Fontes do jogo (atlas de glifos no renderer): PirataOne nos títulos e rótulos, Newsreader
+  // no texto corrido. Sem a de corpo, usa a de título; sem a de título, a fonte de depuração.
+  text::Init(app.renderer, base + "assets/PirataOne.ttf", text::Face::kTitle);
+  text::Init(app.renderer, base + "assets/Newsreader.ttf", text::Face::kBody);
   // Placas de pedra com moldura (sprites/UiFrameButton.png e UiFrameWindow.png): fundo de
   // botões e de janelas/painéis.
   frame::Init(app.renderer, base + "sprites/");

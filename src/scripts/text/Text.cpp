@@ -12,9 +12,13 @@
 namespace {
 
 constexpr float kCellPx = 8.0f;  // altura da linha por unidade de scale (fonte de depuração)
-// A fonte de depuração enchia a célula de 8 px; nesta fonte as maiúsculas ocupam bem menos do
-// em, então o em é ampliado para o texto manter o tamanho visual com os mesmos `scale`.
-constexpr float kEmBoost = 1.6f;
+// Em (altura ascent..descent) por altura de linha, por fonte. A fonte de depuração enchia a
+// célula de 8 px; na PirataOne as maiúsculas ocupam bem menos do em, então o em é ampliado
+// para o texto manter o tamanho visual com os mesmos `scale`. A Newsreader é ~1,8x mais larga
+// que a PirataOne no mesmo em: sem ampliação, a linha de situação da batalha ainda cabe entre
+// os painéis do topo.
+constexpr float kTitleEmBoost = 1.6f;
+constexpr float kBodyEmBoost = 1.0f;
 constexpr int kAtlasSize = 2048;
 // Dois intervalos de codepoints no atlas: ASCII imprimível e Latin-1 (sinais como ¿ ¡ º e
 // letras acentuadas).
@@ -33,12 +37,20 @@ struct Font {
   stbtt_packedchar chars[kNumSizes][kNumGlyphs];
   float ascent[kNumSizes];   // px acima da linha de base em cada tamanho
   float descent[kNumSizes];  // px abaixo (negativo)
+  float em_boost = kTitleEmBoost;  // em = kCellPx * scale * em_boost
   bool ready = false;
 };
 
-Font& G() {
-  static Font font;
-  return font;
+Font& G(text::Face face) {
+  static Font fonts[2];
+  return fonts[face == text::Face::kBody ? 1 : 0];
+}
+
+// Fonte a usar para `face`: a de corpo, se carregou; senão a de título (que pode não estar
+// pronta, e aí o chamador cai na fonte de depuração).
+const Font& Pick(text::Face face) {
+  const Font& f = G(face);
+  return f.ready ? f : G(text::Face::kTitle);
 }
 
 // Índice do codepoint no atlas, ou -1 se não está nos intervalos empacotados.
@@ -106,8 +118,7 @@ int SizeIndex(float px) {
 }
 
 // Largura em px no tamanho nativo do atlas `s`, somando avanços e kerning.
-float NativeWidth(const std::vector<Uint32>& cps, int s) {
-  const Font& f = G();
+float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
   const float scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
   float w = 0.0f;
   for (size_t i = 0; i < cps.size(); ++i) {
@@ -126,8 +137,8 @@ float NativeWidth(const std::vector<Uint32>& cps, int s) {
 
 namespace text {
 
-bool Init(SDL_Renderer* r, const std::string& ttf_path) {
-  Font& f = G();
+bool Init(SDL_Renderer* r, const std::string& ttf_path, Face face) {
+  Font& f = G(face);
   size_t size = 0;
   void* data = SDL_LoadFile(ttf_path.c_str(), &size);
   if (data == nullptr) {
@@ -136,6 +147,7 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path) {
     return false;
   }
   f.file.assign(static_cast<unsigned char*>(data), static_cast<unsigned char*>(data) + size);
+  f.em_boost = face == Face::kBody ? kBodyEmBoost : kTitleEmBoost;
   SDL_free(data);
   if (!stbtt_InitFont(&f.info, f.file.data(), 0)) {
     SDL_Log("Fonte invalida: %s", ttf_path.c_str());
@@ -194,26 +206,29 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path) {
 }
 
 void Shutdown() {
-  Font& f = G();
-  if (f.atlas != nullptr) SDL_DestroyTexture(f.atlas);
-  f.atlas = nullptr;
-  f.ready = false;
+  for (Face face : {Face::kTitle, Face::kBody}) {
+    Font& f = G(face);
+    if (f.atlas != nullptr) SDL_DestroyTexture(f.atlas);
+    f.atlas = nullptr;
+    f.ready = false;
+  }
 }
 
-float Width(const char* str, float scale) {
-  const Font& f = G();
+float Width(const char* str, float scale, Face face) {
+  const Font& f = Pick(face);
   if (!f.ready) {
     size_t count = 0;
     while (SDL_StepUTF8(&str, nullptr) != 0) ++count;
     return static_cast<float>(count) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * scale;
   }
-  const float px = kCellPx * scale * kEmBoost;
+  const float px = kCellPx * scale * f.em_boost;
   const int s = SizeIndex(px);
-  return NativeWidth(Codepoints(str, f.info), s) * (px / kSizes[s]);
+  return NativeWidth(f, Codepoints(str, f.info), s) * (px / kSizes[s]);
 }
 
-void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color) {
-  const Font& f = G();
+void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color,
+          Face face) {
+  const Font& f = Pick(face);
   if (!f.ready) {
     float prev_x = 1.0f, prev_y = 1.0f;
     SDL_GetRenderScale(r, &prev_x, &prev_y);
@@ -225,7 +240,7 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
   }
   const std::vector<Uint32> cps = Codepoints(str, f.info);
 
-  const float px = kCellPx * scale * kEmBoost;
+  const float px = kCellPx * scale * f.em_boost;
   const int s = SizeIndex(px);
   const float k = px / kSizes[s];  // do tamanho do atlas para o tamanho pedido
   const float kern_scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
@@ -255,8 +270,8 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
   }
 }
 
-float ImageWidth(const char* str, float px) {
-  const Font& f = G();
+float ImageWidth(const char* str, float px, Face face) {
+  const Font& f = Pick(face);
   if (!f.ready) return 0.0f;
   const float k = stbtt_ScaleForPixelHeight(&f.info, px);
   const std::vector<Uint32> cps = Codepoints(str, f.info);
@@ -273,8 +288,9 @@ float ImageWidth(const char* str, float px) {
   return w;
 }
 
-void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Color color) {
-  const Font& f = G();
+void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Color color,
+                 Face face) {
+  const Font& f = Pick(face);
   if (!f.ready || !img.Valid()) return;
   const float k = stbtt_ScaleForPixelHeight(&f.info, px);
   int ascent = 0, descent = 0, line_gap = 0;
@@ -323,10 +339,10 @@ void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Co
 }
 
 void DrawCentered(SDL_Renderer* r, const char* str, float center_x, float center_y, float scale,
-                  SDL_Color color) {
-  const float w = Width(str, scale);
+                  SDL_Color color, Face face) {
+  const float w = Width(str, scale, face);
   const float h = kCellPx * scale;
-  Draw(r, str, center_x - w / 2.0f, center_y - h / 2.0f, scale, color);
+  Draw(r, str, center_x - w / 2.0f, center_y - h / 2.0f, scale, color, face);
 }
 
 }  // namespace text

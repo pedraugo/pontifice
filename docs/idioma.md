@@ -46,7 +46,7 @@ Todos os textos exibidos vêm de `assets/translate.json`. Cada chave tem um text
 - `strings`: as chaves. `{0}`, `{1}`... são trocados em tempo de execução (`i18n::Format`), ex.: `"menu.level": "Nível: {0}"`.
 - **Cartas**: `card.<code>.name` e `card.<code>.description`, um par por carta de `assets/Cards*.json` (ex.: `card.G101.name`). Os nomes das hierarquias ficam em `hierarchy.<categoryName>.<hierarchy>` (ex.: `hierarchy.good.2` = Arcanjos). Esses textos são aplicados ao carregar as cartas (`cards::LoadAll`), então frente da carta, tooltip, HUD e log já saem traduzidos. Sem a chave, fica o texto do JSON da carta, que está em inglês (`name`, `description` e `hierarchyName`).
 - Chave ausente em um idioma cai no português; ausente em todos, aparece a própria chave (nunca some da tela).
-- A fonte (`assets/PirataOne.ttf`) cobre ASCII e Latin-1 (0xA0..0xFF): acentos, `ñ`, `ç`, `¿` e `¡` funcionam.
+- As fontes (`assets/PirataOne.ttf` e `assets/Newsreader.ttf`) cobrem ASCII e Latin-1 (0xA0..0xFF): acentos, `ñ`, `ç`, `¿` e `¡` funcionam.
 
 Grupos de chaves: `language.*`, `menu.*`, `difficulty.*`, `loading.*`, `battle.*` (status, dicas, tooltip), `hud.*`, `cardface.*` (ATK/DEF/BUFF/NERF, "Favorece"), `category.*`, `hierarchy.*`, `card.*`.
 
