@@ -9,13 +9,15 @@
 
 namespace {
 
-// Window and padding from ui.json ("dialog"), buttons from button.json ("dialog") in the
-// bottom corners, question size from text.json.
+// Window, padding and title gap from ui.json ("dialog"), buttons from button.json ("dialog")
+// in the bottom corners, title and question sizes from text.json.
 struct Layout {
   float min_w = ui::Cells("dialog.minWidth", 48.0f);
   float h = ui::Cells("dialog.height", 16.0f);
   float padding = ui::Cells("dialog.padding", 3.0f);
-  float question_scale = ui::TextScale("dialog.question", 2.5f);
+  float title_gap = ui::Cells("dialog.titleGap", 1.5f);
+  float title_scale = ui::TextScale("dialog.title", 3.0f);
+  float question_scale = ui::TextScale("dialog.question", 2.0f);
 };
 
 const Layout& L() {
@@ -27,14 +29,17 @@ const Layout& L() {
 
 ConfirmDialog::ConfirmDialog() : no_(""), yes_("") {}
 
-void ConfirmDialog::Open(const std::string& question, const std::string& no_label,
-                         const std::string& yes_label, int width, int height,
-                         bool yes_danger) {
+void ConfirmDialog::Open(const std::string& title, const std::string& question,
+                         const std::string& no_label, const std::string& yes_label, int width,
+                         int height, bool yes_danger) {
+  title_ = title;
   question_ = question;
   no_.SetLabel(no_label);
   yes_.SetLabel(yes_label);
   yes_.SetDanger(yes_danger);
-  const float text_w = text::Width(question_.c_str(), L().question_scale);
+  const float text_w =
+      std::max(text::Width(title_.c_str(), L().title_scale, text::Face::kTitle),
+               text::Width(question_.c_str(), L().question_scale, text::Face::kBody));
   const float w = std::max(L().min_w, ui::SnapUp(text_w + 2 * L().padding));
   panel_ = SDL_FRect{(width - w) / 2.0f, (height - L().h) / 2.0f, w, L().h};
   const float button_w = button::Cells("dialog.width", 14.0f);
@@ -94,11 +99,16 @@ void ConfirmDialog::Render(SDL_Renderer* r, int width, int height) const {
   SDL_RenderFillRect(r, &full);
 
   frame::Draw(r, panel_, frame::Kind::kWindow);
-  const float top = panel_.y + L().padding;
+  const float cx = panel_.x + panel_.w / 2.0f;
+  const float title_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * L().title_scale;
+  const float title_y = panel_.y + L().padding + title_h / 2.0f;
+  text::DrawCentered(r, title_.c_str(), cx, title_y, L().title_scale,
+                     colors::Get("panel.title"), text::Face::kTitle);
+  // Question centered between the title and the buttons.
+  const float top = title_y + title_h / 2.0f + L().title_gap;
   const float bottom = no_.Rect().y;
-  const float question_y = (top + bottom) / 2.0f;
-  text::DrawCentered(r, question_.c_str(), panel_.x + panel_.w / 2.0f, question_y,
-                     L().question_scale, colors::Get("panel.title"));
+  text::DrawCentered(r, question_.c_str(), cx, (top + bottom) / 2.0f, L().question_scale,
+                     colors::Get("text.primary"), text::Face::kBody);
   no_.Render(r);
   yes_.Render(r);
 

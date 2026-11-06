@@ -32,9 +32,16 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 - O valor é atualizado logo após cada cálculo de dano.
 - Ao chegar a `0`, a batalha termina e o resultado é exibido.
 
-## Canto inferior esquerdo: som
+## Tela de resultado
+
+- Com a vida de um lado em `0`, a tela escurece e uma **janela central** (`Hud::RenderResult`, medidas em `ui.json` `hud.result`) mostra **VITÓRIA** ou **DERROTA** (verde/vermelho, `text.json` `hud.result`), a linha `Tempo jogado mm:ss   Turnos n` e uma tabela com as colunas **Você** e **Oponente**: cartas compradas (monte usado), cartas usadas (invocações e cartas de campo), cartas no cemitério, ataques, ataques diretos, cartas destruídas do outro lado, dano causado ao outro lado e maior golpe. Por fim, `Esc volta ao menu`.
+- Os números vêm de `MatchStats` (`scripts/hud/hud.h`), preenchido pela `BattleScene` a cada ataque resolvido (`ResolveAttack`), invocação, carta de campo e descarte; o tempo conta do início da partida (depois da abertura) até o fim. Carta destruída ao atacar uma carta mais forte conta para quem defendeu. As teclas de depuração de dano não entram na conta.
+
+## Canto inferior esquerdo: som, dica e sair
 
 - **Botão de som**: quadrado com ícone de alto-falante (desenhado com primitivas, sem sprite). Clique liga/desliga a música (volume vai a zero e volta em rampa de 1 s). Desligada, o ícone fica esmaecido, sem ondas e com um X vermelho. O mesmo botão existe no menu.
+- **Botão de dica** (acima do som): `?`; liga/desliga a dica do topo da tela.
+- **Botão de sair** (acima da dica): porta com seta, placa vermelha de perigo. Faz o mesmo que Esc: abre o diálogo de abandono da batalha; com a partida encerrada, volta ao menu.
 
 ## Canto inferior direito: monte e cemitério
 

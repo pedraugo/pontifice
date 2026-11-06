@@ -17,6 +17,20 @@ struct FieldCardInfo {
   SDL_Texture* art_large = nullptr;
 };
 
+// Match numbers for the result screen; index 0 = player, 1 = opponent.
+struct MatchStats {
+  float seconds = 0.0f;
+  int rounds = 0;
+  int drawn[2] = {0, 0};
+  int played[2] = {0, 0};  // from hand to the field (summons and field cards)
+  int graveyard[2] = {0, 0};
+  int attacks[2] = {0, 0};
+  int direct_attacks[2] = {0, 0};
+  int destroyed[2] = {0, 0};  // cards of the other side destroyed by this side
+  int damage[2] = {0, 0};  // life taken from the other side
+  int biggest_hit[2] = {0, 0};
+};
+
 class Hud {
  public:
   static constexpr int kMaxLife = 5000;
@@ -35,6 +49,8 @@ class Hud {
 
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }
+
+  void SetStats(const MatchStats& stats) { stats_ = stats; }
 
   void Update(float dt, float mouse_x, float mouse_y);  // mouse in logical px
 
@@ -75,6 +91,7 @@ class Hud {
   int deck_used_ = 0;
   int deck_remaining_ = kDeckSize;
   int graveyard_ = 0;
+  MatchStats stats_;
   float zoom_t_ = 0.0f;
   bool zoom_hover_ = false;
 };

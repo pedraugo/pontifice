@@ -13,8 +13,9 @@ class ConfirmDialog {
 
   ConfirmDialog();
 
-  // Takes translated labels; yes_danger gives Yes the red danger plate.
-  void Open(const std::string& question, const std::string& no_label,
+  // Takes translated texts: title in the title face, question in the body face;
+  // yes_danger gives Yes the red danger plate.
+  void Open(const std::string& title, const std::string& question, const std::string& no_label,
             const std::string& yes_label, int width, int height, bool yes_danger = false);
   void Close() { open_ = false; }
 
@@ -24,6 +25,7 @@ class ConfirmDialog {
  private:
   void SetFocus(int index);
 
+  std::string title_;
   std::string question_;
   Button no_;
   Button yes_;

@@ -2,8 +2,8 @@
   "button": {"label": 2.0},
   "menu": {"title": 8.0, "footer": 2.0},
   "loading": {"text": 2.0},
-  "dialog": {"question": 2.5},
-  "hud": {"line": 2.0, "detail": 1.5, "result": 6.0, "popup": 3.5},
+  "dialog": {"title": 3.0, "question": 2.0},
+  "hud": {"line": 2.0, "detail": 1.5, "result": 5.0, "popup": 3.5},
   "battle": {
     "status": 2.0,
     "hint": 1.5,

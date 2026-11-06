@@ -161,6 +161,7 @@ class BattleScene : public Scene {
   // Turns the camera to the other side, with the arena sound if it actually moves.
   void Orbit(float target);
   Hud hud_;
+  MatchStats stats_;
   SDL_Renderer* renderer_ = nullptr;
   SDL_Texture* field_front_2d_ = nullptr;
   std::unordered_map<std::string, SDL_Texture*> hud_faces_;
@@ -171,6 +172,7 @@ class BattleScene : public Scene {
   std::unique_ptr<Button> end_turn_;
   ButtonIcon sound_button_{ButtonIcon::Icon::kSound};
   ButtonIcon hint_button_{ButtonIcon::Icon::kHint};
+  ButtonIcon exit_button_{ButtonIcon::Icon::kExit};
   bool hints_enabled_ = true;
   ConfirmDialog abandon_dialog_;
   bool paused_ = false;

@@ -754,6 +754,7 @@ void BattleScene::FinishOpponentTurn() {
                                     return a->attack < b->attack;
                                   });
     OpponentHandRemove(static_cast<size_t>(worst - opponent_hand_.begin()));
+    ++stats_.graveyard[1];
   }
   ++turn_;
   opponent_hand_view_.SetAway(true);
@@ -802,13 +803,14 @@ void BattleScene::OpponentSummon(const CardInfo* info, bool defense, const Face*
       }
     }
     if (slot < 0) return;
-    opponent_board_.Discard(slot);
+    if (opponent_board_.Discard(slot)) ++stats_.graveyard[1];
   } else {
     slot = ai::ChooseSlot(free, Board::kCols);
   }
   const Face face = ready_face != nullptr ? *ready_face : MakeCardFace(info->code);
   if (face.texture == nullptr) return;
   opponent_board_.Place(slot, face.texture, face.foil, defense, info, turn_);
+  ++stats_.played[1];
   sfx_.Play("putting");
   char name[3];
   LOG("Opponent summoned %s at %s (%s)", info->name.c_str(), SlotName(slot, name),
@@ -837,6 +839,8 @@ bool BattleScene::DraggedIsField() const {
 
 void BattleScene::PlayField(Side owner, const CardInfo& card) {
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  if (owner == Side::kOpponent) ++stats_.graveyard[1];
+  ++stats_.played[Index(owner)];
   field_ = rules::Field::From(card);
   field_owner_ = owner;
   FieldCardInfo info;
@@ -862,6 +866,7 @@ void BattleScene::Summon(int slot) {
   }
   if (!board_.Empty(slot) && board_.Discard(slot)) hud_.SetGraveyard(hud_.Graveyard() + 1);
   if (!board_.Place(slot, card.front, card.foil, false, card.info, turn_)) return;
+  ++stats_.played[0];
   sfx_.Play("putting");
   summoned_ = true;
   board_.SetHighlight(false);
@@ -878,6 +883,8 @@ void BattleScene::PerformAttack(Side attacker, int slot, int target_slot) {
   if (target_slot >= 0 && theirs.Empty(target_slot)) return;
   if (target_slot < 0 && theirs.Count() > 0) return;
   card->attacked = true;
+  ++stats_.attacks[Index(attacker)];
+  if (target_slot < 0) ++stats_.direct_attacks[Index(attacker)];
   // Direct attack aims at the center slot of row B.
   const math::Vec3 target = target_slot >= 0
                                 ? theirs.CardPosition(target_slot)
@@ -926,6 +933,13 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   if (outcome.attacker_destroyed) Destroy(attacker, slot);
   if (outcome.defender_damage > 0) ApplyDamage(Other(attacker), outcome.defender_damage);
   if (outcome.attacker_damage > 0) ApplyDamage(attacker, outcome.attacker_damage);
+  const int a = Index(attacker), d = Index(Other(attacker));
+  if (outcome.defender_destroyed) ++stats_.destroyed[a];
+  if (outcome.attacker_destroyed) ++stats_.destroyed[d];
+  stats_.damage[a] += outcome.defender_damage;
+  stats_.damage[d] += outcome.attacker_damage;
+  stats_.biggest_hit[a] = std::max(stats_.biggest_hit[a], outcome.defender_damage);
+  stats_.biggest_hit[d] = std::max(stats_.biggest_hit[d], outcome.attacker_damage);
   if (hud_.Over()) {
     steps_.clear();
     reveal_ = Reveal{};
@@ -938,6 +952,7 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
 void BattleScene::Destroy(Side owner, int slot) {
   if (!BoardOf(owner).Discard(slot)) return;
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
+  if (owner == Side::kOpponent) ++stats_.graveyard[1];
   shake_left_ = kShakeSeconds;
 }
 
@@ -971,6 +986,9 @@ void BattleScene::OnEnter(SceneContext& ctx) {
                                   icon_size, icon_size});
   hint_button_.SetRect(SDL_FRect{icon_margin, sound_button_.Rect().y - icon_margin - icon_size,
                                  icon_size, icon_size});
+  exit_button_.SetRect(SDL_FRect{icon_margin, hint_button_.Rect().y - icon_margin - icon_size,
+                                 icon_size, icon_size});
+  exit_button_.SetDanger(true);
   started_ = false;
   player_turn_ = false;
   summoned_ = false;
@@ -983,6 +1001,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
   hud_.ClearFieldCard();
   hud_.SetGraveyard(0);
+  stats_ = MatchStats{};
   fog_color_ = config::Color("fog", "battle.fog.color", colors::GetF("background.fog"));
   mist_color_ = config::Color("fog", "battle.mist.color", colors::GetF("background.mist"));
   if (field_front_2d_ == nullptr) {
@@ -1142,9 +1161,9 @@ void BattleScene::Pause(SceneContext& ctx) {
     ctx.music->SetScene("menu");
     ctx.music->SetCategory("menu");
   }
-  abandon_dialog_.Open(i18n::Get("battle.abandon.question"), i18n::Get("battle.abandon.no"),
-                       i18n::Get("battle.abandon.yes"), ctx.logical_width, ctx.logical_height,
-                       true);
+  abandon_dialog_.Open(i18n::Get("battle.abandon.title"), i18n::Get("battle.abandon.question"),
+                       i18n::Get("battle.abandon.no"), i18n::Get("battle.abandon.yes"),
+                       ctx.logical_width, ctx.logical_height, true);
 }
 
 void BattleScene::Resume(SceneContext& ctx) {
@@ -1229,6 +1248,19 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
       hint_button_.Contains(event.button.x, event.button.y)) {
+    return;
+  }
+  if (exit_button_.HandleEvent(event)) {
+    if (hand_.Inspecting()) hand_.StopInspect();
+    if (hud_.Over()) {
+      ctx.next_scene = SceneId::kMenu;
+    } else {
+      Pause(ctx);
+    }
+    return;
+  }
+  if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+      exit_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
   if (CanAct()) {
@@ -1324,6 +1356,12 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
     sfx_.Play(it->second);
     it = sfx_queue_.erase(it);
   }
+  if (started_ && !hud_.Over()) stats_.seconds += dt_seconds;
+  stats_.rounds = turn_;
+  stats_.drawn[0] = Hud::kDeckSize - static_cast<int>(deck_.Size());
+  stats_.drawn[1] = Hud::kDeckSize - static_cast<int>(opponent_deck_.Size());
+  stats_.graveyard[0] = hud_.Graveyard();
+  hud_.SetStats(stats_);
   hud_.Update(dt_seconds, mouse_.x, mouse_.y);
   if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
@@ -1821,6 +1859,7 @@ void BattleScene::Render(SceneContext& ctx) {
   sound_button_.Render(r);
   hint_button_.SetActive(hints_enabled_);
   hint_button_.Render(r);
+  exit_button_.Render(r);
   RenderReveal(r, ctx.logical_width, ctx.logical_height);
   if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);

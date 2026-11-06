@@ -4,9 +4,10 @@
     "padding": 1,
     "life": {"width": 34, "height": 6},
     "field": {"width": 24, "height": 6},
-    "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3}
+    "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3},
+    "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9}
   },
-  "dialog": {"minWidth": 48, "height": 16, "padding": 3},
+  "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5},
   "menu": {"titleCenterY": 12, "footerBottom": 3},
   "battle": {
     "statusY": 2,

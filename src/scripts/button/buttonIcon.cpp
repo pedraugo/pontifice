@@ -15,10 +15,16 @@ void ButtonIcon::RenderContent(SDL_Renderer* r) const {
   static const float padding = button::Number("icon.padding", 0.12f);
   const float pad = std::min(full.w, full.h) * padding;
   const SDL_FRect rect{full.x + pad, full.y + pad, full.w - 2.0f * pad, full.h - 2.0f * pad};
-  if (icon_ == Icon::kSound) {
-    RenderSound(r, rect, ink);
-  } else {
-    RenderHint(r, rect, ink);
+  switch (icon_) {
+    case Icon::kSound:
+      RenderSound(r, rect, ink);
+      break;
+    case Icon::kHint:
+      RenderHint(r, rect, ink);
+      break;
+    case Icon::kExit:
+      RenderExit(r, rect, ink);
+      break;
   }
 }
 
@@ -49,4 +55,16 @@ void ButtonIcon::RenderHint(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color in
                {rect.x + rect.w * 0.72f, rect.y + rect.h * 0.28f}, colors::Get("status.nerf"),
                3.0f);
   }
+}
+
+void ButtonIcon::RenderExit(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const {
+  // Door frame open on the right, arrow leaving through it.
+  auto P = [&](float u, float v) { return SDL_FPoint{rect.x + u * rect.w, rect.y + v * rect.h}; };
+  const float t = rect.w * 0.07f;
+  draw::Line(r, P(0.46f, 0.22f), P(0.20f, 0.22f), ink, t);
+  draw::Line(r, P(0.20f, 0.22f), P(0.20f, 0.78f), ink, t);
+  draw::Line(r, P(0.20f, 0.78f), P(0.46f, 0.78f), ink, t);
+  draw::Line(r, P(0.38f, 0.50f), P(0.82f, 0.50f), ink, t);
+  const SDL_FPoint head[3] = {P(0.68f, 0.34f), P(0.86f, 0.50f), P(0.68f, 0.66f)};
+  draw::FillPolygon(r, head, 3, ink);
 }

@@ -261,6 +261,11 @@
       "en": "Attack",
       "es": "Ataque"
     },
+    "battle.abandon.title": {
+      "pt": "Abandonar batalha",
+      "en": "Abandon battle",
+      "es": "Abandonar batalla"
+    },
     "battle.abandon.question": {
       "pt": "Deseja realmente abandonar essa batalha?",
       "en": "Do you really want to abandon this battle?",
@@ -335,6 +340,66 @@
       "pt": "Esc volta ao menu",
       "en": "Esc returns to the menu",
       "es": "Esc vuelve al menú"
+    },
+    "hud.stats.time": {
+      "pt": "Tempo jogado",
+      "en": "Time played",
+      "es": "Tiempo jugado"
+    },
+    "hud.stats.rounds": {
+      "pt": "Turnos",
+      "en": "Rounds",
+      "es": "Turnos"
+    },
+    "hud.stats.you": {
+      "pt": "Você",
+      "en": "You",
+      "es": "Tú"
+    },
+    "hud.stats.opponent": {
+      "pt": "Oponente",
+      "en": "Opponent",
+      "es": "Oponente"
+    },
+    "hud.stats.drawn": {
+      "pt": "Cartas compradas",
+      "en": "Cards drawn",
+      "es": "Cartas robadas"
+    },
+    "hud.stats.played": {
+      "pt": "Cartas usadas",
+      "en": "Cards played",
+      "es": "Cartas usadas"
+    },
+    "hud.stats.graveyard": {
+      "pt": "Cartas no cemitério",
+      "en": "Cards in the graveyard",
+      "es": "Cartas en el cementerio"
+    },
+    "hud.stats.attacks": {
+      "pt": "Ataques",
+      "en": "Attacks",
+      "es": "Ataques"
+    },
+    "hud.stats.direct": {
+      "pt": "Ataques diretos",
+      "en": "Direct attacks",
+      "es": "Ataques directos"
+    },
+    "hud.stats.destroyed": {
+      "pt": "Cartas destruídas do outro lado",
+      "en": "Cards destroyed on the other side",
+      "es": "Cartas destruidas del otro lado"
+    },
+    "hud.stats.damage": {
+      "pt": "Dano causado ao outro lado",
+      "en": "Damage dealt to the other side",
+      "es": "Daño causado al otro lado"
+    },
+    "hud.stats.biggest": {
+      "pt": "Maior golpe",
+      "en": "Biggest hit",
+      "es": "Mayor golpe"
     },
     "cardface.atk": {
       "pt": "ATK",

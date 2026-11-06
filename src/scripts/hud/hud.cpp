@@ -23,6 +23,11 @@ struct Layout {
   float piles_padding = ui::Cells("hud.piles.padding", 1.5f);
   float counter_gap = ui::Cells("hud.piles.counterGap", 1.0f);
   float piles_gap = ui::Cells("hud.piles.gap", 3.0f);
+  float result_w = ui::Cells("hud.result.width", 44.0f);
+  float result_padding = ui::Cells("hud.result.padding", 2.0f);
+  float result_title_gap = ui::Cells("hud.result.titleGap", 1.0f);
+  float result_row_gap = ui::Cells("hud.result.rowGap", 0.5f);
+  float result_column_w = ui::Cells("hud.result.columnWidth", 9.0f);
   float line_scale = ui::TextScale("hud.line", 2.0f);
   float detail_scale = ui::TextScale("hud.detail", 1.5f);
   float result_scale = ui::TextScale("hud.result", 6.0f);
@@ -76,6 +81,13 @@ void DrawRight(SDL_Renderer* r, const char* str, float right_x, float y, float s
 
 std::string LifeText(int life, int max) {
   return std::to_string(std::max(life, 0)) + " / " + std::to_string(max);
+}
+
+std::string ClockText(float seconds) {
+  const int total = std::max(0, static_cast<int>(seconds));
+  char buf[16];
+  SDL_snprintf(buf, sizeof(buf), "%02d:%02d", total / 60, total % 60);
+  return buf;
 }
 
 }
@@ -320,16 +332,71 @@ void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
             L().line_scale, colors::Get("panel.title"));
 }
 
+// Window with the result title, time and rounds, then one row per stat: label on the left,
+// your number and the opponent's in two right-aligned columns.
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   FillRect(r, SDL_FRect{0, 0, static_cast<float>(width), static_cast<float>(height)},
            colors::Get("background.overlay"));
-  const float cx = width / 2.0f;
-  const float cy = height / 2.0f;
+  const Layout& l = L();
+  const MatchStats& s = stats_;
+  struct Row {
+    std::string label;
+    std::string you;
+    std::string opponent;
+  };
+  auto pair = [](const int v[2]) {
+    return std::make_pair(std::to_string(v[0]), std::to_string(v[1]));
+  };
+  std::vector<Row> rows;
+  for (const auto& [key, v] : {std::pair{"hud.stats.drawn", s.drawn},
+                               std::pair{"hud.stats.played", s.played},
+                               std::pair{"hud.stats.graveyard", s.graveyard},
+                               std::pair{"hud.stats.attacks", s.attacks},
+                               std::pair{"hud.stats.direct", s.direct_attacks},
+                               std::pair{"hud.stats.destroyed", s.destroyed},
+                               std::pair{"hud.stats.damage", s.damage},
+                               std::pair{"hud.stats.biggest", s.biggest_hit}}) {
+    const auto [you, opponent] = pair(v);
+    rows.push_back({i18n::Get(key), you, opponent});
+  }
+  const float title_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * l.result_scale;
+  const float row_h = l.line_h + l.result_row_gap;
+  // Title, time + rounds line, column header, rows, Esc hint.
+  const float h = 2 * l.result_padding + title_h + l.result_title_gap + row_h * 2 +
+                  row_h * static_cast<float>(rows.size()) + l.result_title_gap + l.line_h;
+  const SDL_FRect panel{(width - l.result_w) / 2.0f, (height - h) / 2.0f, l.result_w, h};
+  frame::Draw(r, panel, frame::Kind::kWindow);
+
+  const float cx = panel.x + panel.w / 2.0f;
+  const float left = panel.x + l.result_padding;
+  const float right = panel.x + panel.w - l.result_padding;
+  const float you_right = right - l.result_column_w;
   // Both at 0 cannot happen by the rules; if it does, it counts as a defeat.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
+  float y = panel.y + l.result_padding;
   text::DrawCentered(r, i18n::Get(won ? "hud.victory" : "hud.defeat").c_str(), cx,
-                     cy - ui::Grid(2), L().result_scale,
+                     y + title_h / 2.0f, l.result_scale,
                      colors::Get(won ? "status.victory" : "status.defeat"));
-  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, cy + ui::Grid(4), L().line_scale,
-                     colors::Get("text.primary"));
+  y += title_h + l.result_title_gap;
+
+  const SDL_Color label = colors::Get("text.secondary");
+  const SDL_Color value = colors::Get("hud.counterValue");
+  const SDL_Color header = colors::Get("panel.title");
+  const std::string summary = i18n::Get("hud.stats.time") + " " + ClockText(s.seconds) + "   " +
+                              i18n::Get("hud.stats.rounds") + " " + std::to_string(s.rounds);
+  text::DrawCentered(r, summary.c_str(), cx, y + l.line_h / 2.0f, l.line_scale, label,
+                     text::Face::kBody);
+  y += row_h;
+  DrawRight(r, i18n::Get("hud.stats.you").c_str(), you_right, y, l.line_scale, header);
+  DrawRight(r, i18n::Get("hud.stats.opponent").c_str(), right, y, l.line_scale, header);
+  y += row_h;
+  for (const Row& row : rows) {
+    text::Draw(r, row.label.c_str(), left, y, l.line_scale, label, text::Face::kBody);
+    DrawRight(r, row.you.c_str(), you_right, y, l.line_scale, value);
+    DrawRight(r, row.opponent.c_str(), right, y, l.line_scale, value);
+    y += row_h;
+  }
+  y += l.result_title_gap;
+  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, y + l.line_h / 2.0f, l.line_scale,
+                     colors::Get("text.primary"), text::Face::kBody);
 }

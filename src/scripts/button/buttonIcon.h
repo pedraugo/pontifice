@@ -5,7 +5,7 @@
 // Square plated button; the icon is drawn with renderer primitives, no sprite.
 class ButtonIcon : public Button {
  public:
-  enum class Icon { kSound, kHint };
+  enum class Icon { kSound, kHint, kExit };
 
   explicit ButtonIcon(Icon icon);
 
@@ -18,6 +18,7 @@ class ButtonIcon : public Button {
  private:
   void RenderSound(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const;
   void RenderHint(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const;
+  void RenderExit(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const;
 
   Icon icon_;
   bool active_ = true;
