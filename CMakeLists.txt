@@ -21,7 +21,8 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-# Bibliotecas header-only: cgltf (glTF), stb_image (PNG/JPEG) e dr_libs (dr_mp3, trilha sonora).
+# Bibliotecas header-only: cgltf (glTF) e stb (stb_image PNG/JPEG, stb_truetype fonte,
+# stb_vorbis trilha sonora em Ogg Vorbis).
 # libwebp (decodificação dos sprites em WebP) é compilada junto, só a biblioteca, sem ferramentas.
 include(FetchContent)
 FetchContent_Declare(cgltf
@@ -34,12 +35,7 @@ FetchContent_Declare(stb
   GIT_TAG master
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR cmake-none)
-FetchContent_Declare(dr_libs
-  GIT_REPOSITORY https://github.com/mackron/dr_libs.git
-  GIT_TAG master
-  GIT_SHALLOW TRUE
-  SOURCE_SUBDIR cmake-none)
-FetchContent_MakeAvailable(cgltf stb dr_libs)
+FetchContent_MakeAvailable(cgltf stb)
 foreach(opt ANIM_UTILS CWEBP DWEBP GIF2WEBP IMG2WEBP VWEBP WEBPINFO LIBWEBPMUX WEBPMUX EXTRAS)
   set(WEBP_BUILD_${opt} OFF CACHE BOOL "" FORCE)
 endforeach()
@@ -126,18 +122,19 @@ if(WIN32)
 endif()
 target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
 target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR}
-                           ${dr_libs_SOURCE_DIR} ${libwebp_SOURCE_DIR}/src)
+                           ${libwebp_SOURCE_DIR}/src)
 target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
 # Decodificação de imagens (libwebp/stb_image), rasterização da fonte (stb_truetype) e composição das
 # frentes das cartas rodam na carga da batalha sobre imagens grandes: sem otimização (Debug)
-# a carga leva vários segundos. Esses arquivos são compilados otimizados em qualquer build.
+# a carga leva vários segundos. A trilha (stb_vorbis) decodifica na thread de áudio. Esses
+# arquivos são compilados otimizados em qualquer build.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/music/Music.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
 elseif(MSVC)
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/music/Music.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
 endif()
 target_compile_options(pontifice PRIVATE -Wall -Wextra)

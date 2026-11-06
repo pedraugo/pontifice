@@ -3,16 +3,16 @@
   "random": ["battle"],
   "categories": {
     "ost": [
-      {"file": "sounds/HowlsOfTheNight.mp3", "gain": 0.66},
-      {"file": "sounds/RuinsOfYore.mp3", "gain": 0.80},
-      {"file": "sounds/DecayTemples.mp3", "gain": 0.59},
-      {"file": "sounds/ForgottenDungeons.mp3", "gain": 0.79}
+      {"file": "sounds/HowlsOfTheNight.ogg", "gain": 0.66},
+      {"file": "sounds/RuinsOfYore.ogg", "gain": 0.80},
+      {"file": "sounds/DecayTemples.ogg", "gain": 0.59},
+      {"file": "sounds/ForgottenDungeons.ogg", "gain": 0.79}
     ],
     "battle": [
-      {"file": "sounds/FastBattle.mp3", "gain": 0.74},
-      {"file": "sounds/ShoutSword.mp3", "gain": 0.72},
-      {"file": "sounds/StartedFight.mp3", "gain": 0.64},
-      {"file": "sounds/GloryAndVictory.mp3", "gain": 0.72}
+      {"file": "sounds/FastBattle.ogg", "gain": 0.74},
+      {"file": "sounds/ShoutSword.ogg", "gain": 0.72},
+      {"file": "sounds/StartedFight.ogg", "gain": 0.64},
+      {"file": "sounds/GloryAndVictory.ogg", "gain": 0.72}
     ]
   }
 }

@@ -2,9 +2,8 @@
 
 #include <algorithm>
 
-#define DR_MP3_IMPLEMENTATION
-#define DR_MP3_NO_STDIO
-#include <dr_mp3.h>
+#define STB_VORBIS_NO_STDIO
+#include <stb_vorbis.c>
 
 #include "scripts/json/Json.h"
 
@@ -18,9 +17,11 @@ constexpr float kSwitchSeconds = 1.5f;  // fade out da faixa ao trocar de catego
 }  // namespace
 
 struct Music::Decoder {
-  drmp3 mp3{};
+  stb_vorbis* vorbis = nullptr;
+  int channels = 0;
+  int sample_rate = 0;
   bool open = false;
-  std::vector<uint8_t> file;  // MP3 inteiro em memória: dr_mp3 lê daqui, sem stdio
+  std::vector<uint8_t> file;  // Ogg inteiro em memória: stb_vorbis lê daqui, sem stdio
 };
 
 Music::~Music() { Shutdown(); }
@@ -107,9 +108,9 @@ bool Music::Init(const std::string& base_path) {
     return false;
   }
 
-  // O stream converte do formato da faixa (f32, canais e taxa do MP3) para o do dispositivo.
-  const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(decoder_->mp3.channels),
-                           static_cast<int>(decoder_->mp3.sampleRate)};
+  // O stream converte do formato da faixa (f32, canais e taxa do Ogg) para o do dispositivo.
+  const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(decoder_->channels),
+                           static_cast<int>(decoder_->sample_rate)};
   stream_ = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, &Music::Feed,
                                       this);
   if (stream_ == nullptr) {
@@ -145,8 +146,8 @@ void Music::Shutdown() {
 
 void Music::CloseTrack() {
   if (decoder_ != nullptr && decoder_->open) {
-    drmp3_uninit(&decoder_->mp3);
-    decoder_->mp3 = drmp3{};
+    stb_vorbis_close(decoder_->vorbis);
+    decoder_->vorbis = nullptr;
     decoder_->open = false;
   }
 }
@@ -163,19 +164,24 @@ bool Music::OpenTrack(size_t index) {
   }
   decoder_->file.assign(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + size);
   SDL_free(data);
-  if (!drmp3_init_memory(&decoder_->mp3, decoder_->file.data(), decoder_->file.size(),
-                         nullptr)) {
-    SDL_Log("Musica: %s nao e um MP3 valido", path.c_str());
-    decoder_->mp3 = drmp3{};
+  int error = 0;
+  decoder_->vorbis = stb_vorbis_open_memory(decoder_->file.data(),
+                                            static_cast<int>(decoder_->file.size()), &error,
+                                            nullptr);
+  if (decoder_->vorbis == nullptr) {
+    SDL_Log("Musica: %s nao e um Ogg Vorbis valido (erro %d)", path.c_str(), error);
     return false;
   }
+  const stb_vorbis_info info = stb_vorbis_get_info(decoder_->vorbis);
+  decoder_->channels = info.channels;
+  decoder_->sample_rate = static_cast<int>(info.sample_rate);
   decoder_->open = true;
   current_ = index;
   position_ = 0;
   fade_in_left_ = fade_in_total_ = 0;
-  // Duração: varre os cabeçalhos do arquivo (rápido, arquivo já em memória) e volta ao início.
-  total_frames_ = drmp3_get_pcm_frame_count(&decoder_->mp3);
-  drmp3_seek_to_pcm_frame(&decoder_->mp3, 0);
+  // Duração: varre as páginas do arquivo (rápido, arquivo já em memória) e volta ao início.
+  total_frames_ = stb_vorbis_stream_length_in_samples(decoder_->vorbis);
+  stb_vorbis_seek_start(decoder_->vorbis);
   SDL_Log("Musica: tocando %s (ganho %.2f)", tracks_[index].file.c_str(), track_gain_);
   return true;
 }
@@ -190,23 +196,27 @@ void Music::Analyze() {
       size_t size = 0;
       void* data = SDL_LoadFile(path.c_str(), &size);
       if (data == nullptr) continue;
-      drmp3 mp3{};
-      if (!drmp3_init_memory(&mp3, data, size, nullptr)) {
+      int error = 0;
+      stb_vorbis* vorbis = stb_vorbis_open_memory(static_cast<const unsigned char*>(data),
+                                                  static_cast<int>(size), &error, nullptr);
+      if (vorbis == nullptr) {
         SDL_free(data);
         continue;
       }
-      std::vector<float> chunk(4096 * mp3.channels);
+      const int channels = stb_vorbis_get_info(vorbis).channels;
+      std::vector<float> chunk(4096 * channels);
       double sum_sq = 0.0;
       uint64_t samples = 0;
       for (;;) {
-        const drmp3_uint64 got = drmp3_read_pcm_frames_f32(&mp3, 4096, chunk.data());
-        if (got == 0) break;
-        for (drmp3_uint64 i = 0; i < got * mp3.channels; ++i) {
+        const int got = stb_vorbis_get_samples_float_interleaved(vorbis, channels, chunk.data(),
+                                                                 4096 * channels);
+        if (got <= 0) break;
+        for (int i = 0; i < got * channels; ++i) {
           sum_sq += static_cast<double>(chunk[i]) * chunk[i];
         }
-        samples += got * mp3.channels;
+        samples += static_cast<uint64_t>(got) * channels;
       }
-      drmp3_uninit(&mp3);
+      stb_vorbis_close(vorbis);
       SDL_free(data);
       const double rms = samples > 0 ? SDL_sqrt(sum_sq / samples) : 0.0;
       SDL_Log("Analise: %s [%s] RMS %.4f (%.1f dBFS) ganho sugerido %.2f", track.file.c_str(),
@@ -264,7 +274,7 @@ void Music::SetScene(const std::string& key) {
 // vezes o volume, que caminha em rampa até o alvo (troca de cena). Numa retomada (faixa
 // aberta no meio), o fade in vem de fade_in_left_/fade_in_total_.
 void Music::ApplyFade(float* samples, size_t frames, int channels) {
-  const float rate = static_cast<float>(decoder_->mp3.sampleRate);
+  const float rate = static_cast<float>(decoder_->sample_rate);
   const float fade_frames = kFadeSeconds * rate;
   const float target = muted_.load() ? 0.0f : target_volume_.load();
   const float step = 1.0f / (kRampSeconds * rate);
@@ -292,9 +302,9 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
   Decoder* dec = self->decoder_;
   if (additional_bytes <= 0 || dec == nullptr || !dec->open) return;
 
-  const int channels = static_cast<int>(dec->mp3.channels);
-  drmp3_uint64 frames_wanted =
-      static_cast<drmp3_uint64>(additional_bytes) / (sizeof(float) * channels) + 1;
+  const int channels = static_cast<int>(dec->channels);
+  uint64_t frames_wanted =
+      static_cast<uint64_t>(additional_bytes) / (sizeof(float) * channels) + 1;
   self->buffer_.resize(static_cast<size_t>(frames_wanted) * channels);
 
   // Pedido de troca de categoria: começa o fade out da faixa atual.
@@ -311,7 +321,7 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
       self->switching_to_ = pending;
       self->switch_resume_ = (request % 2) == 1;
       self->switch_total_ = self->switch_left_ =
-          static_cast<uint64_t>(kSwitchSeconds * dec->mp3.sampleRate);
+          static_cast<uint64_t>(kSwitchSeconds * dec->sample_rate);
     }
   }
 
@@ -331,10 +341,10 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
       bool resumed = false;
       if (self->switch_resume_ && saved.valid && saved.track < self->tracks_.size() &&
           self->OpenTrack(saved.track)) {
-        drmp3_seek_to_pcm_frame(&dec->mp3, saved.position);
+        stb_vorbis_seek(dec->vorbis, static_cast<unsigned>(saved.position));
         self->position_ = saved.position;
         self->fade_in_total_ = self->fade_in_left_ =
-            static_cast<uint64_t>(kSwitchSeconds * dec->mp3.sampleRate);
+            static_cast<uint64_t>(kSwitchSeconds * dec->sample_rate);
         resumed = true;
       }
       SDL_Log("Musica: categoria \"%s\"%s", self->categories_[self->active_].name.c_str(),
@@ -344,19 +354,21 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
         self->current_ = self->tracks_.size();
         if (!self->OpenNextTrack()) return;
       }
-      const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->mp3.channels),
-                               static_cast<int>(dec->mp3.sampleRate)};
+      const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->channels),
+                               static_cast<int>(dec->sample_rate)};
       SDL_SetAudioStreamFormat(stream, &spec, nullptr);
       return;
     }
-    drmp3_uint64 to_read = frames_wanted;
+    uint64_t to_read = frames_wanted;
     if (self->switching_to_ >= 0) to_read = SDL_min(to_read, self->switch_left_);
-    const drmp3_uint64 got = drmp3_read_pcm_frames_f32(&dec->mp3, to_read, self->buffer_.data());
+    const int got_frames = stb_vorbis_get_samples_float_interleaved(
+        dec->vorbis, channels, self->buffer_.data(), static_cast<int>(to_read * channels));
+    const uint64_t got = got_frames > 0 ? static_cast<uint64_t>(got_frames) : 0;
     if (got > 0) {
       self->ApplyFade(self->buffer_.data(), static_cast<size_t>(got), channels);
       if (self->switching_to_ >= 0) {
         // Fade out da troca por cima do fade da faixa.
-        for (drmp3_uint64 i = 0; i < got; ++i) {
+        for (uint64_t i = 0; i < got; ++i) {
           const float g = static_cast<float>(self->switch_left_ - i) /
                           static_cast<float>(self->switch_total_);
           for (int c = 0; c < channels; ++c) self->buffer_[i * channels + c] *= g;
@@ -372,7 +384,7 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
           self->debug_peak_ = SDL_max(self->debug_peak_, SDL_fabsf(v));
         }
         self->debug_frames_ += got;
-        if (self->debug_frames_ >= dec->mp3.sampleRate) {
+        if (self->debug_frames_ >= static_cast<uint64_t>(dec->sample_rate)) {
           const double rms = SDL_sqrt(self->debug_sum_sq_ / (self->debug_frames_ * channels));
           SDL_Log("Musica: volume aplicado %.0f%% (alvo %.0f%%), pico %.2f, RMS %.3f (%.1f dBFS)",
                   self->volume_ * 100.0f, self->target_volume_.load() * 100.0f,
@@ -392,14 +404,14 @@ void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional
     }
     // Fim da faixa: enfileira o intervalo de silêncio (no formato atual) e, enquanto ele
     // toca, abre a próxima faixa; o próximo Feed já parte dela, em fade in.
-    const size_t gap_frames = static_cast<size_t>(kGapSeconds * dec->mp3.sampleRate);
+    const size_t gap_frames = static_cast<size_t>(kGapSeconds * dec->sample_rate);
     self->buffer_.assign(gap_frames * channels, 0.0f);
     SDL_PutAudioStreamData(stream, self->buffer_.data(),
                            static_cast<int>(gap_frames * channels * sizeof(float)));
     if (!self->OpenNextTrack()) return;  // nenhuma faixa abre: silêncio daqui em diante
     // Formato da nova faixa (canais/taxa podem diferir): o stream reconverte a partir daqui.
-    const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->mp3.channels),
-                             static_cast<int>(dec->mp3.sampleRate)};
+    const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(dec->channels),
+                             static_cast<int>(dec->sample_rate)};
     SDL_SetAudioStreamFormat(stream, &spec, nullptr);
     return;
   }

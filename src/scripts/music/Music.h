@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
-// Trilha sonora de fundo: lê assets/ost.json (volume por cena e categorias de MP3 relativos
-// ao binário), decodifica com dr_mp3 e toca em sequência, em loop, por um SDL_AudioStream.
+// Trilha sonora de fundo: lê assets/ost.json (volume por cena e categorias de Ogg Vorbis
+// relativos ao binário), decodifica com stb_vorbis e toca em sequência, em loop, por um SDL_AudioStream.
 // Cada faixa entra e sai em fade (kFadeSeconds) e há um intervalo de silêncio (kGapSeconds)
 // entre uma e outra. A decodificação acontece sob demanda no callback do stream (thread de
 // áudio); a thread principal só chama Init, Shutdown, SetVolume e SetCategory (volume em
@@ -53,7 +53,7 @@ class Music {
   void SetCategory(const std::string& name, bool resume = false);
 
  private:
-  struct Decoder;  // esconde dr_mp3 do header
+  struct Decoder;  // esconde stb_vorbis do header
 
   static void SDLCALL Feed(void* userdata, SDL_AudioStream* stream, int additional_bytes,
                            int total_bytes);
