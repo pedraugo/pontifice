@@ -60,24 +60,31 @@ constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
 
 constexpr float kOrbitSeconds = 1.0f;
 
-constexpr float kButtonWidth = ui::Grid(21);
-constexpr float kButtonHeight = ui::Grid(5);
-constexpr float kButtonMargin = ui::Grid(1);
-constexpr float kEndTurnTop = ui::Grid(6);
-constexpr float kHintScale = 1.5f * ui::kScale;
-constexpr float kSoundButtonSize = ui::Grid(3);
-constexpr float kTipScale = 2.0f * ui::kScale;
-constexpr float kTipDetailScale = 1.5f * ui::kScale;
-constexpr float kTipPadding = ui::Grid(1);
-constexpr float kTipGap = ui::Grid(0.5f);
-constexpr float kTipOffset = ui::Grid(1);
-constexpr float kTipImageH = ui::Grid(14);
-constexpr float kTipTextW = ui::Grid(24);
-constexpr float kStatusY = ui::Grid(2);
-constexpr float kHintY = ui::Grid(4);
+// Measures from assets/ui.json ("battle") and assets/text.json ("battle"), read once on use.
+struct Layout {
+  float hint_scale = ui::TextScale("battle.hint", 1.5f);
+  float tip_scale = ui::TextScale("battle.tip", 2.0f);
+  float tip_detail_scale = ui::TextScale("battle.tipDetail", 1.5f);
+  float status_scale = ui::TextScale("battle.status", 2.0f);
+  float reveal_caption_scale = ui::TextScale("battle.revealCaption", 3.0f);
+  float reveal_detail_scale = ui::TextScale("battle.revealDetail", 2.5f);
+  float tip_padding = ui::Cells("battle.tip.padding", 1.0f);
+  float tip_gap = ui::Cells("battle.tip.gap", 0.5f);
+  float tip_offset = ui::Cells("battle.tip.offset", 1.0f);
+  float tip_image_h = ui::Cells("battle.tip.imageHeight", 14.0f);
+  float tip_text_w = ui::Cells("battle.tip.textWidth", 24.0f);
+  float status_y = ui::Cells("battle.statusY", 2.0f);
+  float hint_y = ui::Cells("battle.hintY", 4.0f);
+  float reveal_card_h = ui::Cells("battle.reveal.cardHeight", 35.0f);
+  float reveal_caption_gap = ui::Cells("battle.reveal.captionGap", 3.0f);
+};
+
+const Layout& L() {
+  static const Layout layout;
+  return layout;
+}
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 
-constexpr float kStatusScale = 2.0f * ui::kScale;
 constexpr float kClickSlop = 6.0f;
 constexpr float kAttackDragPx = 24.0f;
 constexpr int kHandLimit = 6;
@@ -94,9 +101,6 @@ constexpr float kRevealTravel = 0.5f;
 constexpr float kHandHideSeconds = 0.5f;
 constexpr float kRevealFadeIn = 0.2f;
 constexpr float kRevealFadeOut = 0.25f;
-constexpr float kRevealCardH = ui::Grid(35);
-constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
-constexpr float kRevealDetailScale = 2.5f * ui::kScale;
 constexpr float kAttackHit = 0.25f;
 
 // Card stat (attack or defense) to effect tier 1 (weakest) to 5 (strongest).
@@ -957,13 +961,16 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   end_turn_ = std::make_unique<Button>(i18n::Get("battle.endTurn"),
                                        [this](SceneContext&) { EndTurn(); });
-  SDL_FRect rect{(ctx.logical_width - kButtonWidth) / 2.0f, kEndTurnTop, kButtonWidth,
-                 kButtonHeight};
-  end_turn_->SetRect(rect);
-  sound_button_.SetRect(SDL_FRect{kButtonMargin, ctx.logical_height - kButtonMargin - kSoundButtonSize,
-                                  kSoundButtonSize, kSoundButtonSize});
-  hint_button_.SetRect(SDL_FRect{kButtonMargin, sound_button_.Rect().y - kButtonMargin - kSoundButtonSize,
-                                 kSoundButtonSize, kSoundButtonSize});
+  const float end_turn_w = button::Cells("battle.endTurn.width", 21.0f);
+  const float end_turn_h = button::Cells("battle.endTurn.height", 3.5f);
+  end_turn_->SetRect(SDL_FRect{(ctx.logical_width - end_turn_w) / 2.0f,
+                               button::Cells("battle.endTurn.top", 6.0f), end_turn_w, end_turn_h});
+  const float icon_size = button::Cells("icon.size", 3.0f);
+  const float icon_margin = button::Cells("icon.margin", 1.0f);
+  sound_button_.SetRect(SDL_FRect{icon_margin, ctx.logical_height - icon_margin - icon_size,
+                                  icon_size, icon_size});
+  hint_button_.SetRect(SDL_FRect{icon_margin, sound_button_.Rect().y - icon_margin - icon_size,
+                                 icon_size, icon_size});
   started_ = false;
   player_turn_ = false;
   summoned_ = false;
@@ -1431,7 +1438,7 @@ void BattleScene::RenderReveal3D(int width, int height) {
              hand_view_proj_, veil, Gpu::DrawMode::kEmissive);
   math::Vec3 center;
   float center_scale = 1.0f;
-  hand_.CenterPose(kRevealCardH * scale / static_cast<float>(height), center, center_scale);
+  hand_.CenterPose(L().reveal_card_h * scale / static_cast<float>(height), center, center_scale);
   if (reveal_.from_hand && hold < 0.0f) {
     const float u = SmoothStep(reveal_.time / travel);
     const math::Vec3 pos = reveal_.from_pos + (center - reveal_.from_pos) * u;
@@ -1467,14 +1474,14 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
       c.a = static_cast<Uint8>(c.a * alpha);
       return c;
     };
-    const float h = kRevealCardH * scale;
+    const float h = L().reveal_card_h * scale;
     const float cx = width / 2.0f;
     const float top = height / 2.0f - h / 2.0f;
-    text::DrawCentered(r, reveal_.caption.c_str(), cx, top - ui::Grid(3), kRevealCaptionScale,
-                       with_alpha(colors::Get("panel.title")));
+    text::DrawCentered(r, reveal_.caption.c_str(), cx, top - L().reveal_caption_gap,
+                       L().reveal_caption_scale, with_alpha(colors::Get("panel.title")));
     if (!reveal_.detail.empty()) {
-      text::DrawCentered(r, reveal_.detail.c_str(), cx, top + h + ui::Grid(3),
-                         kRevealDetailScale, with_alpha(colors::Get("text.secondary")));
+      text::DrawCentered(r, reveal_.detail.c_str(), cx, top + h + L().reveal_caption_gap,
+                         L().reveal_detail_scale, with_alpha(colors::Get("text.secondary")));
     }
     return;
   }
@@ -1497,7 +1504,7 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
   SDL_RenderFillRect(r, &full);
 
-  const float h = kRevealCardH * scale;
+  const float h = L().reveal_card_h * scale;
   const float w = h * kCardAspect;
   const float cx = width / 2.0f;
   const float cy = height / 2.0f + ui::Grid(1);
@@ -1519,11 +1526,11 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   SDL_RenderTexture(r, reveal_.face, nullptr, &card);
   SDL_SetTextureAlphaMod(reveal_.face, 255);
 
-  text::DrawCentered(r, reveal_.caption.c_str(), cx, card.y - ui::Grid(3), kRevealCaptionScale,
-                     with_alpha(colors::Get("panel.title")));
+  text::DrawCentered(r, reveal_.caption.c_str(), cx, card.y - L().reveal_caption_gap,
+                     L().reveal_caption_scale, with_alpha(colors::Get("panel.title")));
   if (!reveal_.detail.empty()) {
-    text::DrawCentered(r, reveal_.detail.c_str(), cx, card.y + card.h + ui::Grid(3),
-                       kRevealDetailScale, with_alpha(colors::Get("text.secondary")));
+    text::DrawCentered(r, reveal_.detail.c_str(), cx, card.y + card.h + L().reveal_caption_gap,
+                       L().reveal_detail_scale, with_alpha(colors::Get("text.secondary")));
   }
   SDL_SetRenderDrawBlendMode(r, previous);
 }
@@ -1553,23 +1560,23 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
            : effective < base ? colors::Get("status.nerf")
                               : value;
   };
-  lines.push_back({info.name, kTipScale, title, kTipGap * 2});
+  lines.push_back({info.name, L().tip_scale, title, L().tip_gap * 2});
   lines.push_back({i18n::Get("cardface.atk") + " " + std::to_string(attack),
-                   kTipScale, stat_color(attack, info.attack), kTipGap});
+                   L().tip_scale, stat_color(attack, info.attack), L().tip_gap});
   lines.push_back({i18n::Get("cardface.def") + " " + std::to_string(defense),
-                   kTipScale, stat_color(defense, info.defense), kTipGap * 2});
+                   L().tip_scale, stat_color(defense, info.defense), L().tip_gap * 2});
   const std::string mode =
       i18n::Get(card->defense ? "battle.tooltip.inDefense" : "battle.tooltip.inAttack");
-  lines.push_back({i18n::Get("battle.tooltip.mode") + " " + mode, kTipDetailScale, label, kTipGap,
-                   text::Face::kBody});
+  lines.push_back({i18n::Get("battle.tooltip.mode") + " " + mode, L().tip_detail_scale, label,
+                   L().tip_gap, text::Face::kBody});
   lines.push_back({i18n::Get("battle.tooltip.category") + " " + info.CategoryLabel(),
-                   kTipDetailScale, label, kTipGap, text::Face::kBody});
+                   L().tip_detail_scale, label, L().tip_gap, text::Face::kBody});
   if (info.hierarchy > 0) {
     std::string hier = i18n::Get("battle.tooltip.hierarchy") + " ";
     hier += info.hierarchy_name.empty() ? std::to_string(info.hierarchy)
                                         : info.hierarchy_name + " (" +
                                               std::to_string(info.hierarchy) + ")";
-    lines.push_back({hier, kTipDetailScale, label, 0.0f, text::Face::kBody});
+    lines.push_back({hier, L().tip_detail_scale, label, 0.0f, text::Face::kBody});
   }
   lines.back().gap_after = 0.0f;
 
@@ -1579,18 +1586,19 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
     text_w = std::max(text_w, text::Width(line.text.c_str(), line.scale, line.face));
     text_h += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
   }
-  const float image_w = kTipImageH * kCardAspect;
-  const float w = ui::SnapUp(3 * kTipPadding + image_w + std::max(text_w, kTipTextW * 0.6f));
-  const float h = ui::SnapUp(2 * kTipPadding + std::max(kTipImageH, text_h));
-  float x = mouse_.x + kTipOffset;
-  float y = mouse_.y + kTipOffset;
-  if (x + w > width) x = mouse_.x - kTipOffset - w;
-  if (y + h > height) y = std::max(0.0f, mouse_.y - kTipOffset - h);
+  const float image_w = L().tip_image_h * kCardAspect;
+  const float w =
+      ui::SnapUp(3 * L().tip_padding + image_w + std::max(text_w, L().tip_text_w * 0.6f));
+  const float h = ui::SnapUp(2 * L().tip_padding + std::max(L().tip_image_h, text_h));
+  float x = mouse_.x + L().tip_offset;
+  float y = mouse_.y + L().tip_offset;
+  if (x + w > width) x = mouse_.x - L().tip_offset - w;
+  if (y + h > height) y = std::max(0.0f, mouse_.y - L().tip_offset - h);
   const SDL_FRect panel{x, y, w, h};
   frame::Draw(r, panel, frame::Kind::kWindow);
   SDL_Color c;
 
-  const SDL_FRect image{x + kTipPadding, y + kTipPadding, image_w, kTipImageH};
+  const SDL_FRect image{x + L().tip_padding, y + L().tip_padding, image_w, L().tip_image_h};
   SDL_Texture* face = const_cast<BattleScene*>(this)->HudFace(info);  // only fills the cache
   if (face != nullptr) {
     SDL_RenderTexture(r, face, nullptr, &image);
@@ -1603,8 +1611,8 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   SDL_RenderRect(r, &image);
 
-  const float tx = image.x + image.w + kTipPadding;
-  float ty = y + kTipPadding;
+  const float tx = image.x + image.w + L().tip_padding;
+  float ty = y + L().tip_padding;
   for (const Line& line : lines) {
     text::Draw(r, line.text.c_str(), tx, ty, line.scale, line.color, line.face);
     ty += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
@@ -1790,7 +1798,7 @@ void BattleScene::Render(SceneContext& ctx) {
         {std::to_string(turn_),
          i18n::Get(turn_side_ == Side::kPlayer && player_turn_ ? "battle.status.yourTurn"
                                                                : "battle.status.opponent")});
-    text::DrawCentered(r, status.c_str(), cx, kStatusY, kStatusScale,
+    text::DrawCentered(r, status.c_str(), cx, L().status_y, L().status_scale,
                        colors::Get("board.status"), text::Face::kBody);
   }
   if (attack_from_ >= 0 && attack_drag_ && mouse_.x >= 0) {
@@ -1804,7 +1812,7 @@ void BattleScene::Render(SceneContext& ctx) {
   const std::string hint =
       hints_enabled_ ? Hint(ctx.logical_width, ctx.logical_height) : std::string();
   if (!hint.empty()) {
-    text::DrawCentered(r, hint.c_str(), cx, kHintY, kHintScale, colors::Get("board.hint"),
+    text::DrawCentered(r, hint.c_str(), cx, L().hint_y, L().hint_scale, colors::Get("board.hint"),
                        text::Face::kBody);
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);

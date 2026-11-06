@@ -138,10 +138,13 @@ int main(int /*argc*/, char** /*argv*/) {
       LOG("Palette not loaded (%s); colors fall back to magenta", palette.c_str());
     }
   }
-  // Ajustes de cena (assets/light.json, fog.json, shadow.json): iluminação, névoa/nuvens e
-  // sombras. Valor ausente cai no padrão do código, com aviso no log.
-  for (const auto& [name, file] : {std::pair{"light", "light.json"}, std::pair{"fog", "fog.json"},
-                                   std::pair{"shadow", "shadow.json"}}) {
+  // Ajustes (assets/light.json, fog.json, shadow.json, button.json, ui.json, text.json):
+  // iluminação, névoa/nuvens, sombras, medidas dos botões, medidas da interface e tamanhos de
+  // texto. Valor ausente cai no padrão do código, com aviso no log.
+  for (const auto& [name, file] :
+       {std::pair{"light", "light.json"}, std::pair{"fog", "fog.json"},
+        std::pair{"shadow", "shadow.json"}, std::pair{"button", "button.json"},
+        std::pair{"ui", "ui.json"}, std::pair{"text", "text.json"}}) {
     const std::string path = base + "assets/" + file;
     if (!config::Load(name, path)) {
       LOG("Settings not loaded (%s); using defaults", path.c_str());

@@ -9,13 +9,19 @@
 
 namespace {
 
-// Window at least 48 x 16 grid cells, 3-cell padding, 14 x 5 buttons in the bottom corners.
-constexpr float kMinWidth = ui::Grid(48);
-constexpr float kHeight = ui::Grid(16);
-constexpr float kPadding = ui::Grid(3);
-constexpr float kButtonWidth = ui::Grid(14);
-constexpr float kButtonHeight = ui::Grid(5);
-constexpr float kQuestionScale = 2.5f * ui::kScale;
+// Window and padding from ui.json ("dialog"), buttons from button.json ("dialog") in the
+// bottom corners, question size from text.json.
+struct Layout {
+  float min_w = ui::Cells("dialog.minWidth", 48.0f);
+  float h = ui::Cells("dialog.height", 16.0f);
+  float padding = ui::Cells("dialog.padding", 3.0f);
+  float question_scale = ui::TextScale("dialog.question", 2.5f);
+};
+
+const Layout& L() {
+  static const Layout layout;
+  return layout;
+}
 
 }
 
@@ -28,13 +34,15 @@ void ConfirmDialog::Open(const std::string& question, const std::string& no_labe
   no_.SetLabel(no_label);
   yes_.SetLabel(yes_label);
   yes_.SetDanger(yes_danger);
-  const float text_w = text::Width(question_.c_str(), kQuestionScale);
-  const float w = std::max(kMinWidth, ui::SnapUp(text_w + 2 * kPadding));
-  panel_ = SDL_FRect{(width - w) / 2.0f, (height - kHeight) / 2.0f, w, kHeight};
-  const float button_y = panel_.y + panel_.h - kPadding - kButtonHeight;
-  no_.SetRect(SDL_FRect{panel_.x + kPadding, button_y, kButtonWidth, kButtonHeight});
-  yes_.SetRect(SDL_FRect{panel_.x + panel_.w - kPadding - kButtonWidth, button_y, kButtonWidth,
-                         kButtonHeight});
+  const float text_w = text::Width(question_.c_str(), L().question_scale);
+  const float w = std::max(L().min_w, ui::SnapUp(text_w + 2 * L().padding));
+  panel_ = SDL_FRect{(width - w) / 2.0f, (height - L().h) / 2.0f, w, L().h};
+  const float button_w = button::Cells("dialog.width", 14.0f);
+  const float button_h = button::Cells("dialog.height", 3.5f);
+  const float button_y = panel_.y + panel_.h - L().padding - button_h;
+  no_.SetRect(SDL_FRect{panel_.x + L().padding, button_y, button_w, button_h});
+  yes_.SetRect(SDL_FRect{panel_.x + panel_.w - L().padding - button_w, button_y, button_w,
+                         button_h});
   // Focus starts on No, the safe answer.
   SetFocus(0);
   open_ = true;
@@ -86,11 +94,11 @@ void ConfirmDialog::Render(SDL_Renderer* r, int width, int height) const {
   SDL_RenderFillRect(r, &full);
 
   frame::Draw(r, panel_, frame::Kind::kWindow);
-  const float top = panel_.y + kPadding;
-  const float bottom = panel_.y + panel_.h - kPadding - kButtonHeight;
+  const float top = panel_.y + L().padding;
+  const float bottom = no_.Rect().y;
   const float question_y = (top + bottom) / 2.0f;
   text::DrawCentered(r, question_.c_str(), panel_.x + panel_.w / 2.0f, question_y,
-                     kQuestionScale, colors::Get("panel.title"));
+                     L().question_scale, colors::Get("panel.title"));
   no_.Render(r);
   yes_.Render(r);
 

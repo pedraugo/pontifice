@@ -238,7 +238,7 @@ void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) co
   const float spent = card.spent * (1.0f - SmoothStep(card.hover));  // opaque again under the mouse
   const SDL_FColor tint{1.0f, 1.0f - 0.65f * f, 1.0f - 0.65f * f,
                         math::Lerp(1.0f, layout_.spent_alpha, spent)};
-  gpu.SetDesaturate(card.spent);
+  gpu.SetDesaturate(card.spent * layout_.spent_desaturate);
   if (card.foil && aura_ != nullptr) {
     aura_->Draw(gpu, card.world, view_proj, (1.0f - 0.8f * spent) * (1.0f - card.discard));
   }

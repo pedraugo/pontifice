@@ -16,8 +16,8 @@ class ButtonIcon : public Button {
   void RenderContent(SDL_Renderer* r) const override;
 
  private:
-  void RenderSound(SDL_Renderer* r, SDL_Color ink) const;
-  void RenderHint(SDL_Renderer* r, SDL_Color ink) const;
+  void RenderSound(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const;
+  void RenderHint(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const;
 
   Icon icon_;
   bool active_ = true;

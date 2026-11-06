@@ -13,15 +13,8 @@
 
 namespace {
 
-constexpr float kRowHeight = ui::Grid(4);
-constexpr float kRowGap = ui::Grid(2);
-constexpr float kTitleScale = 8.0f * ui::kScale;
-constexpr float kTitleCenterY = ui::Grid(12);
 constexpr float kMenuFadeOut = 0.5f;
 constexpr float kLoadingFadeIn = 0.5f;
-constexpr float kFooterScale = 2.0f * ui::kScale;
-constexpr float kSoundButtonSize = ui::Grid(3);
-constexpr float kSoundMargin = ui::Grid(1);
 
 std::string DifficultyLabel(int level) {
   const auto difficulty = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
@@ -53,19 +46,23 @@ MenuScene::MenuScene() {
 void MenuScene::OnEnter(SceneContext& ctx) {
   difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
   LayoutButtons(ctx);
-  sound_button_.SetRect(SDL_FRect{kSoundMargin, ctx.logical_height - kSoundMargin - kSoundButtonSize,
-                                  kSoundButtonSize, kSoundButtonSize});
+  const float icon_size = button::Cells("icon.size", 3.0f);
+  const float icon_margin = button::Cells("icon.margin", 1.0f);
+  sound_button_.SetRect(SDL_FRect{icon_margin, ctx.logical_height - icon_margin - icon_size,
+                                  icon_size, icon_size});
   focused_ = -1;
   for (auto& button : buttons_) button->SetFocused(false);
 }
 
 void MenuScene::LayoutButtons(const SceneContext& ctx) {
-  const float total = buttons_.size() * kRowHeight + (buttons_.size() - 1) * kRowGap;
+  const float row_h = button::Cells("menu.rowHeight", 4.0f);
+  const float row_gap = button::Cells("menu.rowGap", 2.0f);
+  const float total = buttons_.size() * row_h + (buttons_.size() - 1) * row_gap;
   float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
   for (auto& button : buttons_) {
     const float w = button->LabelWidth();
-    button->SetRect(SDL_FRect{(ctx.logical_width - w) / 2.0f, y, w, kRowHeight});
-    y += kRowHeight + kRowGap;
+    button->SetRect(SDL_FRect{(ctx.logical_width - w) / 2.0f, y, w, row_h});
+    y += row_h + row_gap;
   }
 }
 
@@ -127,7 +124,8 @@ void MenuScene::Render(SceneContext& ctx) {
   SDL_RenderClear(r);
 
   const float center_x = ctx.logical_width / 2.0f;
-  text::DrawCentered(r, "PONTIFICE", center_x, kTitleCenterY, kTitleScale,
+  text::DrawCentered(r, "PONTIFICE", center_x, ui::Cells("menu.titleCenterY", 12.0f),
+                     ui::TextScale("menu.title", 8.0f),
                      colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
@@ -135,6 +133,7 @@ void MenuScene::Render(SceneContext& ctx) {
   sound_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,
-                     ctx.logical_height - ui::Grid(3), kFooterScale,
+                     ctx.logical_height - ui::Cells("menu.footerBottom", 3.0f),
+                     ui::TextScale("menu.footer", 2.0f),
                      colors::Get("text.secondary"));
 }

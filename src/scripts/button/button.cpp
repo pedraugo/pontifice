@@ -1,8 +1,22 @@
 #include "scripts/button/button.h"
 
 #include "scripts/colors/colors.h"
+#include "scripts/config/config.h"
 #include "scripts/frame/frame.h"
 #include "scripts/text/text.h"
+#include "scripts/ui/ui.h"
+
+namespace button {
+
+float Cells(const std::string& path, float fallback_cells) {
+  return ui::Grid(config::Float("button", path, fallback_cells));
+}
+
+float Number(const std::string& path, float fallback) {
+  return config::Float("button", path, fallback);
+}
+
+}
 
 namespace {
 
@@ -49,6 +63,11 @@ bool Button::HandleEvent(const SDL_Event& event) {
     default:
       return false;
   }
+}
+
+float Button::LabelScale() {
+  static const float scale = ui::TextScale("button.label", 2.0f);
+  return scale;
 }
 
 float Button::LabelWidth() const { return text::Width(label_.c_str(), LabelScale()); }

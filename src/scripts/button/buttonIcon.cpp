@@ -1,5 +1,7 @@
 #include "scripts/button/buttonIcon.h"
 
+#include <algorithm>
+
 #include "scripts/colors/colors.h"
 #include "scripts/draw/draw.h"
 #include "scripts/text/text.h"
@@ -8,15 +10,19 @@ ButtonIcon::ButtonIcon(Icon icon) : Button(""), icon_(icon) {}
 
 void ButtonIcon::RenderContent(SDL_Renderer* r) const {
   const SDL_Color ink = colors::Get(active_ ? "button.text" : "text.muted");
+  const SDL_FRect& full = Rect();
+  // Fraction of the button size kept clear between the frame and the icon, per side.
+  static const float padding = button::Number("icon.padding", 0.12f);
+  const float pad = std::min(full.w, full.h) * padding;
+  const SDL_FRect rect{full.x + pad, full.y + pad, full.w - 2.0f * pad, full.h - 2.0f * pad};
   if (icon_ == Icon::kSound) {
-    RenderSound(r, ink);
+    RenderSound(r, rect, ink);
   } else {
-    RenderHint(r, ink);
+    RenderHint(r, rect, ink);
   }
 }
 
-void ButtonIcon::RenderSound(SDL_Renderer* r, SDL_Color ink) const {
-  const SDL_FRect& rect = Rect();
+void ButtonIcon::RenderSound(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const {
   // Icon in 0..1 box coordinates: speaker body, cone, then waves (or an X).
   auto P = [&](float u, float v) { return SDL_FPoint{rect.x + u * rect.w, rect.y + v * rect.h}; };
   const SDL_FPoint body[4] = {P(0.20f, 0.40f), P(0.34f, 0.40f), P(0.34f, 0.60f), P(0.20f, 0.60f)};
@@ -34,8 +40,7 @@ void ButtonIcon::RenderSound(SDL_Renderer* r, SDL_Color ink) const {
   }
 }
 
-void ButtonIcon::RenderHint(SDL_Renderer* r, SDL_Color ink) const {
-  const SDL_FRect& rect = Rect();
+void ButtonIcon::RenderHint(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const {
   // "?" at about 2/3 of the button height.
   const float scale = rect.h * 0.66f / SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
   text::DrawCentered(r, "?", rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f, scale, ink);

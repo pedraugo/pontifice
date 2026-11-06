@@ -1,0 +1,17 @@
+{
+  "hud": {
+    "margin": 1,
+    "padding": 1,
+    "life": {"width": 34, "height": 6},
+    "field": {"width": 24, "height": 6},
+    "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3}
+  },
+  "dialog": {"minWidth": 48, "height": 16, "padding": 3},
+  "menu": {"titleCenterY": 12, "footerBottom": 3},
+  "battle": {
+    "statusY": 2,
+    "hintY": 4,
+    "tip": {"padding": 1, "gap": 0.5, "offset": 1, "imageHeight": 14, "textWidth": 24},
+    "reveal": {"cardHeight": 35, "captionGap": 3}
+  }
+}

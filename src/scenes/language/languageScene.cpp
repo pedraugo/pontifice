@@ -8,13 +8,6 @@
 #include "scripts/i18n/i18n.h"
 #include "scripts/ui/ui.h"
 
-namespace {
-
-constexpr float kRowHeight = ui::Grid(4);
-constexpr float kRowGap = ui::Grid(2);
-
-}
-
 LanguageScene::LanguageScene() {
   for (const i18n::Language& language : i18n::Languages()) {
     AddLanguage(language.code, language.name, flag::FromCode(language.flag));
@@ -42,12 +35,14 @@ void LanguageScene::OnEnter(SceneContext& ctx) {
 void LanguageScene::LayoutButtons(const SceneContext& ctx) {
   float width = 0.0f;
   for (const auto& button : buttons_) width = std::max(width, button->ContentWidth());
-  const float total = buttons_.size() * kRowHeight + (buttons_.size() - 1) * kRowGap;
+  const float row_h = button::Cells("language.rowHeight", 4.0f);
+  const float row_gap = button::Cells("language.rowGap", 2.0f);
+  const float total = buttons_.size() * row_h + (buttons_.size() - 1) * row_gap;
   const float x = ui::SnapUp((ctx.logical_width - width) / 2.0f);
   float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
   for (auto& button : buttons_) {
-    button->SetRect(SDL_FRect{x, y, width, kRowHeight});
-    y += kRowHeight + kRowGap;
+    button->SetRect(SDL_FRect{x, y, width, row_h});
+    y += row_h + row_gap;
   }
 }
 

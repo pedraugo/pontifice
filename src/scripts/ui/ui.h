@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace ui {
 
 // Text sizes follow the debug font scale, measured at 1280x720.
@@ -15,5 +17,10 @@ constexpr float SnapUp(float v) {
   const float whole = static_cast<float>(static_cast<int>(cells));
   return (cells > whole ? whole + 1.0f : whole) * kGrid;
 }
+
+// Layout measure from assets/ui.json, in grid cells, converted to logical px.
+float Cells(const std::string& path, float fallback_cells);
+// Text size from assets/text.json, in debug font units, times kScale.
+float TextScale(const std::string& path, float fallback);
 
 }

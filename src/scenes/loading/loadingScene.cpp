@@ -19,16 +19,17 @@ constexpr float kCameraZ = 11.4f;
 constexpr float kFov = 35.0f;
 constexpr float kTorchY = -2.8f;
 constexpr float kTextMargin = 60.0f;
-constexpr float kTextScale = 2.0f * ui::kScale;
 
 float HalfWidthAtOrigin(int width, int height) {
   const float aspect = static_cast<float>(width) / height;
   return kCameraZ * std::tan(math::Radians(kFov) / 2.0f) * aspect;
 }
 
+float TextScale() { return ui::TextScale("loading.text", 2.0f); }
+
 float LoadingTextCenterX(int width) {
   const std::string loading = i18n::Get("loading.label") + "...";
-  const float w = text::Width(loading.c_str(), kTextScale);
+  const float w = text::Width(loading.c_str(), TextScale());
   return width - ui::Px(kTextMargin) - w / 2.0f;
 }
 constexpr float kMinSeconds = 2.0f;
@@ -147,8 +148,8 @@ void LoadingScene::Render(SceneContext& ctx) {
   const std::string loading = i18n::Get("loading.label");
   const std::string label = loading + std::string(static_cast<size_t>(dots), '.');
   // Full label width, so the text does not shift as the dots change.
-  const float x =
-      ctx.logical_width - ui::Px(kTextMargin) - text::Width((loading + "...").c_str(), kTextScale);
-  text::Draw(r, label.c_str(), x, ctx.logical_height - ui::Px(kTextMargin), kTextScale,
+  const float x = ctx.logical_width - ui::Px(kTextMargin) -
+                  text::Width((loading + "...").c_str(), TextScale());
+  text::Draw(r, label.c_str(), x, ctx.logical_height - ui::Px(kTextMargin), TextScale(),
              colors::Get("text.muted"));
 }

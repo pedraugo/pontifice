@@ -7,9 +7,9 @@ namespace frame {
 enum class Kind { kButton, kWindow, kButtonDanger };  // danger: dark red fill
 enum class State { kNormal, kHighlight, kPressed };
 
-// Inside `rect`: the outline takes the outer 3 px, the border the next 3 px.
-constexpr float kOutline = 3.0f;
-constexpr float kBorder = 3.0f;
+// Inside `rect`: the outline takes the outer 2 px, the border the next 2 px.
+constexpr float kOutline = 2.0f;
+constexpr float kBorder = 2.0f;
 constexpr float kInset = kOutline + kBorder;
 
 SDL_FRect Inner(const SDL_FRect& rect);

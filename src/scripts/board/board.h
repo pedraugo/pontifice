@@ -43,7 +43,8 @@ class Board {
     float lunge_height = 0.6f;
     float flash_speed = 5.0f;
     float spent_scale = 0.82f;
-    float spent_alpha = 0.3f;
+    float spent_alpha = 0.75f;
+    float spent_desaturate = 0.5f;
     float spent_speed = 8.0f;
     float pulse_speed = 3.0f;
   };

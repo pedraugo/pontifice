@@ -4,13 +4,25 @@
 
 #include "scripts/colors/colors.h"
 #include "scripts/text/text.h"
-#include "scripts/ui/ui.h"
 
 namespace {
 
-constexpr float kFlagHeight = ui::Grid(2.5f);  // 40 px
-constexpr float kFlagWidth = kFlagHeight * 1.5f;  // 3:2 aspect
-constexpr float kFlagGap = ui::Grid(1);
+struct FlagLayout {
+  float height = 0.0f;
+  float width = 0.0f;  // 3:2 aspect
+  float gap = 0.0f;
+};
+
+const FlagLayout& Flag() {
+  static const FlagLayout layout = [] {
+    FlagLayout f;
+    f.height = button::Cells("flag.height", 2.5f);
+    f.width = f.height * 1.5f;
+    f.gap = button::Cells("flag.gap", 1.0f);
+    return f;
+  }();
+  return layout;
+}
 
 }
 
@@ -18,7 +30,7 @@ ButtonText::ButtonText(std::string label, Action action)
     : Button(std::move(label), std::move(action)) {}
 
 float ButtonText::ContentWidth() const {
-  return (flag_ ? kFlagWidth + kFlagGap : 0.0f) + LabelWidth();
+  return (flag_ ? Flag().width + Flag().gap : 0.0f) + LabelWidth();
 }
 
 void ButtonText::Render(SDL_Renderer* r) const {
@@ -30,8 +42,9 @@ void ButtonText::Render(SDL_Renderer* r) const {
     text::DrawCentered(r, Label().c_str(), rect.x + rect.w / 2.0f, cy, LabelScale(), ink);
     return;
   }
-  flag::Draw(r, *flag_, SDL_FRect{rect.x, cy - kFlagHeight / 2.0f, kFlagWidth, kFlagHeight},
+  const FlagLayout& flag = Flag();
+  flag::Draw(r, *flag_, SDL_FRect{rect.x, cy - flag.height / 2.0f, flag.width, flag.height},
              highlight ? 1.0f : 0.0f);
-  text::DrawCentered(r, Label().c_str(), rect.x + kFlagWidth + kFlagGap + LabelWidth() / 2.0f,
+  text::DrawCentered(r, Label().c_str(), rect.x + flag.width + flag.gap + LabelWidth() / 2.0f,
                      cy, LabelScale(), ink);
 }

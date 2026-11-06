@@ -34,7 +34,7 @@
       "shield5": {"file": "audios/sfx/shield5.ogg", "gain": 0.5},
       "attackToDefense": {"file": "audios/sfx/attackToDefense.ogg", "gain": 0.3},
       "defenseToAttack": {"file": "audios/sfx/defenseToAttack.ogg", "gain": 0.3},
-      "comming": {"file": "audios/sfx/commingCard.ogg", "gain": 0.3},
+      "comming": {"file": "audios/sfx/commingCard.ogg", "gain": 0.45},
       "putting": {"file": "audios/sfx/puttingCard.ogg", "gain": 0.3}
     }
   }

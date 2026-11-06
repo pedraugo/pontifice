@@ -11,18 +11,31 @@
 
 namespace {
 
-constexpr float kMargin = ui::Grid(1);
-constexpr float kPadding = ui::Grid(1);
-constexpr float kPanelWidth = ui::Grid(34);
-constexpr float kPanelHeight = ui::Grid(6);
-constexpr float kFieldPanelWidth = ui::Grid(24);
-constexpr float kFieldPanelHeight = ui::Grid(6);
-constexpr float kCounterHeight = ui::Grid(3);
-constexpr float kLineScale = 2.0f * ui::kScale;
-constexpr float kDetailScale = 1.5f * ui::kScale;
-constexpr float kResultScale = 6.0f * ui::kScale;
-constexpr float kLineHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kLineScale;
-constexpr float kDetailHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * kDetailScale;
+// Measures from assets/ui.json ("hud") and assets/text.json ("hud"), read once on first use.
+struct Layout {
+  float margin = ui::Cells("hud.margin", 1.0f);
+  float padding = ui::Cells("hud.padding", 1.0f);
+  float panel_w = ui::Cells("hud.life.width", 34.0f);
+  float panel_h = ui::Cells("hud.life.height", 6.0f);
+  float field_panel_w = ui::Cells("hud.field.width", 24.0f);
+  float field_panel_h = ui::Cells("hud.field.height", 6.0f);
+  float counter_h = ui::Cells("hud.piles.height", 3.5f);
+  float piles_padding = ui::Cells("hud.piles.padding", 1.5f);
+  float counter_gap = ui::Cells("hud.piles.counterGap", 1.0f);
+  float piles_gap = ui::Cells("hud.piles.gap", 3.0f);
+  float line_scale = ui::TextScale("hud.line", 2.0f);
+  float detail_scale = ui::TextScale("hud.detail", 1.5f);
+  float result_scale = ui::TextScale("hud.result", 6.0f);
+  float popup_scale = ui::TextScale("hud.popup", 3.5f);
+  float line_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line_scale;
+  float detail_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * detail_scale;
+};
+
+const Layout& L() {
+  static const Layout layout;
+  return layout;
+}
+
 constexpr float kLineGap = ui::Px(8.0f);
 // Card front sprites are 1600x2230; the art window is 668x448, zoomed at native size.
 constexpr float kCardAspect = 1600.0f / 2230.0f;
@@ -38,7 +51,6 @@ constexpr float kPopupFade = 0.4f;
 constexpr float kPopupJump = 230.0f;
 constexpr float kPopupGravity = 900.0f;
 constexpr float kPopupDrift = 110.0f;
-constexpr float kPopupScale = 3.5f * ui::kScale;
 
 void FillRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -143,27 +155,28 @@ void Hud::Render(SDL_Renderer* r, int width, int height) const {
 
 Hud::FieldLayout Hud::LayoutField() const {
   FieldLayout layout;
-  const float thumb_h = kFieldPanelHeight - 2 * kPadding;
+  const float thumb_h = L().field_panel_h - 2 * L().padding;
   layout.art = has_field_ && field_.art != nullptr;
   const float thumb_w = thumb_h * (layout.art ? kArtAspect : kCardAspect);
-  float width = kFieldPanelWidth;
+  float width = L().field_panel_w;
   if (has_field_) {
     layout.buff =
         std::string("+") + std::to_string(field_.buff) + " " + CategoryName(field_.favored);
     layout.nerf = std::string("-") + std::to_string(field_.nerf) + " " +
                   CategoryName(Other(field_.favored));
-    const float text_w = std::max({text::Width(field_.name.c_str(), kLineScale),
-                                   text::Width(layout.buff.c_str(), kDetailScale),
-                                   text::Width(layout.nerf.c_str(), kDetailScale)});
-    width = std::max(width, ui::SnapUp(3 * kPadding + thumb_w + text_w));
+    const float text_w = std::max({text::Width(field_.name.c_str(), L().line_scale),
+                                   text::Width(layout.buff.c_str(), L().detail_scale),
+                                   text::Width(layout.nerf.c_str(), L().detail_scale)});
+    width = std::max(width, ui::SnapUp(3 * L().padding + thumb_w + text_w));
   }
-  layout.panel = SDL_FRect{kMargin, kMargin, width, kFieldPanelHeight};
-  layout.thumb = SDL_FRect{kMargin + kPadding, kMargin + kPadding, thumb_w, thumb_h};
+  layout.panel = SDL_FRect{L().margin, L().margin, width, L().field_panel_h};
+  layout.thumb = SDL_FRect{L().margin + L().padding, L().margin + L().padding, thumb_w, thumb_h};
   return layout;
 }
 
 SDL_FRect Hud::ZoomRect() const {
-  return SDL_FRect{kMargin + kPadding, kMargin + kFieldPanelHeight + ui::Grid(1) + kPadding,
+  const Layout& l = L();
+  return SDL_FRect{l.margin + l.padding, l.margin + l.field_panel_h + ui::Grid(1) + l.padding,
                    kZoomWidth, kZoomHeight};
 }
 
@@ -174,7 +187,7 @@ void Hud::RenderFieldZoom(SDL_Renderer* r) const {
   const SDL_FRect to = ZoomRect();
   const SDL_FRect rect{from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t,
                        from.w + (to.w - from.w) * t, from.h + (to.h - from.h) * t};
-  const float pad = kPadding * t;
+  const float pad = L().padding * t;
   const SDL_FRect plate{rect.x - pad, rect.y - pad, rect.w + 2 * pad, rect.h + 2 * pad};
   frame::Draw(r, plate, frame::Kind::kWindow, frame::State::kNormal, t);
   SDL_Texture* texture = field_.art_large != nullptr ? field_.art_large : field_.art;
@@ -193,7 +206,7 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
 
   if (!has_field_) {
     text::DrawCentered(r, i18n::Get("hud.noField").c_str(), panel.x + panel.w / 2.0f, panel.y + panel.h / 2.0f,
-                       kLineScale, colors::Get("text.muted"));
+                       L().line_scale, colors::Get("text.muted"));
     return;
   }
 
@@ -206,14 +219,14 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   }
   StrokeRect(r, card, colors::Get("panel.border"));
 
-  const float text_x = card.x + card.w + kPadding;
+  const float text_x = card.x + card.w + L().padding;
   const float small_gap = ui::Grid(0.25f);
   float y = card.y;
-  text::Draw(r, field_.name.c_str(), text_x, y, kLineScale, colors::Get("hud.fieldName"));
-  y += kLineHeight + small_gap;
-  text::Draw(r, buff.c_str(), text_x, y, kDetailScale, colors::Get("status.buff"));
-  y += kDetailHeight + small_gap;
-  text::Draw(r, nerf.c_str(), text_x, y, kDetailScale, colors::Get("status.nerf"));
+  text::Draw(r, field_.name.c_str(), text_x, y, L().line_scale, colors::Get("hud.fieldName"));
+  y += L().line_h + small_gap;
+  text::Draw(r, buff.c_str(), text_x, y, L().detail_scale, colors::Get("status.buff"));
+  y += L().detail_h + small_gap;
+  text::Draw(r, nerf.c_str(), text_x, y, L().detail_scale, colors::Get("status.nerf"));
 }
 
 void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
@@ -224,13 +237,13 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
     dx = a * std::sin(life_shake_time_ * 61.0f);
     dy = a * 0.5f * std::sin(life_shake_time_ * 47.0f + 1.1f);
   }
-  const SDL_FRect panel{width - kMargin - kPanelWidth + dx, kMargin + dy, kPanelWidth,
-                        kPanelHeight};
+  const SDL_FRect panel{width - L().margin - L().panel_w + dx, L().margin + dy, L().panel_w,
+                        L().panel_h};
   Panel(r, panel);
 
-  const float left = panel.x + kPadding;
-  const float right = panel.x + panel.w - kPadding;
-  float y = panel.y + (panel.h - (2 * kLineHeight + kLineGap)) / 2.0f;
+  const float left = panel.x + L().padding;
+  const float right = panel.x + panel.w - L().padding;
+  float y = panel.y + (panel.h - (2 * L().line_h + kLineGap)) / 2.0f;
   const SDL_Color label = colors::Get("hud.lifeLabel");
   const SDL_Color value = colors::Get("hud.lifeValue");
   const SDL_Color zero = colors::Get("hud.lifeZero");
@@ -240,31 +253,31 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
     // Blink: 80 ms red, 80 ms normal while the flash lasts.
     return flash > 0.0f && std::fmod(flash, 0.16f) > 0.08f ? hit : value;
   };
-  text::Draw(r, i18n::Get("hud.opponent").c_str(), left, y, kLineScale, label);
-  DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, kLineScale,
+  text::Draw(r, i18n::Get("hud.opponent").c_str(), left, y, L().line_scale, label);
+  DrawRight(r, LifeText(opponent_life_, kMaxLife).c_str(), right, y, L().line_scale,
             value_color(opponent_life_, life_flash_[0]));
-  y += kLineHeight + kLineGap;
-  text::Draw(r, i18n::Get("hud.player").c_str(), left, y, kLineScale, label);
-  DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, kLineScale,
+  y += L().line_h + kLineGap;
+  text::Draw(r, i18n::Get("hud.player").c_str(), left, y, L().line_scale, label);
+  DrawRight(r, LifeText(player_life_, kMaxLife).c_str(), right, y, L().line_scale,
             value_color(player_life_, life_flash_[1]));
 }
 
 void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
   if (popups_.empty()) return;
-  const float panel_x = width - kMargin - kPanelWidth;
-  const float right = panel_x + kPanelWidth - kPadding;
-  const float top = kMargin + (kPanelHeight - (2 * kLineHeight + kLineGap)) / 2.0f;
+  const float panel_x = width - L().margin - L().panel_w;
+  const float right = panel_x + L().panel_w - L().padding;
+  const float top = L().margin + (L().panel_h - (2 * L().line_h + kLineGap)) / 2.0f;
   const SDL_Color red = colors::Get("status.nerf");
   const SDL_Color shadow = colors::Get("text.shadow");
   for (const DamagePopup& popup : popups_) {
     const float t = popup.time;
-    const float row_y = top + (popup.player ? kLineHeight + kLineGap : 0.0f);
+    const float row_y = top + (popup.player ? L().line_h + kLineGap : 0.0f);
     const float x = right - ui::Grid(4) + popup.drift * kPopupDrift * t;
     const float y = row_y - kPopupJump * t + 0.5f * kPopupGravity * t * t;
     const float pop = t < 0.15f ? 1.0f + 0.6f * std::sin(t / 0.15f * 3.14159f) : 1.0f;
     const float alpha = 1.0f - std::clamp((t - (kPopupSeconds - kPopupFade)) / kPopupFade, 0.0f, 1.0f);
     const std::string label = "-" + std::to_string(popup.amount);
-    const float scale = kPopupScale * pop;
+    const float scale = L().popup_scale * pop;
     const float w = text::Width(label.c_str(), scale);
     SDL_Color s = shadow, c = red;
     s.a = static_cast<Uint8>(200.0f * alpha);
@@ -275,10 +288,6 @@ void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
   }
 }
 
-namespace {
-constexpr float kCounterGap = ui::Grid(1);
-constexpr float kPilesGap = ui::Grid(3);
-}
 
 void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
   const std::string deck_title = i18n::Get("hud.deck");
@@ -289,26 +298,26 @@ void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
   // Width measured with the widest values so the panel does not resize on every draw.
   const std::string widest_deck = std::to_string(kDeckSize) + "/" + std::to_string(kDeckSize);
   const std::string widest_grave = graveyard_ > 99 ? grave_value : std::string("99");
-  const float deck_title_w = text::Width(deck_title.c_str(), kLineScale);
+  const float deck_title_w = text::Width(deck_title.c_str(), L().line_scale);
   const float panel_w =
-      ui::SnapUp(2 * kPadding + deck_title_w + kCounterGap +
-                 text::Width(widest_deck.c_str(), kLineScale) + kPilesGap +
-                 text::Width(grave_title.c_str(), kLineScale) + kCounterGap +
-                 text::Width(widest_grave.c_str(), kLineScale));
-  const SDL_FRect panel{width - kMargin - panel_w, height - kMargin - kCounterHeight, panel_w,
-                        kCounterHeight};
+      ui::SnapUp(2 * L().piles_padding + deck_title_w + L().counter_gap +
+                 text::Width(widest_deck.c_str(), L().line_scale) + L().piles_gap +
+                 text::Width(grave_title.c_str(), L().line_scale) + L().counter_gap +
+                 text::Width(widest_grave.c_str(), L().line_scale));
+  const SDL_FRect panel{width - L().margin - panel_w, height - L().margin - L().counter_h, panel_w,
+                        L().counter_h};
   Panel(r, panel);
-  const float y = panel.y + (panel.h - kLineHeight) / 2.0f;
-  const float left = panel.x + kPadding;
-  const float right = panel.x + panel.w - kPadding;
-  text::Draw(r, deck_title.c_str(), left, y, kLineScale, colors::Get("panel.title"));
-  text::Draw(r, deck_value.c_str(), left + deck_title_w + kCounterGap, y, kLineScale,
+  const float y = panel.y + (panel.h - L().line_h) / 2.0f;
+  const float left = panel.x + L().piles_padding;
+  const float right = panel.x + panel.w - L().piles_padding;
+  text::Draw(r, deck_title.c_str(), left, y, L().line_scale, colors::Get("panel.title"));
+  text::Draw(r, deck_value.c_str(), left + deck_title_w + L().counter_gap, y, L().line_scale,
              deck_remaining_ > 0 ? colors::Get("hud.counterValue")
                                  : colors::Get("hud.deckEmpty"));
-  DrawRight(r, grave_value.c_str(), right, y, kLineScale, colors::Get("hud.counterValue"));
+  DrawRight(r, grave_value.c_str(), right, y, L().line_scale, colors::Get("hud.counterValue"));
   DrawRight(r, grave_title.c_str(),
-            right - text::Width(grave_value.c_str(), kLineScale) - kCounterGap, y, kLineScale,
-            colors::Get("panel.title"));
+            right - text::Width(grave_value.c_str(), L().line_scale) - L().counter_gap, y,
+            L().line_scale, colors::Get("panel.title"));
 }
 
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
@@ -319,8 +328,8 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   // Both at 0 cannot happen by the rules; if it does, it counts as a defeat.
   const bool won = opponent_life_ <= 0 && player_life_ > 0;
   text::DrawCentered(r, i18n::Get(won ? "hud.victory" : "hud.defeat").c_str(), cx,
-                     cy - ui::Grid(2), kResultScale,
+                     cy - ui::Grid(2), L().result_scale,
                      colors::Get(won ? "status.victory" : "status.defeat"));
-  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, cy + ui::Grid(4), kLineScale,
+  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, cy + ui::Grid(4), L().line_scale,
                      colors::Get("text.primary"));
 }

@@ -7,6 +7,12 @@
 
 struct SceneContext;
 
+// Measures from assets/button.json, in 16 px grid cells (Cells) or plain numbers (Number).
+namespace button {
+float Cells(const std::string& path, float fallback_cells);
+float Number(const std::string& path, float fallback);
+}
+
 class Button {
  public:
   using Action = std::function<void(SceneContext&)>;
@@ -31,7 +37,7 @@ class Button {
   virtual void RenderContent(SDL_Renderer* r) const;
   const std::string& Label() const { return label_; }
   bool Highlighted() const { return hovered_ || focused_ || pressed_; }
-  static constexpr float LabelScale() { return 3.0f; }
+  static float LabelScale();
 
  private:
   std::string label_;
