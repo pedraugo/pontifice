@@ -3,11 +3,14 @@
 #include <SDL3/SDL.h>
 
 // Placa da interface desenhada só com retângulos, sem textura: fundo RGBA(0,0,0,0,75), borda
-// clara de 3 px RGBA(255,255,255,0,15) e, por fora dela, outline escura de 3 px
-// RGBA(0,0,0,0,50) (a "borda da borda"). Tudo cabe em `rect`: a outline ocupa os 3 px de
-// fora, a borda os 3 px seguintes e o fundo o resto. Serve a botões (Button, ButtonIcon),
-// janelas (ConfirmDialog), painéis do HUD e tooltips. Cores em
-// assets/colors.json (papéis "frame.*").
+// clara de 3 px RGBA(255,255,255,0,40) e, por fora dela, outline escura de 3 px
+// RGBA(0,0,0,0,25) (a "borda da borda"). Tudo cabe em `rect`: a outline ocupa os 3 px de
+// fora, a borda os 3 px seguintes e o fundo o resto (o fundo também fica sob a borda). Nas
+// quatro quinas, um nó entrelaçado de 17x17 px na cor da borda, com as medidas de
+// art/corner.png (referência, não é carregada): as linhas da borda param antes da quina e um
+// quadradinho com haste central e dois rabichos fecha o canto; espelhado por quina.
+// Serve a botões (Button, ButtonIcon), janelas (ConfirmDialog), painéis do HUD e tooltips.
+// Cores em assets/colors.json (papéis "frame.*").
 namespace frame {
 
 // Botão e janela são iguais; botão de perigo (Sair do menu, confirmar abandono) tem fundo em

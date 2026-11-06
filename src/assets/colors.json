@@ -9,7 +9,7 @@
     "board.fieldArena: tint dourado da arena enquanto há carta de campo ativa (ou uma selecionada na mão) (multiplica a pedra, reforçado 1,5x no código). board.fieldMistGood / fieldMistEvil: névoa de chão nesse estado; board.fieldFogGood / fieldFogEvil: fundo do ambiente (cor de limpeza e névoa por distância), tom escuro da categoria, conforme a categoria que a carta favorece.",
     "board.status: linha de situação da batalha, branca opaca. board.hint: dica abaixo dela, com 75% de opacidade (bf).",
     "background.menu / background.language: fundo quase preto do menu e da cena de idioma. buttonText.text / highlight: botões só de texto (ButtonText: menu e idiomas), normal e com hover/foco.",
-    "frame.*: placa da interface (botões, janelas, painéis do HUD, tooltip), desenhada só com retângulos: fill preto a 75% (bf), border branca a 15% (26) e outline preta a 50% (80), ambas de 3 px. fillPressed: fundo a 90% (e6) com o botão pressionado; borderHighlight: borda a 30% (4d) com hover/foco. frame.danger*: fundo vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono).",
+    "frame.*: placa da interface (botões, janelas, painéis do HUD, tooltip), desenhada só com retângulos: fill preto a 75% (bf), border branca a 40% (66) e outline preta a 25% (40), ambas de 3 px. fillPressed: fundo a 90% (e6) com o botão pressionado; borderHighlight: borda a 60% (99) com hover/foco. O nó das quinas usa a cor da borda. frame.danger*: fundo vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono).",
     "button.text / focusBorder: rótulo do botão e traço fino em volta do fundo com foco de teclado."
   ],
   "palette": {
@@ -50,9 +50,9 @@
       "fillPressed": "#000000e6",
       "dangerFill": "#3a0d0fbf",
       "dangerFillPressed": "#3a0d0fe6",
-      "border": "#ffffff26",
-      "borderHighlight": "#ffffff4d",
-      "outline": "#00000080"
+      "border": "#ffffff66",
+      "borderHighlight": "#ffffff99",
+      "outline": "#00000040"
     },
     "panel": {
       "border": "#8c99af",

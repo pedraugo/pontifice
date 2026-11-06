@@ -87,6 +87,7 @@ add_executable(pontifice
   src/scripts/sword/Sword.cpp
   src/scripts/shield/Shield.cpp
   src/scripts/frame/Frame.cpp
+  src/scripts/draw/Draw.cpp
   src/scripts/rules/Rules.cpp
   src/scripts/ai/Ai.cpp
   src/scripts/image/Image.cpp

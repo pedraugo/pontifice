@@ -11,7 +11,7 @@
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
 - **Resolução lógica**: 1920x1080 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução. A interface 2D fica numa **grade de 16 px** (`ui::Grid(n)` em `scripts/ui/Ui.h`: 1920 = 120 células, 1080 = 67,5): margens de 1 célula, painéis do HUD 24x6 e 34x6, contadores com 3 de altura e largura arredondada à grade (`ui::SnapUp`), botões do menu 22x5 com 2 de vão, botão da batalha 21x5, botão de som e de dicas 3x3 (canto inferior esquerdo, empilhados), tooltip com imagem de 14 células. Tamanhos de texto seguem `ui::kScale` (1,5; medidos em 1280x720).
-- **Placa da interface**: `scripts/frame/Frame.*` desenha o fundo de botões (`frame::Kind::kButton`: Passar turno, som, dica, Não/Sim do diálogo), janelas, painéis do HUD e tooltip (`frame::Kind::kWindow`) só com retângulos, sem textura: fundo `RGBA(0,0,0,0,75)`, borda clara de **3 px** `RGBA(255,255,255,0,15)` e, por fora dela, outline escura de **3 px** `RGBA(0,0,0,0,50)` (a "borda da borda"). Tudo cabe no retângulo do elemento: outline nos 3 px de fora, borda nos 3 px seguintes, fundo no resto (`frame::Inner`). Botão e janela são iguais; `frame::Kind::kButtonDanger` (Sair, confirmar abandono) tem fundo vermelho escuro. Estados de botão (`frame::State`): hover/foco clareia a borda para 30%, pressionado escurece o fundo para 90%; foco de teclado ganha ainda um traço fino (`button.focusBorder`) em volta do fundo. Cores em `assets/colors.json`, papéis `frame.*`.
+- **Placa da interface**: `scripts/frame/Frame.*` desenha o fundo de botões (`frame::Kind::kButton`: Passar turno, som, dica, Não/Sim do diálogo), janelas, painéis do HUD e tooltip (`frame::Kind::kWindow`) só com retângulos, sem textura: fundo `RGBA(0,0,0,0,75)`, borda clara de **3 px** `RGBA(255,255,255,0,40)` e, por fora dela, outline escura de **3 px** `RGBA(0,0,0,0,25)` (a "borda da borda"). Tudo cabe no retângulo do elemento: outline nos 3 px de fora, borda nos 3 px seguintes, fundo no resto (`frame::Inner`). Botão e janela são iguais; `frame::Kind::kButtonDanger` (Sair, confirmar abandono) tem fundo vermelho escuro. Estados de botão (`frame::State`): hover/foco clareia a borda para 60%, pressionado escurece o fundo para 90%; foco de teclado ganha ainda um traço fino (`button.focusBorder`) em volta do fundo. O fundo também fica sob a borda. Nas **quatro quinas**, um nó entrelaçado de **17x17 px** na cor da borda, só com retângulos, com as medidas tiradas de `art/corner.png` (referência; a imagem não é carregada): as linhas da borda param a 17 px da quina; o nó tem barra de cima e de baixo (10 px), haste central (3 px, a 7 px da linha), rabicho da esquerda (10 px) e rabicho da direita (a 14 px), com vãos de 4 px; retângulos sem sobreposição (o alpha não soma); espelhado por quina. Escala 1:1, menor só se a placa não couber dois nós por lado. Cores em `assets/colors.json`, papéis `frame.*`.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto
@@ -36,13 +36,15 @@ src/
     ui/
       Ui.h            escala de texto (ui::Px) e grade de 16 px da interface (ui::Grid, ui::SnapUp)
     frame/
-      Frame.*         placa da interface (botões, janelas, painéis, tooltip): fundo escuro, borda clara e outline escura de 3 px, só retângulos; variante de perigo com fundo vermelho
+      Frame.*         placa da interface (botões, janelas, painéis, tooltip): fundo escuro, borda clara e outline escura de 3 px, nó entrelaçado em retângulos nas quinas; variante de perigo com fundo vermelho
     text/
       Text.*          texto com as fontes do jogo via stb_truetype (text::Face: kTitle = assets/PirataOne.ttf, kBody = assets/Newsreader.ttf): atlas 16/32/64 px por fonte, ASCII e Latin-1; sem a de corpo, usa a de título; sem a de título, cai na de depuração do SDL
     button/
       Button.*        botão com placa, rótulo e ação (Passar turno, diálogos); categorias normal e perigo; base dos outros dois (hover, foco, clique)
       ButtonText.*    botão só de texto, sem placa (menu: Jogar, Nível, Sair); com bandeira (SetFlag) é o item da cena de idioma
       ButtonIcon.*    botão quadrado com placa e ícone em primitivas: alto-falante (liga/desliga a música) e "?" (liga/desliga a dica do topo, na batalha)
+    draw/
+      Draw.*          primitivas 2D com espessura via SDL_RenderGeometry: Line, Arc, FillPolygon (ícones de ButtonIcon, nó das quinas do Frame)
     dialog/
       ConfirmDialog.* janela modal de confirmação com [Não] e [Sim] (pausa da batalha)
     flag/
@@ -120,6 +122,7 @@ src/
                       madeira, bandas de metal, tábuas, cruz e placa com flor-de-lis
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
+    corner.png        referência do nó da quina da interface (128x128, quina inferior esquerda, magenta = fora); as medidas estão em código (Frame.cpp)
     torch.webp        ilustração de referência da tocha
     TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
