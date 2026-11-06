@@ -14,6 +14,15 @@ void Fill(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_RenderFillRect(r, &rect);
 }
 
+// Mistura a cor com seu cinza de luminância: saturation 0 = preto e branco, 1 = cor cheia.
+SDL_Color Tone(SDL_Color c, float saturation) {
+  const float gray = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+  auto mix = [&](Uint8 v) {
+    return static_cast<Uint8>(gray + (static_cast<float>(v) - gray) * saturation + 0.5f);
+  };
+  return SDL_Color{mix(c.r), mix(c.g), mix(c.b), c.a};
+}
+
 SDL_FColor ToF(SDL_Color c) { return {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f}; }
 
 // Polígono convexo preenchido (leque de triângulos).
@@ -40,10 +49,10 @@ void FillCircle(SDL_Renderer* r, SDL_FPoint c, float radius, SDL_Color color) {
 }
 
 // Estados Unidos: 13 listras (7 vermelhas), cantão azul com grade de pontos brancos.
-void DrawUnitedStates(SDL_Renderer* r, const SDL_FRect& f) {
-  const SDL_Color red{178, 34, 52, 255};
-  const SDL_Color white{255, 255, 255, 255};
-  const SDL_Color blue{60, 59, 110, 255};
+void DrawUnitedStates(SDL_Renderer* r, const SDL_FRect& f, float sat) {
+  const SDL_Color red = Tone({178, 34, 52, 255}, sat);
+  const SDL_Color white = Tone({255, 255, 255, 255}, sat);
+  const SDL_Color blue = Tone({60, 59, 110, 255}, sat);
   Fill(r, f, white);
   const float stripe = f.h / 13.0f;
   for (int i = 0; i < 13; i += 2) {
@@ -64,18 +73,18 @@ void DrawUnitedStates(SDL_Renderer* r, const SDL_FRect& f) {
 }
 
 // Espanha: vermelho, amarelo (metade), vermelho.
-void DrawSpain(SDL_Renderer* r, const SDL_FRect& f) {
-  const SDL_Color red{170, 21, 27, 255};
-  const SDL_Color yellow{241, 191, 0, 255};
+void DrawSpain(SDL_Renderer* r, const SDL_FRect& f, float sat) {
+  const SDL_Color red = Tone({170, 21, 27, 255}, sat);
+  const SDL_Color yellow = Tone({241, 191, 0, 255}, sat);
   Fill(r, f, red);
   Fill(r, SDL_FRect{f.x, f.y + f.h * 0.25f, f.w, f.h * 0.5f}, yellow);
 }
 
 // Brasil: verde, losango amarelo, círculo azul.
-void DrawBrazil(SDL_Renderer* r, const SDL_FRect& f) {
-  const SDL_Color green{0, 156, 59, 255};
-  const SDL_Color yellow{255, 223, 0, 255};
-  const SDL_Color blue{0, 39, 118, 255};
+void DrawBrazil(SDL_Renderer* r, const SDL_FRect& f, float sat) {
+  const SDL_Color green = Tone({0, 156, 59, 255}, sat);
+  const SDL_Color yellow = Tone({255, 223, 0, 255}, sat);
+  const SDL_Color blue = Tone({0, 39, 118, 255}, sat);
   Fill(r, f, green);
   const float inset_x = f.w * 0.085f;
   const float inset_y = f.h * 0.085f;
@@ -96,19 +105,20 @@ Country FromCode(const std::string& code) {
   return Country::kBrazil;
 }
 
-void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect) {
+void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect, float saturation) {
+  saturation = SDL_clamp(saturation, 0.0f, 1.0f);
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
   switch (country) {
     case Country::kUnitedStates:
-      DrawUnitedStates(r, rect);
+      DrawUnitedStates(r, rect, saturation);
       break;
     case Country::kSpain:
-      DrawSpain(r, rect);
+      DrawSpain(r, rect, saturation);
       break;
     case Country::kBrazil:
-      DrawBrazil(r, rect);
+      DrawBrazil(r, rect, saturation);
       break;
   }
   SDL_SetRenderDrawColor(r, kBorder.r, kBorder.g, kBorder.b, kBorder.a);

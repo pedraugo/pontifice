@@ -2,19 +2,23 @@
 
 #include <string>
 
-#include "scripts/button/Button.h"
+#include "scripts/button/ButtonText.h"
 #include "scripts/flag/Flag.h"
 
-// Botão da cena de idioma (docs/idioma.md): bandeira à esquerda e o nome do idioma, os dois
-// centralizados como um bloco. Ao clicar, define o idioma (i18n) e abre o menu.
-class ButtonLanguage : public Button {
+// Item da cena de idioma (docs/idioma.md): ButtonText com a bandeira à esquerda do nome,
+// alinhados à esquerda do retângulo. Sem hover/foco a bandeira fica em preto e branco e o
+// texto apagado; com hover/foco a bandeira ganha cor e o texto clareia. Ao clicar, define o
+// idioma (i18n) e abre o menu.
+class ButtonLanguage : public ButtonText {
  public:
   ButtonLanguage(std::string code, std::string name, flag::Country country);
-  void OnClick(SceneContext& ctx) override;
+  void Render(SDL_Renderer* r) const override;
   const std::string& Code() const { return code_; }
 
- protected:
-  void RenderContent(SDL_Renderer* r) const override;
+  // Largura do conteúdo (bandeira + espaço + nome) e altura da linha, para a cena alinhar
+  // todos os itens numa mesma coluna.
+  float ContentWidth() const;
+  static constexpr float RowHeight() { return ui::Grid(4); }
 
  private:
   std::string code_;

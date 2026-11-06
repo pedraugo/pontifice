@@ -3,7 +3,7 @@
 
 Cabo de madeira com ponta, empunhadura enrolada em couro, colar de metal e, no topo, uma
 cesta de ferro (barras verticais e dois aros rebitados) com brasas dentro; acima, a chama.
-Mesma direção de arte do portão e da arena: madeira e banda de ferro vêm de
+Mesma direção de arte da arena: madeira e banda de ferro vêm de
 src/art/ArenaAtlas.png (o atlas embutido em Arena.glb); couro, brasas e chama são
 procedurais. Só biblioteca padrão (reaproveita utilitários de texture_arena.py).
 
@@ -11,7 +11,7 @@ Dois nós no GLB:
   Torch  cabo, empunhadura, colar, cesta e brasas (iluminados normalmente)
   Flame  um quad que a cena vira para a câmera; chama procedural no shader (kFlame)
 
-Unidades: as mesmas do portão (metros aproximados). Origem na ponta do cabo, eixo +y para
+Unidades: metros aproximados. Origem na ponta do cabo, eixo +y para
 cima. A chama começa em FLAME_BASE_Y e tem o centro em FLAME_CENTER_Y (as cenas colocam a
 luz pontual aí). O atlas (512x512, RGBA por causa da chama) é salvo em src/art/TorchAtlas.png.
 

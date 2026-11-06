@@ -5,11 +5,11 @@
 
 #include "scenes/Scene.h"
 #include "scripts/button/ButtonLanguage.h"
-#include "scripts/clouds/Clouds.h"
 
-// Primeira cena do jogo (docs/idioma.md): escolha do idioma antes do menu. Só o fundo de
-// nuvens do menu (sem ícone nem logo) e um botão por idioma de assets/translate.json, com a
-// bandeira e o nome no próprio idioma. Clicar (ou Enter) define o idioma e abre o menu.
+// Primeira cena do jogo (docs/idioma.md): escolha do idioma antes do menu. Fundo liso
+// ("background.language") e um item por idioma de assets/translate.json: texto clicável com a
+// bandeira à esquerda e o nome no próprio idioma. Clicar (ou Enter) define o idioma e abre o
+// menu.
 class LanguageScene : public Scene {
  public:
   LanguageScene();
@@ -24,7 +24,5 @@ class LanguageScene : public Scene {
   void MoveFocus(int delta);
 
   std::vector<std::unique_ptr<ButtonLanguage>> buttons_;
-  Clouds clouds_;
-  bool clouds_ready_ = false;
-  int focused_ = 0;
+  int focused_ = -1;  // -1: nenhum item focado
 };

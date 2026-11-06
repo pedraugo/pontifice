@@ -17,20 +17,27 @@ constexpr float kFlagGap = ui::Grid(1);
 }  // namespace
 
 ButtonLanguage::ButtonLanguage(std::string code, std::string name, flag::Country country)
-    : Button(std::move(name)), code_(std::move(code)), country_(country) {}
+    : ButtonText(std::move(name),
+                 [code](SceneContext& ctx) {
+                   i18n::SetLanguage(code);
+                   ctx.next_scene = SceneId::kMenu;
+                 }),
+      code_(std::move(code)),
+      country_(country) {}
 
-void ButtonLanguage::OnClick(SceneContext& ctx) {
-  i18n::SetLanguage(code_);
-  ctx.next_scene = SceneId::kMenu;
+float ButtonLanguage::ContentWidth() const {
+  return kFlagWidth + kFlagGap + LabelWidth();
 }
 
-void ButtonLanguage::RenderContent(SDL_Renderer* r) const {
+void ButtonLanguage::Render(SDL_Renderer* r) const {
   const SDL_FRect& rect = Rect();
-  const float text_w = text::Width(Label().c_str(), LabelScale());
-  const float total = kFlagWidth + kFlagGap + text_w;
-  const float left = rect.x + (rect.w - total) / 2.0f;
   const float cy = rect.y + rect.h / 2.0f;
-  flag::Draw(r, country_, SDL_FRect{left, cy - kFlagHeight / 2.0f, kFlagWidth, kFlagHeight});
-  text::DrawCentered(r, Label().c_str(), left + kFlagWidth + kFlagGap + text_w / 2.0f, cy,
-                     LabelScale(), colors::Get("button.text"));
+  const bool highlight = Highlighted();
+  // Bandeira em preto e branco; ganha cor com hover/foco, junto com o texto.
+  flag::Draw(r, country_, SDL_FRect{rect.x, cy - kFlagHeight / 2.0f, kFlagWidth, kFlagHeight},
+             highlight ? 1.0f : 0.0f);
+  const float text_w = LabelWidth();
+  text::DrawCentered(r, Label().c_str(), rect.x + kFlagWidth + kFlagGap + text_w / 2.0f, cy,
+                     LabelScale(),
+                     colors::Get(highlight ? "buttonText.highlight" : "buttonText.text"));
 }

@@ -8,7 +8,7 @@ a mesma dos normal maps das cartas. Atlas maiores que MAX_SIZE são reduzidos (o
 precisa de mais resolução que isso). Só biblioteca padrão.
 
 Uso: python3 tools/normalmap.py src/models/Arena.glb [--strength 2.0]
-Também é chamado no fim de texture_arena.py, make_door.py e make_torch.py.
+Também é chamado no fim de texture_arena.py e make_torch.py.
 """
 
 import json

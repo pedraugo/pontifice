@@ -1,5 +1,6 @@
 #include "scenes/language/LanguageScene.h"
 
+#include <algorithm>
 #include <string>
 
 #include "scripts/colors/Colors.h"
@@ -8,11 +9,10 @@
 
 namespace {
 
-// Mesma grade do menu (docs/menu.md): botões de 22 x 5 células, 2 células entre eles,
-// centrados na tela.
-constexpr float kButtonWidth = ui::Grid(22);
-constexpr float kButtonHeight = ui::Grid(5);
-constexpr float kButtonGap = ui::Grid(2);
+// Linhas de 4 células com 2 células entre elas; a coluna (bandeira + nome, alinhados à
+// esquerda) tem a largura do item mais largo e fica centrada na tela.
+constexpr float kRowHeight = ButtonLanguage::RowHeight();
+constexpr float kRowGap = ui::Grid(2);
 
 }  // namespace
 
@@ -29,28 +29,31 @@ LanguageScene::LanguageScene() {
 
 void LanguageScene::OnEnter(SceneContext& ctx) {
   LayoutButtons(ctx);
-  clouds_ready_ = clouds_.Init(ctx.renderer, ctx.logical_width, ctx.logical_height);
-  // Foco inicial no idioma atual (padrão: português).
-  focused_ = 0;
-  for (size_t i = 0; i < buttons_.size(); ++i) {
-    if (buttons_[i]->Code() == i18n::CurrentLanguage()) focused_ = static_cast<int>(i);
-  }
-  for (size_t i = 0; i < buttons_.size(); ++i) buttons_[i]->SetFocused(static_cast<int>(i) == focused_);
+  // Nenhum idioma começa selecionado: o foco só aparece com as setas (ou hover do mouse).
+  focused_ = -1;
+  for (auto& button : buttons_) button->SetFocused(false);
 }
 
 void LanguageScene::LayoutButtons(const SceneContext& ctx) {
-  const float total = buttons_.size() * kButtonHeight + (buttons_.size() - 1) * kButtonGap;
-  const float x = (ctx.logical_width - kButtonWidth) / 2.0f;
+  float width = 0.0f;
+  for (const auto& button : buttons_) width = std::max(width, button->ContentWidth());
+  const float total = buttons_.size() * kRowHeight + (buttons_.size() - 1) * kRowGap;
+  const float x = ui::SnapUp((ctx.logical_width - width) / 2.0f);
   float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
   for (auto& button : buttons_) {
-    button->SetRect(SDL_FRect{x, y, kButtonWidth, kButtonHeight});
-    y += kButtonHeight + kButtonGap;
+    button->SetRect(SDL_FRect{x, y, width, kRowHeight});
+    y += kRowHeight + kRowGap;
   }
 }
 
 void LanguageScene::MoveFocus(int delta) {
   const int count = static_cast<int>(buttons_.size());
-  focused_ = (focused_ + delta + count) % count;
+  if (focused_ < 0) {
+    // Sem foco: seta para baixo vai ao primeiro, para cima ao último.
+    focused_ = delta > 0 ? 0 : count - 1;
+  } else {
+    focused_ = (focused_ + delta + count) % count;
+  }
   for (int i = 0; i < count; ++i) buttons_[i]->SetFocused(i == focused_);
 }
 
@@ -66,7 +69,7 @@ void LanguageScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       case SDLK_RETURN:
       case SDLK_KP_ENTER:
       case SDLK_SPACE:
-        buttons_[focused_]->OnClick(ctx);
+        if (focused_ >= 0) buttons_[focused_]->OnClick(ctx);
         return;
       case SDLK_ESCAPE:
         ctx.quit = true;
@@ -84,17 +87,12 @@ void LanguageScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 }
 
-void LanguageScene::Update(SceneContext& /*ctx*/, float dt_seconds) {
-  if (clouds_ready_) clouds_.Update(dt_seconds);
-}
+void LanguageScene::Update(SceneContext& /*ctx*/, float /*dt_seconds*/) {}
 
 void LanguageScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const SDL_Color background = colors::Get("background.menu");
+  const SDL_Color background = colors::Get("background.language");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
-  if (clouds_ready_) clouds_.RenderBack(r);
-
   for (auto& button : buttons_) button->Render(r);
-  if (clouds_ready_) clouds_.RenderFront(r);
 }

@@ -4,30 +4,21 @@
 
 #include <future>
 #include <memory>
-#include <vector>
 
 #include "scenes/Scene.h"
 #include "scripts/gpu/Gpu.h"
 #include "scripts/math/Math.h"
-#include "scripts/model/Model.h"
 #include "scripts/torch/Torch.h"
 
-// Tela de loading (docs/loading.md), no estilo de Resident Evil Survivor: fundo todo preto e
-// um objeto 3D em ação. Aqui, um portão medieval (models/Door.glb) se abrindo para dentro.
-// Enquanto o portão abre, a cena alvo (ctx.loading_target) é criada e carregada; quando a
-// animação termina e a carga acabou, a tela escurece e a próxima cena entra em fade in.
+// Tela de loading (docs/loading.md): fundo preto e uma única tocha 3D (models/Torch.glb)
+// cintilando no canto inferior direito, acima do texto "Carregando...". Enquanto isso a cena
+// alvo (ctx.loading_target) é criada e carregada em outra thread; quando a carga acabou (e a
+// tela ficou um mínimo de tempo), pede a troca com fade out, e a próxima cena entra em fade
+// in (os dois véus são do SceneManager; o fade in desta tela vem do menu, que o pede ao
+// trocar).
 class LoadingScene : public Scene {
  public:
   ~LoadingScene() override;
-
-  // Camada de névoa de chão (assets/Fog.json, loading.mist.layers).
-  struct MistLayer {
-    float y;
-    float alpha;
-    float density;     // Atmosphere::mist_density
-    float fade_start;  // raios onde some (Atmosphere::mist_fade_*)
-    float fade_end;
-  };
 
   void OnEnter(SceneContext& ctx) override;
   void HandleEvent(SceneContext& /*ctx*/, const SDL_Event& /*event*/) override {}
@@ -37,24 +28,19 @@ class LoadingScene : public Scene {
  private:
   void StartPreload(const SceneContext& ctx);    // cria a cena alvo; Preload em outra thread
   void FinishPreloadIfReady(SceneContext& ctx);  // OnEnter (GPU) na thread principal
-  float DoorAngle() const;  // radianos, 0 = fechada
   math::Mat4 ViewProj(int width, int height) const;
 
   std::unique_ptr<Gpu> gpu_;
-  std::unique_ptr<Model> door_;
   std::unique_ptr<Torch> torch_;
-  math::Mat4 torch_world_[2];  // tochas nos pilares esquerdo e direito do portão
-  math::Mat4 torch_light_vp_[2];  // câmera de sombra de cada chama
-  GpuMesh mist_quad_;           // quad horizontal reusado nas camadas de névoa do chão
-  SDL_FColor mist_color_{};     // loading.mist.color (Fog.json)
-  std::vector<MistLayer> mist_layers_;
+  math::Mat4 torch_world_;
   std::unique_ptr<Scene> next_;  // cena alvo já carregada, entregue ao SceneManager no fim
   std::future<void> preload_;    // Preload da cena alvo rodando em outra thread
   SceneId target_ = SceneId::kBattle;
   Atmosphere atmosphere_;
+  float torch_light_ = 0.9f;  // intensidade base da luz da chama (Light.json, torch.loading)
   float time_ = 0.0f;       // segundos desde a entrada
-  float fade_out_ = 0.0f;   // 0..1, véu preto no fim
   int frames_ = 0;
   bool loaded_ = false;
+  bool done_ = false;       // cena alvo já entregue ao SceneManager (troca com fade out)
   bool ready_ = false;      // render 3D disponível
 };

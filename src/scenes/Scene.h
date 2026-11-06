@@ -46,6 +46,9 @@ struct SceneContext {
   std::unique_ptr<Scene> preloaded;
   // Se > 0, a próxima cena entra do preto com um fade in desta duração (segundos).
   float fade_in_seconds = 0.0f;
+  // Se > 0, a cena atual escurece até o preto por esta duração (segundos) antes da troca
+  // pedida em next_scene; enquanto escurece, ela continua animando mas não recebe eventos.
+  float fade_out_seconds = 0.0f;
 };
 
 class Scene {

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <deque>
 #include <string>
 #include <vector>
 
@@ -27,8 +28,26 @@ constexpr int kNumChars = 95;  // 32..126
 constexpr int kFirstLatin = 0xA0;
 constexpr int kNumLatin = 96;  // 0xA0..0xFF
 constexpr int kNumGlyphs = kNumChars + kNumLatin;
-constexpr float kSizes[] = {16.0f, 32.0f, 64.0f};
-constexpr int kNumSizes = 3;
+// Tamanhos do atlas, escolhidos pelos PIXELS DA TELA (tamanho lógico x razão de pixels da
+// janela, 2x no Retina), nunca ampliados: até 128 px vem do atlas; acima disso o texto é
+// rasterizado no tamanho exato numa textura própria (cache, ver DrawBig).
+constexpr float kSizes[] = {16.0f, 32.0f, 64.0f, 128.0f};
+constexpr int kNumSizes = 4;
+// Sobreamostragem por tamanho: 2x2 nos pequenos (nitidez), 2x1 em 64 e nenhuma em 128, para
+// os quatro tamanhos caberem juntos no atlas de 2048.
+constexpr unsigned kOversampleX[] = {2, 2, 2, 1};
+constexpr unsigned kOversampleY[] = {2, 2, 1, 1};
+// Textos maiores que o atlas, rasterizados no tamanho exato (título do menu, resultado da
+// batalha, itens no Retina): cache por (fonte, tamanho em px, texto).
+constexpr size_t kBigCacheMax = 64;
+
+struct BigText {
+  std::string key;
+  SDL_Texture* texture = nullptr;
+  int width = 0;   // px de dispositivo
+  int height = 0;
+  float ascent = 0.0f;  // px de dispositivo, do topo da textura (com margem) à linha de base
+};
 
 struct Font {
   SDL_Texture* atlas = nullptr;
@@ -44,6 +63,35 @@ struct Font {
 Font& G(text::Face face) {
   static Font fonts[2];
   return fonts[face == text::Face::kBody ? 1 : 0];
+}
+
+std::deque<BigText>& BigCache() {
+  static std::deque<BigText> cache;
+  return cache;
+}
+
+// Razão pixels de dispositivo / pixels lógicos (ex.: 2,0 em Retina com 1920x1080 lógico).
+// Atualizada a cada Draw (tem o renderer); Width usa o último valor.
+float& PixelRatioRef() {
+  static float ratio = 1.0f;
+  return ratio;
+}
+
+void UpdatePixelRatio(SDL_Renderer* r) {
+  int out_w = 0, out_h = 0, logical_w = 0, logical_h = 0;
+  SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_DISABLED;
+  if (!SDL_GetRenderOutputSize(r, &out_w, &out_h)) return;
+  if (!SDL_GetRenderLogicalPresentation(r, &logical_w, &logical_h, &mode)) return;
+  if (mode == SDL_LOGICAL_PRESENTATION_DISABLED || logical_w <= 0 || logical_h <= 0) {
+    float sx = 1.0f, sy = 1.0f;
+    SDL_GetRenderScale(r, &sx, &sy);
+    PixelRatioRef() = SDL_max(sx, 0.01f);
+    return;
+  }
+  // Letterbox: mesma escala nos dois eixos, a menor que cabe.
+  const float ratio = SDL_min(static_cast<float>(out_w) / static_cast<float>(logical_w),
+                              static_cast<float>(out_h) / static_cast<float>(logical_h));
+  PixelRatioRef() = SDL_max(ratio, 0.01f);
 }
 
 // Fonte a usar para `face`: a de corpo, se carregou; senão a de título (que pode não estar
@@ -109,13 +157,16 @@ std::vector<Uint32> Codepoints(const char* str, const stbtt_fontinfo& info) {
   return out;
 }
 
-// Índice do tamanho de atlas a usar: o menor que não precise ampliar; senão o maior.
-int SizeIndex(float px) {
+// Índice do tamanho de atlas a usar para `device_px` (px na tela): o menor que não precise
+// ampliar; senão o maior (acima dele, Draw usa DrawBig).
+int SizeIndex(float device_px) {
   for (int i = 0; i < kNumSizes; ++i) {
-    if (kSizes[i] >= px) return i;
+    if (kSizes[i] >= device_px) return i;
   }
   return kNumSizes - 1;
 }
+
+bool IsBig(float device_px) { return device_px > kSizes[kNumSizes - 1]; }
 
 // Largura em px no tamanho nativo do atlas `s`, somando avanços e kerning.
 float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
@@ -162,8 +213,8 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path, Face face) {
     SDL_Log("stbtt_PackBegin falhou");
     return false;
   }
-  stbtt_PackSetOversampling(&pack, 2, 1);
   for (int s = 0; s < kNumSizes; ++s) {
+    stbtt_PackSetOversampling(&pack, kOversampleX[s], kOversampleY[s]);
     stbtt_pack_range ranges[2]{};
     ranges[0].font_size = kSizes[s];
     ranges[0].first_unicode_codepoint_in_range = kFirstChar;
@@ -206,6 +257,10 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path, Face face) {
 }
 
 void Shutdown() {
+  for (BigText& big : BigCache()) {
+    if (big.texture != nullptr) SDL_DestroyTexture(big.texture);
+  }
+  BigCache().clear();
   for (Face face : {Face::kTitle, Face::kBody}) {
     Font& f = G(face);
     if (f.atlas != nullptr) SDL_DestroyTexture(f.atlas);
@@ -222,9 +277,77 @@ float Width(const char* str, float scale, Face face) {
     return static_cast<float>(count) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * scale;
   }
   const float px = kCellPx * scale * f.em_boost;
-  const int s = SizeIndex(px);
+  const float device_px = px * PixelRatioRef();
+  if (IsBig(device_px)) return ImageWidth(str, px, face);
+  const int s = SizeIndex(device_px);
   return NativeWidth(f, Codepoints(str, f.info), s) * (px / kSizes[s]);
 }
+
+namespace {
+
+// Texto grande: rasteriza no tamanho exato em pixels de dispositivo (DrawOnImage) numa
+// textura própria, guardada no cache; desenha a textura escalada para o retângulo lógico.
+void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x, float y,
+             float scale, SDL_Color color) {
+  const float ratio = PixelRatioRef();
+  const float px = kCellPx * scale * f.em_boost;
+  const int device_px = static_cast<int>(px * ratio + 0.5f);
+  std::string key = std::to_string(face == Face::kBody ? 1 : 0) + ':' +
+                    std::to_string(device_px) + ':' + str;
+
+  std::deque<BigText>& cache = BigCache();
+  BigText* hit = nullptr;
+  for (BigText& big : cache) {
+    if (big.key == key) {
+      hit = &big;
+      break;
+    }
+  }
+  if (hit == nullptr) {
+    const float k = stbtt_ScaleForPixelHeight(&f.info, static_cast<float>(device_px));
+    int ascent = 0, descent = 0, line_gap = 0;
+    stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
+    constexpr int kPad = 2;  // margem para o filtro linear não cortar a borda
+    Image img;
+    img.width = static_cast<int>(std::ceil(ImageWidth(str, static_cast<float>(device_px), face))) +
+                2 * kPad;
+    img.height = static_cast<int>(std::ceil((ascent - descent) * k)) + 2 * kPad;
+    if (img.width <= 2 * kPad || img.height <= 2 * kPad) return;
+    img.rgba.assign(static_cast<size_t>(img.width) * img.height * 4, 0);
+    // Branco com alpha do glifo: a cor vem do color mod, como no atlas.
+    for (size_t i = 0; i < img.rgba.size(); i += 4) img.rgba[i] = img.rgba[i + 1] = img.rgba[i + 2] = 255;
+    DrawOnImage(img, str, static_cast<float>(kPad), static_cast<float>(kPad),
+                static_cast<float>(device_px), SDL_Color{255, 255, 255, 255}, face);
+    SDL_Texture* texture = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC,
+                                             img.width, img.height);
+    if (texture == nullptr) return;
+    SDL_UpdateTexture(texture, nullptr, img.rgba.data(), img.width * 4);
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    if (cache.size() >= kBigCacheMax) {
+      if (cache.front().texture != nullptr) SDL_DestroyTexture(cache.front().texture);
+      cache.pop_front();
+    }
+    cache.push_back(BigText{key, texture, img.width, img.height, kPad + ascent * k});
+    hit = &cache.back();
+  }
+
+  // Mesmo alinhamento do caminho do atlas: caixa ascent..descent centrada na célula.
+  const float k_logical = stbtt_ScaleForPixelHeight(&f.info, px);
+  int ascent = 0, descent = 0, line_gap = 0;
+  stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
+  const float cell = kCellPx * scale;
+  const float font_box = (ascent - descent) * k_logical;
+  const float baseline = y + (cell - font_box) / 2.0f + ascent * k_logical;
+  const SDL_FRect dst{x - 2.0f / ratio, baseline - hit->ascent / ratio,
+                      static_cast<float>(hit->width) / ratio,
+                      static_cast<float>(hit->height) / ratio};
+  SDL_SetTextureColorMod(hit->texture, color.r, color.g, color.b);
+  SDL_SetTextureAlphaMod(hit->texture, color.a);
+  SDL_RenderTexture(r, hit->texture, nullptr, &dst);
+}
+
+}  // namespace
 
 void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color,
           Face face) {
@@ -238,10 +361,15 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
     SDL_SetRenderScale(r, prev_x, prev_y);
     return;
   }
+  UpdatePixelRatio(r);
+  const float px = kCellPx * scale * f.em_boost;
+  if (IsBig(px * PixelRatioRef())) {
+    DrawBig(r, f, face, str, x, y, scale, color);
+    return;
+  }
   const std::vector<Uint32> cps = Codepoints(str, f.info);
 
-  const float px = kCellPx * scale * f.em_boost;
-  const int s = SizeIndex(px);
+  const int s = SizeIndex(px * PixelRatioRef());
   const float k = px / kSizes[s];  // do tamanho do atlas para o tamanho pedido
   const float kern_scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
   SDL_SetTextureColorMod(f.atlas, color.r, color.g, color.b);

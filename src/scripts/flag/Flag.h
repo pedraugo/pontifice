@@ -16,6 +16,7 @@ enum class Country { kUnitedStates, kSpain, kBrazil };
 Country FromCode(const std::string& code);
 
 // Desenha a bandeira ocupando `rect` (proporção ideal 3:2), com borda escura fina.
-void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect);
+// `saturation`: 1 = cores reais; 0 = preto e branco (cena de idioma sem hover/foco).
+void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect, float saturation = 1.0f);
 
 }  // namespace flag

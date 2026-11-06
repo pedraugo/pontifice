@@ -23,6 +23,8 @@ void SceneManager::SwitchTo(SceneId id) {
   }
   fade_in_total_ = fade_in_left_ = ctx_.fade_in_seconds;
   ctx_.fade_in_seconds = 0.0f;
+  fade_out_total_ = fade_out_left_ = 0.0f;
+  ctx_.fade_out_seconds = 0.0f;
   if (ctx_.preloaded) {
     current_ = std::move(ctx_.preloaded);  // já passou por OnEnter na tela de loading
     return;
@@ -32,20 +34,28 @@ void SceneManager::SwitchTo(SceneId id) {
 }
 
 void SceneManager::HandleEvent(const SDL_Event& event) {
+  // Escurecendo para a troca: a cena já decidiu sair, não recebe mais entrada.
+  if (fade_out_total_ > 0.0f) return;
   if (current_) current_->HandleEvent(ctx_, event);
   ApplyPendingSwitch();
 }
 
 void SceneManager::Update(float dt_seconds) {
   if (fade_in_left_ > 0.0f) fade_in_left_ -= dt_seconds;
+  if (fade_out_total_ > 0.0f) fade_out_left_ -= dt_seconds;
   if (current_) current_->Update(ctx_, dt_seconds);
   ApplyPendingSwitch();
 }
 
 void SceneManager::Render() {
   if (current_) current_->Render(ctx_);
-  if (fade_in_left_ > 0.0f && fade_in_total_ > 0.0f) {
-    const float alpha = fade_in_left_ / fade_in_total_;
+  float alpha = 0.0f;
+  if (fade_out_total_ > 0.0f) {
+    alpha = 1.0f - SDL_max(fade_out_left_, 0.0f) / fade_out_total_;
+  } else if (fade_in_left_ > 0.0f && fade_in_total_ > 0.0f) {
+    alpha = fade_in_left_ / fade_in_total_;
+  }
+  if (alpha > 0.0f) {
     SDL_SetRenderDrawBlendMode(ctx_.renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(ctx_.renderer, 0, 0, 0, static_cast<Uint8>(alpha * 255.0f));
     const SDL_FRect full{0, 0, static_cast<float>(ctx_.logical_width),
@@ -55,7 +65,14 @@ void SceneManager::Render() {
 }
 
 void SceneManager::ApplyPendingSwitch() {
-  if (ctx_.next_scene.has_value()) SwitchTo(*ctx_.next_scene);
+  if (!ctx_.next_scene.has_value()) return;
+  // Troca com fade out: começa a escurecer e só troca quando o véu está preto.
+  if (fade_out_total_ <= 0.0f && ctx_.fade_out_seconds > 0.0f) {
+    fade_out_total_ = fade_out_left_ = ctx_.fade_out_seconds;
+    ctx_.fade_out_seconds = 0.0f;
+  }
+  if (fade_out_total_ > 0.0f && fade_out_left_ > 0.0f) return;
+  SwitchTo(*ctx_.next_scene);
 }
 
 std::unique_ptr<Scene> SceneManager::Create(SceneId id) {

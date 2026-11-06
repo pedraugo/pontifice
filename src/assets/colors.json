@@ -8,6 +8,7 @@
     "board.slotHoverField: moldura de seleção do slot e seta de ataque com carta de campo ativa (ou selecionada), rosa para não sumir na arena dourada.",
     "board.fieldArena: tint dourado da arena enquanto há carta de campo ativa (ou uma selecionada na mão) (multiplica a pedra, reforçado 1,5x no código). board.fieldMistGood / fieldMistEvil: névoa de chão nesse estado; board.fieldFogGood / fieldFogEvil: fundo do ambiente (cor de limpeza e névoa por distância), tom escuro da categoria, conforme a categoria que a carta favorece.",
     "board.status: linha de situação da batalha, branca opaca. board.hint: dica abaixo dela, com 75% de opacidade (bf).",
+    "background.menu / background.language: fundo quase preto do menu e da cena de idioma. buttonText.text / highlight: botões só de texto (ButtonText: menu e idiomas), normal e com hover/foco.",
     "button.danger*: vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono) quando as placas (sprites/UiFrame*.png) não carregam."
   ],
   "palette": {
@@ -33,12 +34,12 @@
       "shadow": "#04090f"
     },
     "background": {
-      "menu": "#111923",
-      "loading": "#000000",
+      "menu": "#091119",
+      "language": "#091119",
+      "loading": "#091119",
       "battle": "#1e2835",
       "fog": "#1e2835",
       "mist": "#b9bec7",
-      "loadingMist": "#8c99af",
       "overlay": "#04090fa0"
     },
     "border": {
@@ -65,6 +66,10 @@
       "dangerHoverFill": "#5a1418",
       "dangerPressedFill": "#7a1b20"
     },
+    "buttonText": {
+      "text": "#aeb9cc",
+      "highlight": "#f1f7fd"
+    },
     "hud": {
       "fieldName": "#f1f7fd",
       "fieldLabel": "#aeb9cc",
@@ -74,14 +79,6 @@
       "counterLabel": "#aeb9cc",
       "counterValue": "#e1e9f4",
       "deckEmpty": "#d9655a"
-    },
-    "menu": {
-      "cloudFar": "#151c26",
-      "cloudBack": "#1e2835",
-      "cloudMid": "#3c4859",
-      "cloudNear": "#5a6880",
-      "cloudFront": "#8c99af",
-      "cloudPuff": "#aab5c8"
     },
     "board": {
       "slot": "#ced8e74d",

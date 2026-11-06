@@ -1,29 +1,41 @@
 # Tela de loading
 
-Entre o menu e a batalha há uma tela de loading no estilo de *Resident Evil Survivor*: fundo todo preto e um único objeto 3D em ação. No PONTIFICE o objeto é um **portão medieval** (parede de pedra com arco duplo e porta de tábuas com ferragens, inspirado em `src/art/Door.jpg`) que se **abre para dentro**, revelando o escuro, com névoa rasteira no chão.
+Entre o menu e a batalha há uma tela de loading: fundo liso (`#091119`, o mesmo do menu) e uma única **tocha 3D** (`models/Torch.glb`) cintilando no canto inferior direito, acima do texto `Carregando...`. Enquanto ela queima, a batalha é carregada em outra thread.
+
+```
++------------------------------------------------------------+
+|                                                            |
+|                                                            |
+|                                                            |
+|                                                            |
+|                                                            |
+|                                                            |
+|                                                  (chama)   |
+|                                                    |       |
+|                                              Carregando... |
++------------------------------------------------------------+
+```
 
 ## Linha do tempo
 
 | Instante | O que acontece |
 |---|---|
-| 0,0 s | Tela preta. A próxima cena é criada e seu `Preload` (leitura, decodificação e envio à GPU de sprites e modelos) começa em outra thread; o portão anima sem travar |
+| antes | No menu, "Jogar" faz o menu **escurecer** (fade out de 0,5 s) antes da troca |
+| 0,0 s | Tela preta. A próxima cena é criada e seu `Preload` (leitura, decodificação e envio à GPU de sprites e modelos) começa em outra thread; a tocha anima sem travar |
 | quando o `Preload` termina | `OnEnter` da cena alvo na thread principal: só o que depende do `SDL_Renderer` (textura do HUD), instantâneo |
-| 0,0 a 0,5 s | Fade in do preto para o portão fechado |
-| 0,6 a 3,4 s | Porta gira 100° em torno da dobradiça esquerda, com aceleração e desaceleração suaves; a câmera se aproxima devagar |
-| 3,4 a 3,9 s | Pausa com a porta aberta |
-| 3,9 a 4,6 s | Fade out para o preto |
-| 4,6 s | Troca para a cena carregada, que entra com **fade in** de 1 s |
+| 0,0 a 0,5 s | **Fade in** do preto |
+| até 2,0 s | Tempo mínimo na tela, mesmo com carga rápida, para não piscar |
+| carga pronta e ≥ 2,0 s | **Fade out** de 0,7 s para o preto (a tocha segue cintilando) |
+| fim do fade out | Troca para a cena carregada, que entra com **fade in** de 1 s |
 
-A troca só acontece quando a animação terminou **e** a carga acabou. Se a carga demorar mais que a animação, a porta fica aberta esperando.
+Se a carga demorar mais que o mínimo, a tocha fica queimando esperando. Os véus (fade in/out) são do `SceneManager`: a cena que pede a troca escreve `fade_out_seconds` (escurece a cena atual antes de sair; sem eventos nesse tempo) e `fade_in_seconds` (a nova cena entra do preto).
 
 ## Elementos
 
-- **Portão** (`models/Door.glb`, gerado por `tools/make_door.py`): dois nós. `Wall` (parede, aduelas, arco recuado e passagem) fica parado; `Door` (folha com bandas rebitadas, guarnição, dobradiças e argola) é desenhada com a matriz da dobradiça. A madeira e o ferro vêm do atlas da arena para manter a mesma direção de arte; a pedra é procedural.
-- **Tochas**: uma em cada pilar do portão (`models/Torch.glb`), inclinadas para fora, com chama emissiva tremulando.
-- **Luz**: só das duas tochas (luzes pontuais nas chamas, cor quente, tremular), sem luz direcional e com ambiente mínimo; névoa por distância preta (a passagem some no escuro) e vinheta forte.
-- **Névoa de chão**: densa e espessa. Sete camadas `kMist` de y = 0,02 a 1,30, cor `background.loadingMist`. De baixo para cima cada camada perde opacidade (0,95 → 0,20), densidade (`Atmosphere::mist_density` 0,20 → 0,02: manto contínuo embaixo, fiapos em cima) e alcance (`mist_fade_*` de 4 a 12 unidades embaixo até 1,6 a 4,6 em cima), formando um volume largo na base e estreito no topo. A névoa por distância preta apaga o resto antes do horizonte.
+- **Tocha** (`models/Torch.glb`, gerada por `tools/make_torch.py`): corpo iluminado e chama procedural no shader, que tremula em tamanho e encara a câmera. Câmera fixa (fov 35°, a 11,4 unidades) olhando para a origem; a tocha fica em y = −2,8 (canto inferior, ocupando ~20% da altura da tela) e seu x é calculado para ficar **centralizada com o texto** `Carregando...` (centro do texto convertido para o plano z = 0).
+- **Luz**: só a chama (luz pontual, cor de `Light.json` `torch.color`, intensidade `torch.loading.intensity`), **cintilando** (soma de senos fora de fase, ±20%); sem luz direcional, ambiente mínimo (`loading.ambient`), sem névoa, vinheta ou sombra.
 - **Texto**: `Carregando` com pontos que avançam, no canto inferior direito, cor `text.muted`.
-- **Fundo**: `background.loading` (preto).
+- **Fundo**: `background.loading` (`#091119`, a mesma cor do menu e da cena de idioma).
 
 ## Implementação
 

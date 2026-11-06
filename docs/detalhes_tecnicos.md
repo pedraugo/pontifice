@@ -29,7 +29,7 @@ src/
     menu/
       MenuScene.*     menu (docs/menu.md)
     loading/
-      LoadingScene.*  tela de loading (docs/loading.md): portão 3D abrindo no preto, pré-carrega a próxima cena
+      LoadingScene.*  tela de loading (docs/loading.md): tocha 3D cintilando no preto, pré-carrega a próxima cena
     battle/
       BattleScene.*   batalha: render 3D e mão de cartas
   scripts/            componentes reutilizáveis, uma pasta por componente
@@ -41,10 +41,9 @@ src/
       Text.*          texto com as fontes do jogo via stb_truetype (text::Face: kTitle = assets/PirataOne.ttf, kBody = assets/Newsreader.ttf): atlas 16/32/64 px por fonte, ASCII e Latin-1; sem a de corpo, usa a de título; sem a de título, cai na de depuração do SDL
     button/
       Button.*        botão base (hover, foco, clique)
-      ButtonPlay.*    botão Jogar
-      ButtonExit.*    botão Sair
-      ButtonAction.*  botão genérico com rótulo e ação (Passar turno, Nível do menu)
-      ButtonLanguage.* botão da cena de idioma: bandeira + nome, define o idioma
+      ButtonText.*    botão só de texto, sem placa, com rótulo e ação (menu: Jogar, Nível, Sair)
+      ButtonAction.*  botão com placa, rótulo e ação (Passar turno, diálogos)
+      ButtonLanguage.* item da cena de idioma: bandeira + nome, sem placa, define o idioma
     dialog/
       ConfirmDialog.* janela modal de confirmação com [Não] e [Sim] (pausa da batalha)
     flag/
@@ -83,8 +82,6 @@ src/
       Json.*          leitor JSON mínimo (objetos, arrays, strings, números)
     colors/
       Colors.*        paleta lida de assets/colors.json; cores pedidas por papel ("panel.fill")
-    clouds/
-      Clouds.*        nuvens e névoa 2D em camadas (ruído gerado na CPU): 4 atrás e 3 na frente do texto do menu
     torch/
       Torch.*         tocha 3D: corpo iluminado, chama emissiva tremulando; FlamePosition dá onde pôr a luz
     deck/
@@ -110,7 +107,7 @@ src/
     CardsNeutral.json
     CardsField.json
   sounds/             músicas de fundo (MP3) listadas em assets/ost.json
-  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png), logotipo (Logo.png) e fontes de arte (PSD)
+  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
   icons/
@@ -118,7 +115,6 @@ src/
     pontifice.rc      recurso do Windows que embute o icon.ico
   models/
     Card.glb          carta: frente, verso e borda metálica (2,51 x 3,5 x 0,075)
-    Door.glb          portão da tela de loading (nós Wall e Door), gerado por tools/make_door.py
     Torch.glb         tocha (nós Torch e Flame), gerada por tools/make_torch.py; luz do loading e da arena
     ArenaRaw.glb      arena bruta de imagem-para-3D (referência; usada só com --raw)
     Arena.glb         arena procedural texturizada, gerada por tools/texture_arena.py
@@ -130,16 +126,11 @@ src/
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
     ui.jpg            ilustração de referência da moldura da interface (placa de pedra); vira sprites/UiFrameButton.png e UiFrameWindow.png
-    logo.png          logotipo PONTIFICE em pedra, com margens brancas; vira sprites/Logo.png (menu)
-    Door.jpg          ilustração de referência do portão da tela de loading
-    DoorAtlas.png     atlas gerado para o portão (1024x1024): pedra procedural, madeira e ferro da arena
     torch.webp        ilustração de referência da tocha
     TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
-  make_logo.py        gera sprites/Logo.png (logotipo do menu) a partir de art/logo.png: fundo branco transparente, recorte com margem
   make_ui_frame.py    gera sprites/UiFrameButton.png e UiFrameWindow.png (placas da interface) a partir de art/ui.jpg: fundo transparente, placa sem a margem, centro em tile; Window mais escura e cinza
-  make_door.py        gera Door.glb e DoorAtlas.png (geometria procedural; madeira e ferro de ArenaAtlas.png)
   make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)
   normalmap.py        gera normal map (luminância -> Sobel) da textura embutida e grava como normalTexture no GLB; chamado pelos três geradores
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)
@@ -210,7 +201,7 @@ Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/
 
 As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
-- Arena, portão e tocha têm **normal map** gerado de suas texturas (`tools/normalmap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/Card.glb`, com **normal map** na frente (`CardFrontNormalMap.png`, 1600x2230 com cantos transparentes: ao carregar, a transparência vira normal plana e o mapa é reduzido para 800x1115, a resolução da frente composta) e no verso (`CardBackNormalMap.png`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
+- Arena e tocha têm **normal map** gerado de suas texturas (`tools/normalmap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/Card.glb`, com **normal map** na frente (`CardFrontNormalMap.png`, 1600x2230 com cantos transparentes: ao carregar, a transparência vira normal plana e o mapa é reduzido para 800x1115, a resolução da frente composta) e no verso (`CardBackNormalMap.png`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `CardBack.png`; a borda usa a cor metálica do próprio modelo.
 - **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o monte de 40 é montado por peso `odds` (no máximo 2 cópias por carta, 1 das de hierarquia 1) e **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
@@ -290,9 +281,9 @@ Quando o turno passa para o computador, a **câmera orbita 180°** em torno do c
 O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop principal repassa a ela eventos, atualização e desenho.
 
 - `Scene`: interface com `Preload` (carga pesada, inclusive envio à GPU, chamada pela tela de loading em outra thread), `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
-- `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_in_seconds` faz a nova cena entrar do preto.
+- `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_out_seconds` escurece a cena atual até o preto antes da troca (sem eventos nesse tempo) e `fade_in_seconds` faz a nova cena entrar do preto.
 - `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização. Desenha o véu do fade in por cima da cena nova. `Create` é a fábrica de cenas.
-- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto o portão abre e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu.
+- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto a tocha cintila e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu.
 
 ## Abertura da batalha
 
@@ -346,9 +337,9 @@ Iluminação, névoa/nuvens e sombras ficam em três arquivos de `assets/`, lido
 
 | Arquivo | Nome | Conteúdo |
 |---|---|---|
-| `Light.json` | `light` | Cor, halo e intensidade das tochas (`torch`); luz direcional, ambiente e vinheta da arena (`battle.arena`), da mão (`battle.hand`) e do loading (`loading`) |
-| `Fog.json` | `fog` | Névoa por distância e de altura (`battle.fog`, `loading.fog`); camadas de névoa de chão (`battle.mist`, `loading.mist`); manto da abertura (`battle.introMist`); nuvens do menu e da cena de idioma (`menu.clouds`: texturas de ruído e camadas atrás e à frente) |
-| `Shadow.json` | `shadow` | Tamanho do mapa (`mapSize`), `bias` e, por cena, força, fov, near/far e alvo da câmera de sombra (`battle`, `loading`) |
+| `Light.json` | `light` | Cor, halo e intensidade das tochas (`torch`); luz direcional, ambiente e vinheta da arena (`battle.arena`) e da mão (`battle.hand`); ambiente do loading (`loading`) |
+| `Fog.json` | `fog` | Névoa por distância e de altura (`battle.fog`); camadas de névoa de chão (`battle.mist`); manto da abertura (`battle.introMist`) |
+| `Shadow.json` | `shadow` | Tamanho do mapa (`mapSize`), `bias` e força, fov, near/far e alvo da câmera de sombra da batalha (`battle`) |
 
 - Cores aceitam `#rrggbb`, papel de `colors.json` (`"background.fog"`) ou `[r, g, b]` em 0..1.
 - Valor ausente ou de tipo errado usa o padrão do código (os mesmos números de antes dos arquivos) e avisa no log uma vez.
@@ -357,19 +348,19 @@ Iluminação, névoa/nuvens e sombras ficam em três arquivos de `assets/`, lido
 
 ## Sombras
 
-Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 2048x2048 (D32 float, `Shadow.json` `mapSize`) desenhado a partir da própria chama, com projeção perspectiva ampla (130° na batalha, 125° no loading, `Shadow.json`) apontada para o centro da cena. Fluxo em um quadro:
+Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 2048x2048 (D32 float, `Shadow.json` `mapSize`) desenhado a partir da própria chama, com projeção perspectiva ampla (130°, `Shadow.json`) apontada para o centro da cena. Fluxo em um quadro:
 
 1. Para cada luz, `Gpu::BeginShadowPass(k, light_vp)` abre um passe só de profundidade (pipeline sem alvo de cor, `fs_shadow` vazio), a cena desenha os ocultadores com `Model::DrawDepth` / `Torch::DrawBodyDepth` / `Gpu::DrawShadow` e fecha com `EndShadowPass`. Tudo no mesmo command buffer do quadro.
 2. No passe principal o vertex shader projeta cada vértice nos dois espaços de luz; o fragment shader amostra os mapas com sampler de comparação e **PCF 3x3** (bordas suaves) e multiplica a contribuição da luz correspondente. Bias com inclinação (cresce onde a luz chega de raspão). Fora do frustum da luz não há sombra.
 3. A névoa de chão também recebe sombra (metade da força), então o muro e as tochas projetam sombra no nevoeiro.
 
-`Atmosphere::shadow_strength` (0,85 na arena, 0,9 no loading, 0 na mão) e `shadow_bias`, ambos de `Shadow.json`. Ocultadores: arena e corpos das tochas na batalha; muro, porta (que ao abrir sombreia a passagem) e tochas no loading. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
+`Atmosphere::shadow_strength` (0,85 na arena, 0 na mão e no loading) e `shadow_bias`, ambos de `Shadow.json`. Ocultadores: arena e corpos das tochas na batalha. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
 
 ## Tochas e iluminação
 
 A luz das cenas 3D vem das **tochas** (`models/Torch.glb`, `src/scripts/torch/Torch.*`): cada chama é uma luz pontual (`Atmosphere::point_pos` e `point2_pos`, posição de `Torch::FlamePosition`), de cor amarelo-branca (`Light.json`, `torch.color`) e com o tremular do shader. A luz direcional fica em zero e o ambiente baixo e frio.
 
-- **Loading**: duas tochas presas nos pilares do portão (x = ±1,72, altura 1,75, inclinadas 0,22 rad para fora), intensidade 0,9 cada.
+- **Loading**: uma tocha no canto inferior direito (y = −2,8 com a câmera a 11,4; x centralizado com o texto "Carregando..."), intensidade 0,9 cintilando ±20%.
 - **Batalha**: duas tochas fincadas no chão à esquerda e à direita da arena (x = ±6,4, z = −1, escala 2,6), intensidade 2,6 cada; na abertura emergem do chão depois da arena. A mão continua com a iluminação própria, para as cartas ficarem legíveis.
 - A chama (nó `Flame`) é um quad sempre na vertical e virado para a câmera, desenhado em `kFlame` (chama procedural no shader: gota deformada por três camadas de ruído que sobem, línguas no topo, núcleo claro na base, fase por posição) mais um halo maior e translúcido um pouco atrás. Corpo da tocha é desenhado antes das camadas de névoa e a chama depois delas.
 
@@ -391,7 +382,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 | `PONTIFICE_SCREENSHOT=arquivo.bmp` | Salva um quadro em BMP e encerra (quadro 60 por padrão) |
 | `PONTIFICE_SCREENSHOT_FRAME=n` | Número do quadro salvo por `PONTIFICE_SCREENSHOT` |
 | `PONTIFICE_SCREENSHOT_TIME=s` | Em vez do quadro, salva o primeiro quadro depois de `s` segundos (sem vsync a taxa de quadros varia; use isto para animações) |
-| `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (porta num ponto fixo da abertura) |
+| `PONTIFICE_LOADING_TIME=s` | Linha do tempo da tela de loading já começa em `s` segundos (pula o fade in) |
 | `PONTIFICE_ARENA_EYE=x,y,z` | Posição da câmera da arena, para inspecionar o modelo por outro ângulo |
 | `PONTIFICE_AUDIO_LOG=1` | A cada segundo loga volume aplicado e alvo, pico e RMS do áudio enviado |
 | `PONTIFICE_AUDIO_ANALYZE=1` | Na inicialização, mede o RMS de cada faixa de ost.json e sugere o ganho de normalização |

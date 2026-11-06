@@ -80,8 +80,7 @@ add_executable(pontifice
   src/scenes/battle/BattleScene.cpp
   src/scripts/text/Text.cpp
   src/scripts/button/Button.cpp
-  src/scripts/button/ButtonPlay.cpp
-  src/scripts/button/ButtonExit.cpp
+  src/scripts/button/ButtonText.cpp
   src/scripts/button/ButtonAction.cpp
   src/scripts/button/ButtonLanguage.cpp
   src/scripts/dialog/ConfirmDialog.cpp
@@ -104,7 +103,6 @@ add_executable(pontifice
   src/scripts/i18n/I18n.cpp
   src/scripts/flag/Flag.cpp
   src/scripts/colors/Colors.cpp
-  src/scripts/clouds/Clouds.cpp
   src/scripts/torch/Torch.cpp
   src/scripts/deck/Deck.cpp
   src/scripts/cards/Cards.cpp

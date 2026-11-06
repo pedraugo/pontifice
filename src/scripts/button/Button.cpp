@@ -53,6 +53,8 @@ bool Button::HandleEvent(const SDL_Event& event) {
   }
 }
 
+float Button::LabelWidth() const { return text::Width(label_.c_str(), LabelScale()); }
+
 void Button::Render(SDL_Renderer* r) const {
   // Cores de assets/colors.json (papéis "button.*"); o preenchimento normal pode ter alpha.
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;

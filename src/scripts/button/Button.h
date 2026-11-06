@@ -8,8 +8,9 @@
 
 struct SceneContext;
 
-// Botão retangular com texto. Subclasses definem a ação em OnClick.
-// Estados e cores seguem docs/menu.md.
+// Botão retangular com placa (sprites/UiFrameButton*.png; sem elas, retângulo de cores) e
+// texto. Subclasses definem a ação em OnClick. Para botão só de texto, sem placa, ver
+// ButtonText. Estados e cores seguem docs/menu.md.
 class Button {
  public:
   explicit Button(std::string label);
@@ -21,10 +22,14 @@ class Button {
   // Ação destrutiva (Sair, confirmar abandono): placa vermelha (frame::Kind::kButtonDanger;
   // sem as placas, cores "button.danger*" de colors.json).
   void SetDanger(bool danger) { danger_ = danger; }
+  // Largura do rótulo na escala do botão (para dimensionar botões só de texto).
+  float LabelWidth() const;
 
   // Retorna true quando um clique completo (pressionar e soltar dentro) acontece.
   bool HandleEvent(const SDL_Event& event);
-  void Render(SDL_Renderer* r) const;
+  // Placa (ou retângulo de cores) e, por cima, RenderContent. Subclasses sem placa
+  // (ButtonText) sobrescrevem e desenham só o conteúdo.
+  virtual void Render(SDL_Renderer* r) const;
 
   virtual void OnClick(SceneContext& ctx) = 0;
 
@@ -33,9 +38,13 @@ class Button {
 
  protected:
   // Conteúdo sobre a placa: por padrão o rótulo centralizado. Subclasses podem desenhar
-  // algo a mais (ex.: bandeira ao lado do texto, scripts/button/ButtonLanguage).
+  // algo a mais.
   virtual void RenderContent(SDL_Renderer* r) const;
   const std::string& Label() const { return label_; }
+  bool Hovered() const { return hovered_; }
+  bool Pressed() const { return pressed_; }
+  bool Focused() const { return focused_; }
+  bool Highlighted() const { return hovered_ || focused_ || pressed_; }
   static constexpr float LabelScale() { return 3.0f * ui::kScale; }
 
  private:
