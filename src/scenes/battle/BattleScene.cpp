@@ -318,7 +318,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   const std::string base = BasePath();
   // Frente da carta de campo para o HUD: aparece com ~120 px de altura, então vai reduzida 4x
   // (400x557); vira SDL_Texture em OnEnter, na thread principal.
-  hud_field_ = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(4);
+  hud_field_ = Image::LoadFile(base + "sprites/CardFrontField.webp").Downscaled(4);
   if (info.gpu_device == nullptr) return;
 
   gpu_ = std::make_unique<Gpu>();
@@ -337,11 +337,11 @@ void BattleScene::Preload(const PreloadInfo& info) {
   veil_quad_ = gpu_->CreateMesh({{-0.5f, -0.5f, 0, 0, 1}, {0.5f, -0.5f, 0, 1, 1},
                                  {0.5f, 0.5f, 0, 1, 0}, {-0.5f, 0.5f, 0, 0, 0}},
                                 {0, 1, 2, 0, 2, 3});
-  back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.png"));
+  back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.webp"));
   // Frente: 1600x2230 com cantos transparentes, reduzido para 800x1115 (CardNormalMap).
   front_normal_ = UploadSprite(
-      CardNormalMap(Image::LoadFile(base + "sprites/CardFrontNormalMap.png"), 2));
-  back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.png"));
+      CardNormalMap(Image::LoadFile(base + "sprites/CardFrontNormalMap.webp"), 2));
+  back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.webp"));
   for (Board* board : {&board_, &opponent_board_}) {
     board->GetLayout().arena_scale = kArenaScale;
     board->SetModel(card_model_.get());
@@ -355,21 +355,21 @@ void BattleScene::Preload(const PreloadInfo& info) {
   shield_.Init(*gpu_);
   // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
   // composta a partir delas com os textos (cardface).
-  frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.png").Downscaled(2);
-  frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.png").Downscaled(2);
-  frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.png").Downscaled(2);
-  frames_[3] = Image::LoadFile(base + "sprites/CardFrontField.png").Downscaled(2);
+  frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.webp").Downscaled(2);
+  frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.webp").Downscaled(2);
+  frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.webp").Downscaled(2);
+  frames_[3] = Image::LoadFile(base + "sprites/CardFrontField.webp").Downscaled(2);
   // Frente oculta da mão do oponente: uma só textura para todas as cartas dele.
   hidden_face_ = UploadSprite(cardface::ComposeHidden(
-      Image::LoadFile(base + "sprites/CardFrontOpponent.png").Downscaled(2)));
+      Image::LoadFile(base + "sprites/CardFrontOpponent.webp").Downscaled(2)));
 
   // Montes: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) para cada lado, ANTES de
   // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
   // computador também compra 5 (só os dados; a frente é composta quando a carta entra).
   cards_ = cards::LoadAll(base);
   // Ilustrações (imageUrl de cada carta), ajustadas uma vez à janela da imagem. Cartas sem o
-  // arquivo ficam com a janela em branco. Decodificar ~65 PNGs grandes é a parte mais lenta
-  // da carga: roda em várias threads (stb_image e FitArt não têm estado compartilhado).
+  // arquivo ficam com a janela em branco. Decodificar ~65 WebPs grandes é a parte mais lenta
+  // da carga: roda em várias threads (libwebp e FitArt não têm estado compartilhado).
   arts_.clear();
   {
     const Uint64 started = SDL_GetTicksNS();

@@ -70,13 +70,13 @@ std::string CardInfo::CategoryLabel() const {
 const char* CardInfo::FrameSprite() const {
   switch (category) {
     case 'G':
-      return "CardFrontGood.png";
+      return "CardFrontGood.webp";
     case 'E':
-      return "CardFrontEvil.png";
+      return "CardFrontEvil.webp";
     case 'N':
-      return "CardFrontNeutral.png";
+      return "CardFrontNeutral.webp";
     default:
-      return "CardFrontField.png";
+      return "CardFrontField.webp";
   }
 }
 

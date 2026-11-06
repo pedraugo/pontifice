@@ -12,7 +12,7 @@
 namespace {
 
 // Áreas da moldura (px em kWidth x kHeight; ver docs/detalhes_tecnicos.md, "Frente da carta"),
-// medidas nas molduras CardFront*.png: a faixa de ATK/DEF é alta (quase 100 px) para os
+// medidas nas molduras CardFront*.webp: a faixa de ATK/DEF é alta (quase 100 px) para os
 // números saírem grandes, e a área branca da descrição vai até perto da base.
 constexpr float kNameTop = 58.0f, kNameBottom = 114.0f;      // faixa do topo
 constexpr float kStatsTop = 592.0f, kStatsBottom = 688.0f;   // faixa abaixo da imagem

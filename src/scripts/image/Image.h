@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-// Imagem RGBA8 em memória, decodificada de PNG/JPEG via stb_image.
+// Imagem RGBA8 em memória, decodificada de WebP (libwebp) ou PNG/JPEG (stb_image).
 struct Image {
   int width = 0;
   int height = 0;

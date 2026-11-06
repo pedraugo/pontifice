@@ -22,6 +22,7 @@ if(NOT SDL3_FOUND)
 endif()
 
 # Bibliotecas header-only: cgltf (glTF), stb_image (PNG/JPEG) e dr_libs (dr_mp3, trilha sonora).
+# libwebp (decodificação dos sprites em WebP) é compilada junto, só a biblioteca, sem ferramentas.
 include(FetchContent)
 FetchContent_Declare(cgltf
   GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
@@ -39,6 +40,15 @@ FetchContent_Declare(dr_libs
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR cmake-none)
 FetchContent_MakeAvailable(cgltf stb dr_libs)
+foreach(opt ANIM_UTILS CWEBP DWEBP GIF2WEBP IMG2WEBP VWEBP WEBPINFO LIBWEBPMUX WEBPMUX EXTRAS)
+  set(WEBP_BUILD_${opt} OFF CACHE BOOL "" FORCE)
+endforeach()
+set(WEBP_LINK_STATIC ON CACHE BOOL "" FORCE)
+FetchContent_Declare(libwebp
+  GIT_REPOSITORY https://github.com/webmproject/libwebp.git
+  GIT_TAG v1.6.0
+  GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(libwebp)
 
 # Shader Metal embutido no binário como array de bytes.
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
@@ -116,9 +126,9 @@ if(WIN32)
 endif()
 target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
 target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR}
-                           ${dr_libs_SOURCE_DIR})
-target_link_libraries(pontifice PRIVATE SDL3::SDL3)
-# Decodificação de PNG (stb_image), rasterização da fonte (stb_truetype) e composição das
+                           ${dr_libs_SOURCE_DIR} ${libwebp_SOURCE_DIR}/src)
+target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
+# Decodificação de imagens (libwebp/stb_image), rasterização da fonte (stb_truetype) e composição das
 # frentes das cartas rodam na carga da batalha sobre imagens grandes: sem otimização (Debug)
 # a carga leva vários segundos. Esses arquivos são compilados otimizados em qualquer build.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
