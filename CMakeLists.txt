@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Dependências já baixadas em build/_deps não são atualizadas na reconfiguração, então o
+# jogo configura e compila sem internet. Para atualizar, apague build/.
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "" FORCE)
+
 # SDL3: usa a versão instalada no sistema se existir; senão baixa e compila.
 find_package(SDL3 CONFIG QUIET)
 if(NOT SDL3_FOUND)
@@ -32,7 +36,7 @@ FetchContent_Declare(cgltf
   SOURCE_SUBDIR cmake-none)   # sem add_subdirectory, só o header
 FetchContent_Declare(stb
   GIT_REPOSITORY https://github.com/nothings/stb.git
-  GIT_TAG master
+  GIT_TAG d14d46f6b44456eb88beac58cba833a4135d4c89
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR cmake-none)
 FetchContent_MakeAvailable(cgltf stb)

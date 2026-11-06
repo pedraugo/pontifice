@@ -47,6 +47,8 @@ cd PONTIFICE
 
 O script roda `cmake -S . -B build -G Ninja` e depois `cmake --build build`. Na primeira vez o CMake baixa o SDL3 (tag `release-3.4.18`) para `build/_deps/` e compila como biblioteca estática. Leva alguns minutos. Nas próximas builds só o código do jogo é recompilado.
 
+Só a primeira build precisa de internet. Depois disso `./build.sh` e `./run.sh` funcionam offline: as dependências em `build/_deps/` não são atualizadas na reconfiguração (`FETCHCONTENT_UPDATES_DISCONNECTED`). Para baixar versões novas, apague `build/`.
+
 O binário fica em `build/pontifice`, com `assets/` e `sprites/` copiados para o lado dele.
 
 ### 4. Executar

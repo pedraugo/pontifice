@@ -12,6 +12,7 @@
 
 #include "scenes/Scene.h"
 #include "scripts/ai/Ai.h"
+#include "scripts/audios/Sfx.h"
 #include "scripts/aura/CardAura.h"
 #include "scripts/board/Board.h"
 #include "scripts/button/Button.h"
@@ -153,6 +154,9 @@ class BattleScene : public Scene {
   Board opponent_board_;
   Sword sword_;
   Shield shield_;
+  Sfx sfx_;
+  std::vector<std::pair<float, std::string>> sfx_queue_;  // (seconds left, effect)
+  void PlaySfxLater(float delay, std::string name);
   Hud hud_;
   SDL_Renderer* renderer_ = nullptr;
   SDL_Texture* field_front_2d_ = nullptr;

@@ -97,6 +97,15 @@ constexpr float kRevealCardH = ui::Grid(35);
 constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
 constexpr float kRevealDetailScale = 2.5f * ui::kScale;
 constexpr float kAttackHit = 0.25f;
+
+// Card stat (attack or defense) to effect tier 1 (weakest) to 5 (strongest).
+int SfxTier(int value) {
+  if (value < 300) return 1;
+  if (value < 600) return 2;
+  if (value < 1000) return 3;
+  if (value < 1800) return 4;
+  return 5;
+}
 constexpr float kShakeSeconds = 0.45f;
 constexpr float kShakeAmplitude = 0.16f;
 
@@ -310,6 +319,12 @@ void BattleScene::Preload(const PreloadInfo& info) {
   opponent_board_.SetSide(-1.0f);
   sword_.Init(*gpu_);
   shield_.Init(*gpu_);
+  for (int tier = 1; tier <= 5; ++tier) {
+    const std::string n = std::to_string(tier);
+    sfx_.Load("sword" + n, base + "audios/sfx/Sword" + n + ".ogg");
+    sfx_.Load("shield" + n, base + "audios/sfx/Shield" + n + ".ogg");
+  }
+  sfx_.Load("open", base + "audios/sfx/OpenBattle.ogg");
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.webp").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.webp").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.webp").Downscaled(2);
@@ -543,6 +558,13 @@ void BattleScene::Schedule(float delay, std::function<void()> fn) {
 
 void BattleScene::ScheduleNext(float delay, std::function<void()> fn) {
   steps_.emplace_front(delay, std::move(fn));
+}
+void BattleScene::PlaySfxLater(float delay, std::string name) {
+  if (delay <= 0.0f) {
+    sfx_.Play(name);
+    return;
+  }
+  sfx_queue_.emplace_back(delay, std::move(name));
 }
 
 float BattleScene::RevealDuration() const {
@@ -856,6 +878,7 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
                              ? theirs.CardPosition(target_slot)
                              : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
   sword_.Play(hit, mine.CardPosition(slot));
+  sfx_.Play("sword" + std::to_string(SfxTier(attack)));
   if (target_slot >= 0) theirs.Flash(target_slot);
   if (target_slot < 0) {
     outcome = rules::ResolveDirect(attack);
@@ -869,6 +892,8 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
                              rules::EffectiveDefense(*target->info, field_));
     if (target->defense) {
       shield_.Play(hit, mine.CardPosition(slot), sword_.HitDelay(), outcome.defender_destroyed);
+      const int defense = rules::EffectiveDefense(*target->info, field_);
+      PlaySfxLater(sword_.HitDelay(), "shield" + std::to_string(SfxTier(defense)));
     }
     SDL_Log("%s: %s (%s, %d) ataca %s (%s, %s)", attacker == Side::kPlayer ? "Voce" : "Oponente",
             card->info->name.c_str(), SlotName(slot, a_name), attack,
@@ -1021,6 +1046,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.point_intensity = config::Float("light", "battle.hand.pointIntensity", 1.0f);
   hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
+  sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
+  sfx_.Play("open");
   UpdateIntro(0.0f);
 }
 
@@ -1246,7 +1273,18 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 }
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
+  sfx_.Update();
   if (!ready_ || paused_) return;
+  sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
+  for (auto it = sfx_queue_.begin(); it != sfx_queue_.end();) {
+    it->first -= dt_seconds;
+    if (it->first > 0.0f) {
+      ++it;
+      continue;
+    }
+    sfx_.Play(it->second);
+    it = sfx_queue_.erase(it);
+  }
   hud_.Update(dt_seconds, mouse_.x, mouse_.y);
   if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
