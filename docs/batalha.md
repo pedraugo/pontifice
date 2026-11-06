@@ -109,7 +109,7 @@ Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no
 - **Pausa**: abertura, câmera, turno do computador e animações congelam. Um véu escuro cobre a batalha e só a janela recebe cliques e teclas.
 - **Música**: a trilha de batalha sai em fade out e a do menu entra no volume do menu.
 - **Não** (ou `Esc` de novo): fecha a janela, a batalha continua de onde parou e a música de batalha volta em fade in no ponto em que foi pausada.
-- **Sim**: abandona a batalha e volta ao menu, que segue com a música que já está tocando. O botão usa a placa vermelha (`sprites/UiFrameButtonDanger.png`), por ser ação destrutiva.
+- **Sim**: abandona a batalha e volta ao menu, que segue com a música que já está tocando. O botão usa a placa de fundo vermelho escuro (`frame::Kind::kButtonDanger`), por ser ação destrutiva.
 - **Teclado**: setas esquerda e direita (ou `Tab`) trocam o foco, `Enter` ou `Espaço` confirmam. O foco começa no Não.
 - Se uma carta estiver em inspeção, o primeiro `Esc` só sai da inspeção.
 - Com a partida encerrada (vitória ou derrota), `Esc` volta direto ao menu, sem pergunta.

@@ -2,38 +2,29 @@
 
 #include <SDL3/SDL.h>
 
-#include <string>
-
-// Placa de pedra com moldura de metal e estrelas nos cantos (gerada de art/ui.jpg por
-// tools/make_ui_frame.py) em três variantes: sprites/UiFrameButton.png (como na arte, para
-// botões), sprites/UiFrameWindow.png (mais escura e cinza, tom de metal, para janelas,
-// painéis do HUD e tooltips) e sprites/UiFrameButtonDanger.png (pedra em vermelho escuro,
-// para botões de ação destrutiva: Sair do menu, confirmar abandono da batalha).
-// A folha é dividida em 9 TILES IGUAIS (terços):
-//   tl t  tr
-//   ml m  mr
-//   bl b  br
-// e cada elemento é montado por tiles na escala certa: a linha de cima é tl + N vezes t + tr,
-// a de baixo bl + N vezes b + br e, em painéis altos, linhas ml + N vezes m + mr no meio.
-// A escala vem da altura (tile = altura / linhas, com no mínimo 2 linhas) e N cobre a largura
-// com tiles quase quadrados. O centro da folha é simétrico, então os tiles repetem sem emenda.
+// Placa da interface desenhada só com retângulos, sem textura: fundo RGBA(0,0,0,0,75), borda
+// clara de 3 px RGBA(255,255,255,0,15) e, por fora dela, outline escura de 3 px
+// RGBA(0,0,0,0,50) (a "borda da borda"). Tudo cabe em `rect`: a outline ocupa os 3 px de
+// fora, a borda os 3 px seguintes e o fundo o resto. Serve a botões (Button, ButtonIcon),
+// janelas (ConfirmDialog), painéis do HUD e tooltips. Cores em
+// assets/colors.json (papéis "frame.*").
 namespace frame {
 
-// Qual placa: botão (azulada, como na arte), janela (escura, metálica) ou botão de perigo
-// (vermelho escuro).
+// Botão e janela são iguais; botão de perigo (Sair do menu, confirmar abandono) tem fundo em
+// vermelho escuro.
 enum class Kind { kButton, kWindow, kButtonDanger };
+// Estado de botão: destaque (hover/foco) clareia a borda; pressionado escurece o fundo.
+enum class State { kNormal, kHighlight, kPressed };
 
-// `dir` é a pasta sprites/ (UiFrameButton.png, UiFrameWindow.png e UiFrameButtonDanger.png).
-// Sem a de perigo, kButtonDanger usa a de botão.
-bool Init(SDL_Renderer* r, const std::string& dir);
-void Shutdown();
-bool Ready();
+constexpr float kOutline = 3.0f;
+constexpr float kBorder = 3.0f;
+constexpr float kInset = kOutline + kBorder;  // de `rect` até o fundo
 
-// Desenha a placa em `rect`. brightness escurece (0..1; 1 = como na imagem) para estados de
-// botão. ideal_tile: tamanho de tile preferido em px (define quantas linhas: altura /
-// ideal_tile, mínimo 2); <= 0 usa kIdealTile. alpha: opacidade.
-constexpr float kIdealTile = 40.0f;
-void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, float brightness = 1.0f,
-          float ideal_tile = 0.0f, float alpha = 1.0f);
+// Retângulo do fundo (rect sem outline e borda).
+SDL_FRect Inner(const SDL_FRect& rect);
+
+// Desenha a placa em `rect`. alpha multiplica a opacidade de tudo (0..1).
+void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, State state = State::kNormal,
+          float alpha = 1.0f);
 
 }  // namespace frame

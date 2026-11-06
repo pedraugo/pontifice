@@ -58,6 +58,6 @@ Papéis de `assets/colors.json`: `background.menu` (fundo, `#091119`), `text.tit
 ## Implementação
 
 - Cena: `src/scenes/menu/MenuScene.h` e `src/scenes/menu/MenuScene.cpp`.
-- Itens: `src/scripts/button/ButtonText.*` (botão só de texto, com rótulo e ação; Jogar, Nível e Sair são instâncias dele criadas em `MenuScene`). A base `Button` (com placa) continua nos diálogos e na batalha.
+- Itens: `src/scripts/button/ButtonText.*` (botão só de texto, com rótulo e ação; Jogar, Nível e Sair são instâncias dele criadas em `MenuScene`). A base `Button` (com placa) continua nos diálogos e na batalha; `ButtonIcon` (placa com ícone) é o botão de som.
 - Texto renderizado com a fonte do jogo (`assets/PirataOne.ttf`, via stb_truetype, ver `scripts/text/Text.*`), com acentos.
 - Tela cheia por padrão (sem redimensionar) e resolução lógica `1920x1080` com letterbox, para o layout não depender do monitor.

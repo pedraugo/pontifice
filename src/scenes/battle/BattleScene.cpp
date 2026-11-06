@@ -1012,8 +1012,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   if (!preloaded_) Preload(ctx.Preload());
   renderer_ = ctx.renderer;
 
-  end_turn_ = std::make_unique<ButtonAction>(i18n::Get("battle.endTurn"),
-                                             [this](SceneContext&) { EndTurn(); });
+  end_turn_ = std::make_unique<Button>(i18n::Get("battle.endTurn"),
+                                       [this](SceneContext&) { EndTurn(); });
   SDL_FRect rect{(ctx.logical_width - kButtonWidth) / 2.0f, kEndTurnTop, kButtonWidth,
                  kButtonHeight};
   end_turn_->SetRect(rect);
@@ -1681,17 +1681,8 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   if (x + w > width) x = mouse_.x - kTipOffset - w;
   if (y + h > height) y = std::max(0.0f, mouse_.y - kTipOffset - h);
   const SDL_FRect panel{x, y, w, h};
+  frame::Draw(r, panel, frame::Kind::kWindow);
   SDL_Color c;
-  if (frame::Ready()) {
-    frame::Draw(r, panel, frame::Kind::kWindow);
-  } else {
-    c = colors::Get("panel.fill");
-    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-    SDL_RenderFillRect(r, &panel);
-    c = colors::Get("panel.border");
-    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-    SDL_RenderRect(r, &panel);
-  }
 
   // Imagem: frente composta da carta (mesma do HUD), em cache por código.
   const SDL_FRect image{x + kTipPadding, y + kTipPadding, image_w, kTipImageH};
@@ -1931,8 +1922,10 @@ void BattleScene::Render(SceneContext& ctx) {
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
-  sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
-  hint_button_.Render(r, hints_enabled_);
+  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
+  sound_button_.Render(r);
+  hint_button_.SetActive(hints_enabled_);
+  hint_button_.Render(r);
   RenderReveal(r, ctx.logical_width, ctx.logical_height);
   if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);

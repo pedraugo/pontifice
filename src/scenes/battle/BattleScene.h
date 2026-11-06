@@ -14,7 +14,8 @@
 #include "scripts/ai/Ai.h"
 #include "scripts/aura/CardAura.h"
 #include "scripts/board/Board.h"
-#include "scripts/button/ButtonAction.h"
+#include "scripts/button/Button.h"
+#include "scripts/button/ButtonIcon.h"
 #include "scripts/cards/Cards.h"
 #include "scripts/deck/Deck.h"
 #include "scripts/dialog/ConfirmDialog.h"
@@ -24,8 +25,6 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 #include "scripts/rules/Rules.h"
-#include "scripts/hintbutton/HintButton.h"
-#include "scripts/soundbutton/SoundButton.h"
 #include "scripts/shield/Shield.h"
 #include "scripts/sword/Sword.h"
 #include "scripts/torch/Torch.h"
@@ -221,9 +220,10 @@ class BattleScene : public Scene {
   // Nulo se a carta não tem ilustração.
   std::unordered_map<std::string, SDL_Texture*> hud_arts_;
   SDL_Texture* HudArt(const CardInfo& card, bool large = false);
-  std::unique_ptr<ButtonAction> end_turn_;
-  SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
-  HintButton hint_button_;    // acima do botão de som: liga/desliga a dica do topo
+  std::unique_ptr<Button> end_turn_;
+  // Canto inferior esquerdo: liga/desliga a música; acima dele: liga/desliga a dica do topo.
+  ButtonIcon sound_button_{ButtonIcon::Icon::kSound};
+  ButtonIcon hint_button_{ButtonIcon::Icon::kHint};
   bool hints_enabled_ = true;
   // Pausa (Esc): a batalha congela, a trilha troca para a do menu e a janela pergunta se
   // abandona. Não (ou Esc) retoma a batalha e a música dela de onde parou; Sim volta ao menu.

@@ -20,7 +20,7 @@ constexpr float kQuestionScale = 2.5f * ui::kScale;
 
 }  // namespace
 
-ConfirmDialog::ConfirmDialog() : no_("", nullptr), yes_("", nullptr) {}
+ConfirmDialog::ConfirmDialog() : no_(""), yes_("") {}
 
 void ConfirmDialog::Open(const std::string& question, const std::string& no_label,
                          const std::string& yes_label, int width, int height,
@@ -87,16 +87,7 @@ void ConfirmDialog::Render(SDL_Renderer* r, int width, int height) const {
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
   SDL_RenderFillRect(r, &full);
 
-  if (frame::Ready()) {
-    frame::Draw(r, panel_, frame::Kind::kWindow);
-  } else {
-    c = colors::Get("panel.fill");
-    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-    SDL_RenderFillRect(r, &panel_);
-    c = colors::Get("panel.border");
-    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
-    SDL_RenderRect(r, &panel_);
-  }
+  frame::Draw(r, panel_, frame::Kind::kWindow);
   // Pergunta centrada no espaço acima dos botões.
   const float top = panel_.y + kPadding;
   const float bottom = panel_.y + panel_.h - kPadding - kButtonHeight;

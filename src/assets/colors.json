@@ -9,7 +9,8 @@
     "board.fieldArena: tint dourado da arena enquanto há carta de campo ativa (ou uma selecionada na mão) (multiplica a pedra, reforçado 1,5x no código). board.fieldMistGood / fieldMistEvil: névoa de chão nesse estado; board.fieldFogGood / fieldFogEvil: fundo do ambiente (cor de limpeza e névoa por distância), tom escuro da categoria, conforme a categoria que a carta favorece.",
     "board.status: linha de situação da batalha, branca opaca. board.hint: dica abaixo dela, com 75% de opacidade (bf).",
     "background.menu / background.language: fundo quase preto do menu e da cena de idioma. buttonText.text / highlight: botões só de texto (ButtonText: menu e idiomas), normal e com hover/foco.",
-    "button.danger*: vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono) quando as placas (sprites/UiFrame*.png) não carregam."
+    "frame.*: placa da interface (botões, janelas, painéis do HUD, tooltip), desenhada só com retângulos: fill preto a 75% (bf), border branca a 15% (26) e outline preta a 50% (80), ambas de 3 px. fillPressed: fundo a 90% (e6) com o botão pressionado; borderHighlight: borda a 30% (4d) com hover/foco. frame.danger*: fundo vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono).",
+    "button.text / focusBorder: rótulo do botão e traço fino em volta do fundo com foco de teclado."
   ],
   "palette": {
     "stone900": "#04090f",
@@ -44,8 +45,16 @@
     "border": {
       "subtle": "#3c4859"
     },
+    "frame": {
+      "fill": "#000000bf",
+      "fillPressed": "#000000e6",
+      "dangerFill": "#3a0d0fbf",
+      "dangerFillPressed": "#3a0d0fe6",
+      "border": "#ffffff26",
+      "borderHighlight": "#ffffff4d",
+      "outline": "#00000080"
+    },
     "panel": {
-      "fill": "#111923c8",
       "border": "#8c99af",
       "title": "#f1f7fd",
       "label": "#aeb9cc",
@@ -53,15 +62,7 @@
     },
     "button": {
       "text": "#e1e9f4",
-      "border": "#8c99af",
-      "fill": "#1e283500",
-      "hoverFill": "#2c3847",
-      "hoverBorder": "#ced8e7",
-      "pressedFill": "#3c4859",
-      "focusBorder": "#e1e9f4",
-      "dangerFill": "#3a0d0f",
-      "dangerHoverFill": "#5a1418",
-      "dangerPressedFill": "#7a1b20"
+      "focusBorder": "#e1e9f4"
     },
     "buttonText": {
       "text": "#aeb9cc",

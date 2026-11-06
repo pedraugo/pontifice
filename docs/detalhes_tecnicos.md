@@ -6,12 +6,12 @@
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
 - **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG), stb_truetype (fonte TTF/OTF) e dr_mp3 (decodificação de MP3). Todas baixadas via `FetchContent`; cgltf, stb e dr_libs são header-only.
-- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"ost"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Music::SetCategory` e `Music::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a nova categoria entra em **fade in** de 2 s; o menu toca as faixas **em sequência** e a batalha **em ordem aleatória** (`"random": ["battle"]` em ost.json: cada faixa sorteada ao entrar na batalha e a cada troca, sem repetir a que acabou de tocar; a retomada depois da pausa continua a mesma faixa); o volume é **por cena** (`"volume": {"menu": 0.15, "battle": 0.25}`; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa tem um **ganho de normalização** em ost.json (`{"file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada MP3 e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`scripts/soundbutton`, menu e batalha) chama `Music::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
+- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"ost"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Music::SetCategory` e `Music::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a nova categoria entra em **fade in** de 2 s; o menu toca as faixas **em sequência** e a batalha **em ordem aleatória** (`"random": ["battle"]` em ost.json: cada faixa sorteada ao entrar na batalha e a cada troca, sem repetir a que acabou de tocar; a retomada depois da pausa continua a mesma faixa); o volume é **por cena** (`"volume": {"menu": 0.15, "battle": 0.25}`; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa tem um **ganho de normalização** em ost.json (`{"file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada MP3 e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`ButtonIcon`, menu e batalha) chama `Music::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
 - **Resolução lógica**: 1920x1080 com letterbox (`SDL_SetRenderLogicalPresentation`). Eventos de mouse são convertidos para essa resolução. A interface 2D fica numa **grade de 16 px** (`ui::Grid(n)` em `scripts/ui/Ui.h`: 1920 = 120 células, 1080 = 67,5): margens de 1 célula, painéis do HUD 24x6 e 34x6, contadores com 3 de altura e largura arredondada à grade (`ui::SnapUp`), botões do menu 22x5 com 2 de vão, botão da batalha 21x5, botão de som e de dicas 3x3 (canto inferior esquerdo, empilhados), tooltip com imagem de 14 células. Tamanhos de texto seguem `ui::kScale` (1,5; medidos em 1280x720).
-- **Moldura da interface**: duas placas de pedra com moldura de metal e estrelas nos cantos (de `art/ui.jpg`; 768x768), cada uma dividida em **9 tiles iguais** (terços): `tl t tr / ml m mr / bl b br`. `sprites/UiFrameButton.png` (azulada, como na arte) é o fundo dos botões (`frame::Kind::kButton`: Jogar, Nível, Sair, Passar turno, som); `sprites/UiFrameWindow.png` (dessaturada 75%, escurecida a 68%, leve tom de aço) é o fundo de janelas, painéis do HUD e tooltip (`frame::Kind::kWindow`). `scripts/frame/Frame.*` monta cada elemento com tiles: linha de cima `tl` + N vezes `t` + `tr`, de baixo `bl` + N vezes `b` + `br` e, em painéis altos, linhas `ml` + N vezes `m` + `mr` no meio. A escala vem da altura (tile = altura / linhas; linhas = altura / 40 px, mínimo 2) e N cobre a largura com tiles quase quadrados. Estados de botão escurecem a placa (normal 80%, pressionado 60%, destaque 100%). `tools/make_ui_frame.py` gera os dois PNG: converte o JPG (`sips`), torna o fundo branco transparente, tira a margem, refaz o centro em espelho 2x2 (terços simétricos, tiles sem emenda) e deriva a variante Window.
+- **Placa da interface**: `scripts/frame/Frame.*` desenha o fundo de botões (`frame::Kind::kButton`: Passar turno, som, dica, Não/Sim do diálogo), janelas, painéis do HUD e tooltip (`frame::Kind::kWindow`) só com retângulos, sem textura: fundo `RGBA(0,0,0,0,75)`, borda clara de **3 px** `RGBA(255,255,255,0,15)` e, por fora dela, outline escura de **3 px** `RGBA(0,0,0,0,50)` (a "borda da borda"). Tudo cabe no retângulo do elemento: outline nos 3 px de fora, borda nos 3 px seguintes, fundo no resto (`frame::Inner`). Botão e janela são iguais; `frame::Kind::kButtonDanger` (Sair, confirmar abandono) tem fundo vermelho escuro. Estados de botão (`frame::State`): hover/foco clareia a borda para 30%, pressionado escurece o fundo para 90%; foco de teclado ganha ainda um traço fino (`button.focusBorder`) em volta do fundo. Cores em `assets/colors.json`, papéis `frame.*`.
 - **Plataforma**: computadores (macOS, Windows, Linux). Sem versão mobile ou console.
 
 ## Estrutura do projeto
@@ -36,14 +36,13 @@ src/
     ui/
       Ui.h            escala de texto (ui::Px) e grade de 16 px da interface (ui::Grid, ui::SnapUp)
     frame/
-      Frame.*         moldura da interface: UiFrameButton.png (botões), UiFrameWindow.png (janelas, painéis, tooltip) e UiFrameButtonDanger.png (botões de ação destrutiva, pedra vermelha) em 9 tiles iguais montados por elemento
+      Frame.*         placa da interface (botões, janelas, painéis, tooltip): fundo escuro, borda clara e outline escura de 3 px, só retângulos; variante de perigo com fundo vermelho
     text/
       Text.*          texto com as fontes do jogo via stb_truetype (text::Face: kTitle = assets/PirataOne.ttf, kBody = assets/Newsreader.ttf): atlas 16/32/64 px por fonte, ASCII e Latin-1; sem a de corpo, usa a de título; sem a de título, cai na de depuração do SDL
     button/
-      Button.*        botão base (hover, foco, clique)
-      ButtonText.*    botão só de texto, sem placa, com rótulo e ação (menu: Jogar, Nível, Sair)
-      ButtonAction.*  botão com placa, rótulo e ação (Passar turno, diálogos)
-      ButtonLanguage.* item da cena de idioma: bandeira + nome, sem placa, define o idioma
+      Button.*        botão com placa, rótulo e ação (Passar turno, diálogos); categorias normal e perigo; base dos outros dois (hover, foco, clique)
+      ButtonText.*    botão só de texto, sem placa (menu: Jogar, Nível, Sair); com bandeira (SetFlag) é o item da cena de idioma
+      ButtonIcon.*    botão quadrado com placa e ícone em primitivas: alto-falante (liga/desliga a música) e "?" (liga/desliga a dica do topo, na batalha)
     dialog/
       ConfirmDialog.* janela modal de confirmação com [Não] e [Sim] (pausa da batalha)
     flag/
@@ -62,10 +61,6 @@ src/
       Hand.*          mão em dock: layout em arco, hover, animação, seleção e inspeção
     board/
       Board.*         um lado do campo (jogador ou oponente): 10 slots alinhados aos ladrilhos, destaque, cartas em 3D, investida e descarte
-    soundbutton/
-      SoundButton.*   botão com ícone de alto-falante (primitivas) que liga/desliga a música
-    hintbutton/
-      HintButton.*    botão com "?" (acima do de som, na batalha) que liga/desliga a dica do topo
     sword/
       Sword.*         efeito de golpe de espada nos ataques: espada procedural (caixas coloridas) que desce sobre o alvo e rastro de corte emissivo
     shield/
@@ -107,7 +102,7 @@ src/
     CardsNeutral.json
     CardsField.json
   sounds/             músicas de fundo (MP3) listadas em assets/ost.json
-  sprites/            texturas das cartas (PNG), molduras da interface (UiFrameButton.png, UiFrameWindow.png) e fontes de arte (PSD)
+  sprites/            texturas das cartas (PNG) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta
   icons/
@@ -125,12 +120,10 @@ src/
                       madeira, bandas de metal, tábuas, cruz e placa com flor-de-lis
     ArenaAtlas.png    atlas gerado para a arena (2048x2048)
     Card.png          ilustração de referência da carta
-    ui.jpg            ilustração de referência da moldura da interface (placa de pedra); vira sprites/UiFrameButton.png e UiFrameWindow.png
     torch.webp        ilustração de referência da tocha
     TorchAtlas.png    atlas gerado para a tocha (512x512, RGBA): madeira e ferro da arena, couro, brasas e chama
 tools/
   texture_arena.py    gera Arena.glb e ArenaAtlas.png a partir de ArenaRaw.glb e Arena.png
-  make_ui_frame.py    gera sprites/UiFrameButton.png e UiFrameWindow.png (placas da interface) a partir de art/ui.jpg: fundo transparente, placa sem a margem, centro em tile; Window mais escura e cinza
   make_torch.py       gera Torch.glb e TorchAtlas.png (cabo, couro, cesta de ferro, brasas e chama)
   normalmap.py        gera normal map (luminância -> Sobel) da textura embutida e grava como normalTexture no GLB; chamado pelos três geradores
   make_icons.py       gera src/icons/icon.ico a partir de src/assets/icon.png (usa sips)

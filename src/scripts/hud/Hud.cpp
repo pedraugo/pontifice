@@ -55,14 +55,7 @@ void StrokeRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_RenderRect(r, &rect);
 }
 
-void Panel(SDL_Renderer* r, const SDL_FRect& rect) {
-  if (frame::Ready()) {
-    frame::Draw(r, rect, frame::Kind::kWindow);
-    return;
-  }
-  FillRect(r, rect, colors::Get("panel.fill"));
-  StrokeRect(r, rect, colors::Get("panel.border"));
-}
+void Panel(SDL_Renderer* r, const SDL_FRect& rect) { frame::Draw(r, rect, frame::Kind::kWindow); }
 
 std::string CategoryName(Category c) {
   return i18n::Get(c == Category::kGood ? "category.good.plural" : "category.evil.plural");
@@ -194,13 +187,7 @@ void Hud::RenderFieldZoom(SDL_Renderer* r) const {
                        from.w + (to.w - from.w) * t, from.h + (to.h - from.h) * t};
   const float pad = kPadding * t;
   const SDL_FRect plate{rect.x - pad, rect.y - pad, rect.w + 2 * pad, rect.h + 2 * pad};
-  if (frame::Ready()) {
-    frame::Draw(r, plate, frame::Kind::kWindow, 1.0f, 0.0f, t);
-  } else {
-    SDL_Color fill = colors::Get("panel.fill");
-    fill.a = static_cast<Uint8>(fill.a * t);
-    FillRect(r, plate, fill);
-  }
+  frame::Draw(r, plate, frame::Kind::kWindow, frame::State::kNormal, t);
   SDL_Texture* texture = field_.art_large != nullptr ? field_.art_large : field_.art;
   SDL_SetTextureAlphaMod(texture, static_cast<Uint8>(255.0f * std::min(1.0f, 0.4f + t)));
   SDL_RenderTexture(r, texture, nullptr, &rect);

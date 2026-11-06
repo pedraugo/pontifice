@@ -81,14 +81,11 @@ add_executable(pontifice
   src/scripts/text/Text.cpp
   src/scripts/button/Button.cpp
   src/scripts/button/ButtonText.cpp
-  src/scripts/button/ButtonAction.cpp
-  src/scripts/button/ButtonLanguage.cpp
+  src/scripts/button/ButtonIcon.cpp
   src/scripts/dialog/ConfirmDialog.cpp
   src/scripts/board/Board.cpp
   src/scripts/sword/Sword.cpp
   src/scripts/shield/Shield.cpp
-  src/scripts/soundbutton/SoundButton.cpp
-  src/scripts/hintbutton/HintButton.cpp
   src/scripts/frame/Frame.cpp
   src/scripts/rules/Rules.cpp
   src/scripts/ai/Ai.cpp

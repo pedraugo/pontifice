@@ -4,6 +4,7 @@
 #include <string>
 
 #include "scripts/colors/Colors.h"
+#include "scripts/flag/Flag.h"
 #include "scripts/i18n/I18n.h"
 #include "scripts/ui/Ui.h"
 
@@ -11,20 +12,28 @@ namespace {
 
 // Linhas de 4 células com 2 células entre elas; a coluna (bandeira + nome, alinhados à
 // esquerda) tem a largura do item mais largo e fica centrada na tela.
-constexpr float kRowHeight = ButtonLanguage::RowHeight();
+constexpr float kRowHeight = ui::Grid(4);
 constexpr float kRowGap = ui::Grid(2);
 
 }  // namespace
 
 LanguageScene::LanguageScene() {
   for (const i18n::Language& language : i18n::Languages()) {
-    buttons_.push_back(std::make_unique<ButtonLanguage>(language.code, language.name,
-                                                        flag::FromCode(language.flag)));
+    AddLanguage(language.code, language.name, flag::FromCode(language.flag));
   }
   // Sem translate.json: só português, para o jogo seguir para o menu.
-  if (buttons_.empty()) {
-    buttons_.push_back(std::make_unique<ButtonLanguage>("pt", "Português", flag::Country::kBrazil));
-  }
+  if (buttons_.empty()) AddLanguage("pt", "Português", flag::Country::kBrazil);
+}
+
+// Item de texto com bandeira; ao clicar, define o idioma (i18n) e abre o menu.
+void LanguageScene::AddLanguage(const std::string& code, const std::string& name,
+                                flag::Country country) {
+  auto button = std::make_unique<ButtonText>(name, [code](SceneContext& ctx) {
+    i18n::SetLanguage(code);
+    ctx.next_scene = SceneId::kMenu;
+  });
+  button->SetFlag(country);
+  buttons_.push_back(std::move(button));
 }
 
 void LanguageScene::OnEnter(SceneContext& ctx) {

@@ -141,7 +141,8 @@ void MenuScene::Render(SceneContext& ctx) {
                      colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
-  sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
+  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
+  sound_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,
                      ctx.logical_height - ui::Grid(3), kFooterScale,

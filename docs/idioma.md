@@ -55,6 +55,6 @@ Grupos de chaves: `language.*`, `menu.*`, `difficulty.*`, `loading.*`, `battle.*
 ## Implementação
 
 - Cena: `src/scenes/language/LanguageScene.*`.
-- Item com bandeira: `src/scripts/button/ButtonLanguage.*` (um `ButtonText` que desenha a bandeira à esquerda do texto); bandeiras em `src/scripts/flag/Flag.*`.
+- Item com bandeira: `src/scripts/button/ButtonText.*` com `SetFlag` (desenha a bandeira à esquerda do texto); a ação (definir o idioma e abrir o menu) fica em `LanguageScene`; bandeiras em `src/scripts/flag/Flag.*`.
 - Textos: `src/scripts/i18n/I18n.*` (`Load`, `SetLanguage`, `Get`, `GetOr`, `Format`). Carregado em `main.cpp` antes da primeira cena; só leitura depois disso, então é seguro no `Preload` da batalha (outra thread).
 - Depuração: `PONTIFICE_LANG=en|es|pt` já define o idioma e abre direto no menu; `PONTIFICE_SCENE=language` força a cena de idioma.
