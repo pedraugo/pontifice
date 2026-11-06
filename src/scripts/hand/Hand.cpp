@@ -43,10 +43,12 @@ math::Mat4 Hand::CardMatrix(const Card& card, int index, bool with_tilt) const {
   const float e = card.enter * card.enter * (3.0f - 2.0f * card.enter);
   const float x = math::Lerp(layout_.deal_from_x, center_offset + card.shift, e);
   const float rest_y = layout_.base_y - layout_.arc * center_offset * center_offset;
-  // Selecionada: erguida mesmo com a mão recolhida (a descida da mão não a leva junto).
-  const float y = rest_y + layout_.hover_lift * card.hover + layout_.select_lift * card.select -
-                  layout_.hidden_drop * (1.0f - raise_) * (1.0f - card.select) -
-                  layout_.away_drop * away_t_;
+  // Selecionada: sobe só uma fração da altura da carta em repouso acima das demais e
+  // acompanha a mão quando ela desce (fica sempre um pouco acima das vizinhas).
+  const float card_h = model_ != nullptr ? model_->BoundsMax().y - model_->BoundsMin().y : 0.0f;
+  const float select_lift = layout_.select_lift * card_h * layout_.scale;
+  const float y = rest_y + layout_.hover_lift * card.hover + select_lift * card.select -
+                  layout_.hidden_drop * (1.0f - raise_) - layout_.away_drop * away_t_;
   // Profundidade crescente com o índice: cartas vizinhas se sobrepõem em X e, no mesmo Z,
   // o teste de profundidade empata e pisca. A carta destacada vai além de todas.
   const float z = layout_.base_z + layout_.depth_step * static_cast<float>(index) +

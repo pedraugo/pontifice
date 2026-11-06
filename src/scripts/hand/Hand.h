@@ -60,7 +60,7 @@ class Hand {
     float hidden_drop = 1.0f;     // quanto a mão inteira desce quando o mouse está longe
     float away_drop = 3.5f;       // quanto desce a mais quando recolhida (turno do oponente)
     float raise_speed = 10.0f;    // velocidade com que a mão sobe/desce
-    float select_lift = 0.5f;     // quanto a carta selecionada sobe
+    float select_lift = 0.2f;     // quanto a carta selecionada sobe (fração da altura da carta)
     float select_forward = 0.15f; // quanto se aproxima da câmera
     float drag_threshold = 36.0f; // px lógicos (1920x1080) de arrasto vertical para virar gesto
     float inspect_z = 4.2f;       // profundidade da carta inspecionada

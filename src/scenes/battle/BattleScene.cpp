@@ -94,28 +94,6 @@ constexpr float kStatusY = ui::Grid(2);
 constexpr float kHintY = ui::Grid(4);
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 
-// Quebra `str` em linhas de até `max_w` px na escala e fonte dadas (por palavras).
-std::vector<std::string> WrapText(const std::string& str, float max_w, float scale,
-                                  text::Face face = text::Face::kTitle) {
-  std::vector<std::string> lines;
-  std::string line;
-  size_t pos = 0;
-  while (pos < str.size()) {
-    size_t end = str.find(' ', pos);
-    if (end == std::string::npos) end = str.size();
-    const std::string word = str.substr(pos, end - pos);
-    const std::string candidate = line.empty() ? word : line + " " + word;
-    if (!line.empty() && text::Width(candidate.c_str(), scale, face) > max_w) {
-      lines.push_back(line);
-      line = word;
-    } else {
-      line = candidate;
-    }
-    pos = end + 1;
-  }
-  if (!line.empty()) lines.push_back(line);
-  return lines;
-}
 constexpr float kStatusScale = 2.0f * ui::kScale;
 constexpr float kClickSlop = 6.0f;      // px lógicos: até aqui um arrasto conta como clique
 constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ataque
@@ -1041,6 +1019,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   end_turn_->SetRect(rect);
   sound_button_.SetRect(SDL_FRect{kButtonMargin, ctx.logical_height - kButtonMargin - kSoundButtonSize,
                                   kSoundButtonSize, kSoundButtonSize});
+  hint_button_.SetRect(SDL_FRect{kButtonMargin, sound_button_.Rect().y - kButtonMargin - kSoundButtonSize,
+                                 kSoundButtonSize, kSoundButtonSize});
   started_ = false;
   player_turn_ = false;
   summoned_ = false;
@@ -1315,6 +1295,15 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
       sound_button_.Contains(event.button.x, event.button.y)) {
+    return;
+  }
+  // Botão de dicas: idem, logo acima do de som.
+  if (hint_button_.HandleEvent(event)) {
+    hints_enabled_ = !hints_enabled_;
+    return;
+  }
+  if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+      hint_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
   // "Passar turno" (visível no seu turno) fica com os eventos de mouse sobre ele.
@@ -1638,8 +1627,8 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const int attack = rules::EffectiveAttack(info, field_);
   const int defense = rules::EffectiveDefense(info, field_);
 
-  // Linhas de texto: nome; categoria e hierarquia; ATK/DEF efetivos (e base, se alterados);
-  // descrição quebrada; dono e posição.
+  // Linhas de texto: nome, ATK e DEF efetivos na fonte de título
+  // (Pirata One, grande); modo, categoria e hierarquia na de corpo (Newsreader, regular).
   struct Line {
     std::string text;
     float scale;
@@ -1651,42 +1640,30 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const SDL_Color title = colors::Get("panel.title");
   const SDL_Color label = colors::Get("panel.label");
   const SDL_Color value = colors::Get("panel.value");
-  lines.push_back({info.name, kTipScale, title, kTipGap});
-  std::string kind = info.CategoryLabel();
-  if (info.hierarchy > 0) {
-    kind += " - " + i18n::Format("battle.tooltip.hierarchy", {std::to_string(info.hierarchy)});
-    if (!info.hierarchy_name.empty()) kind += " (" + info.hierarchy_name + ")";
-  }
-  lines.push_back({kind, kTipDetailScale, label, kTipGap * 2});
   auto stat_color = [&](int effective, int base) {
     return effective > base ? colors::Get("status.buff")
            : effective < base ? colors::Get("status.nerf")
                               : value;
   };
-  std::string atk = i18n::Get("cardface.atk") + " " + std::to_string(attack);
-  if (attack != info.attack) {
-    atk += " " + i18n::Format("battle.tooltip.base", {std::to_string(info.attack)});
+  lines.push_back({info.name, kTipScale, title, kTipGap * 2});
+  lines.push_back({i18n::Get("cardface.atk") + " " + std::to_string(attack),
+                   kTipScale, stat_color(attack, info.attack), kTipGap});
+  lines.push_back({i18n::Get("cardface.def") + " " + std::to_string(defense),
+                   kTipScale, stat_color(defense, info.defense), kTipGap * 2});
+  const std::string mode =
+      i18n::Get(card->defense ? "battle.tooltip.inDefense" : "battle.tooltip.inAttack");
+  lines.push_back({i18n::Get("battle.tooltip.mode") + " " + mode, kTipDetailScale, label, kTipGap,
+                   text::Face::kBody});
+  lines.push_back({i18n::Get("battle.tooltip.category") + " " + info.CategoryLabel(),
+                   kTipDetailScale, label, kTipGap, text::Face::kBody});
+  if (info.hierarchy > 0) {
+    std::string hier = i18n::Get("battle.tooltip.hierarchy") + " ";
+    hier += info.hierarchy_name.empty() ? std::to_string(info.hierarchy)
+                                        : info.hierarchy_name + " (" +
+                                              std::to_string(info.hierarchy) + ")";
+    lines.push_back({hier, kTipDetailScale, label, 0.0f, text::Face::kBody});
   }
-  std::string def = i18n::Get("cardface.def") + " " + std::to_string(defense);
-  if (defense != info.defense) {
-    def += " " + i18n::Format("battle.tooltip.base", {std::to_string(info.defense)});
-  }
-  lines.push_back({atk, kTipScale, stat_color(attack, info.attack), kTipGap});
-  lines.push_back({def, kTipScale, stat_color(defense, info.defense), kTipGap * 2});
-  // Descrição na fonte de corpo (Newsreader); o resto do tooltip fica na de título.
-  for (const std::string& part :
-       WrapText(info.description, kTipTextW, kTipDetailScale, text::Face::kBody)) {
-    lines.push_back({part, kTipDetailScale, colors::Get("text.secondary"), kTipGap * 0.6f,
-                     text::Face::kBody});
-  }
-  if (!info.description.empty()) lines.back().gap_after = kTipGap * 2;
-  std::string owner = i18n::Get(tooltip_side_ == Side::kPlayer ? "battle.tooltip.yourCard"
-                                                                 : "battle.tooltip.opponentCard");
-  owner += " - " + i18n::Get(card->defense ? "battle.tooltip.inDefense" : "battle.tooltip.inAttack");
-  if (tooltip_side_ == Side::kPlayer && !card->defense && card->attacked) {
-    owner += " " + i18n::Get("battle.tooltip.attacked");
-  }
-  lines.push_back({owner, kTipDetailScale, label, 0.0f});
+  lines.back().gap_after = 0.0f;
 
   // Tamanho: imagem à esquerda (kTipImageH de altura), coluna de texto à direita.
   float text_w = 0.0f;
@@ -1946,7 +1923,8 @@ void BattleScene::Render(SceneContext& ctx) {
                   static_cast<float>(SDL_GetTicks()) / 1000.0f);
   }
   // Dica do que fazer agora, abaixo da situação do turno.
-  const std::string hint = Hint(ctx.logical_width, ctx.logical_height);
+  const std::string hint =
+      hints_enabled_ ? Hint(ctx.logical_width, ctx.logical_height) : std::string();
   if (!hint.empty()) {
     text::DrawCentered(r, hint.c_str(), cx, kHintY, kHintScale, colors::Get("board.hint"),
                        text::Face::kBody);
@@ -1954,6 +1932,7 @@ void BattleScene::Render(SceneContext& ctx) {
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
   sound_button_.Render(r, ctx.music != nullptr && ctx.music->Muted());
+  hint_button_.Render(r, hints_enabled_);
   RenderReveal(r, ctx.logical_width, ctx.logical_height);
   if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);

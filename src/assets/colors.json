@@ -37,7 +37,7 @@
       "loading": "#000000",
       "battle": "#1e2835",
       "fog": "#1e2835",
-      "mist": "#7394d1",
+      "mist": "#b9bec7",
       "loadingMist": "#8c99af",
       "overlay": "#04090fa0"
     },
@@ -90,10 +90,10 @@
       "status": "#ffffff",
       "hint": "#e1e9f4bf",
       "fieldArena": "#ffc94a",
-      "fieldMistGood": "#4fe06a",
-      "fieldMistEvil": "#ff3b2f",
-      "fieldFogGood": "#12301e",
-      "fieldFogEvil": "#381418"
+      "fieldMistGood": "#4f8dff",
+      "fieldMistEvil": "#a55cff",
+      "fieldFogGood": "#13254a",
+      "fieldFogEvil": "#2a1442"
     },
     "status": {
       "buff": "#8fcf86",

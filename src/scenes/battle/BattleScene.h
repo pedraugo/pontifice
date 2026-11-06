@@ -24,6 +24,7 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 #include "scripts/rules/Rules.h"
+#include "scripts/hintbutton/HintButton.h"
 #include "scripts/soundbutton/SoundButton.h"
 #include "scripts/shield/Shield.h"
 #include "scripts/sword/Sword.h"
@@ -222,6 +223,8 @@ class BattleScene : public Scene {
   SDL_Texture* HudArt(const CardInfo& card, bool large = false);
   std::unique_ptr<ButtonAction> end_turn_;
   SoundButton sound_button_;  // canto inferior esquerdo: liga/desliga a música
+  HintButton hint_button_;    // acima do botão de som: liga/desliga a dica do topo
+  bool hints_enabled_ = true;
   // Pausa (Esc): a batalha congela, a trilha troca para a do menu e a janela pergunta se
   // abandona. Não (ou Esc) retoma a batalha e a música dela de onde parou; Sim volta ao menu.
   ConfirmDialog abandon_dialog_;
@@ -268,7 +271,7 @@ class BattleScene : public Scene {
   SDL_FColor fog_color_{};
   SDL_FColor mist_color_{};
   // Carta de campo ativa (ou selecionada na mão): arena dourada, névoa de chão e fundo do
-  // ambiente na cor da categoria que ela favorece (verde benévola, vermelha maligna).
+  // ambiente na cor da categoria que ela favorece (azul benévola, roxa maligna).
   // field_glow_ anima de 0 (normal) a 1.
   float field_glow_ = 0.0f;
   SDL_FColor field_mist_color_{};

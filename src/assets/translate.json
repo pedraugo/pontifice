@@ -249,40 +249,30 @@
       "en": "When you're done, click {0}",
       "es": "Cuando termines, pulsa {0}"
     },
+    "battle.tooltip.mode": {
+      "pt": "Modo",
+      "en": "Mode",
+      "es": "Modo"
+    },
+    "battle.tooltip.category": {
+      "pt": "Categoria",
+      "en": "Category",
+      "es": "Categoría"
+    },
     "battle.tooltip.hierarchy": {
-      "pt": "Hierarquia {0}",
-      "en": "Hierarchy {0}",
-      "es": "Jerarquía {0}"
-    },
-    "battle.tooltip.base": {
-      "pt": "(base {0})",
-      "en": "(base {0})",
-      "es": "(base {0})"
-    },
-    "battle.tooltip.yourCard": {
-      "pt": "Sua carta",
-      "en": "Your card",
-      "es": "Tu carta"
-    },
-    "battle.tooltip.opponentCard": {
-      "pt": "Carta do oponente",
-      "en": "Opponent's card",
-      "es": "Carta del oponente"
+      "pt": "Hierarquia",
+      "en": "Hierarchy",
+      "es": "Jerarquía"
     },
     "battle.tooltip.inDefense": {
-      "pt": "em defesa",
-      "en": "in defense",
-      "es": "en defensa"
+      "pt": "Defesa",
+      "en": "Defense",
+      "es": "Defensa"
     },
     "battle.tooltip.inAttack": {
-      "pt": "em ataque",
-      "en": "in attack",
-      "es": "en ataque"
-    },
-    "battle.tooltip.attacked": {
-      "pt": "(já atacou)",
-      "en": "(already attacked)",
-      "es": "(ya atacó)"
+      "pt": "Ataque",
+      "en": "Attack",
+      "es": "Ataque"
     },
     "battle.abandon.question": {
       "pt": "Deseja realmente abandonar essa batalha?",
