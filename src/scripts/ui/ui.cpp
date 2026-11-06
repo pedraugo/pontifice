@@ -12,4 +12,8 @@ float TextScale(const std::string& path, float fallback) {
   return config::Float("text", path, fallback) * kScale;
 }
 
+float Number(const std::string& path, float fallback) {
+  return config::Float("ui", path, fallback);
+}
+
 }

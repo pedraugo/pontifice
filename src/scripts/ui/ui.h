@@ -22,5 +22,7 @@ constexpr float SnapUp(float v) {
 float Cells(const std::string& path, float fallback_cells);
 // Text size from assets/text.json, in debug font units, times kScale.
 float TextScale(const std::string& path, float fallback);
+// Plain number from assets/ui.json (fractions, counts).
+float Number(const std::string& path, float fallback);
 
 }

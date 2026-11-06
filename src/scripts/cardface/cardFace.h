@@ -23,4 +23,7 @@ Image Compose(const Image& frame, const CardInfo& card, const Image* art = nullp
 // Face for the opponent's hand: every text is "?" so the real card is not revealed.
 Image ComposeHidden(const Image& frame);
 
+// Normal map sprite: transparent corners become a flat normal with full alpha, then downscaled.
+Image NormalMap(Image image, int downscale);
+
 }

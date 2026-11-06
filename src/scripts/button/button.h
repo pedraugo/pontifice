@@ -23,6 +23,8 @@ class Button {
   void SetLabel(std::string label) { label_ = std::move(label); }
   void SetFocused(bool focused) { focused_ = focused; }
   void SetDanger(bool danger) { danger_ = danger; }  // red plate for destructive actions
+  void SetAlpha(float alpha) { alpha_ = alpha; }  // 0..1 opacity of plate and label (disabled look)
+  float Alpha() const { return alpha_; }
   float LabelWidth() const;
 
   bool HandleEvent(const SDL_Event& event);  // true on press and release inside
@@ -47,4 +49,5 @@ class Button {
   bool pressed_ = false;
   bool focused_ = false;
   bool danger_ = false;
+  float alpha_ = 1.0f;
 };

@@ -31,6 +31,41 @@
       "en": "Play",
       "es": "Jugar"
     },
+    "menu.grimoire": {
+      "pt": "Grimório",
+      "en": "Grimoire",
+      "es": "Grimorio"
+    },
+    "grimoire.title": {
+      "pt": "Grimório",
+      "en": "Grimoire",
+      "es": "Grimorio"
+    },
+    "grimoire.back": {
+      "pt": "Voltar",
+      "en": "Back",
+      "es": "Atrás"
+    },
+    "grimoire.forward": {
+      "pt": "Avançar",
+      "en": "Forward",
+      "es": "Avanzar"
+    },
+    "grimoire.exit": {
+      "pt": "Sair",
+      "en": "Exit",
+      "es": "Salir"
+    },
+    "grimoire.page": {
+      "pt": "Página {0} de {1}",
+      "en": "Page {0} of {1}",
+      "es": "Página {0} de {1}"
+    },
+    "grimoire.empty": {
+      "pt": "Nenhuma categoria selecionada",
+      "en": "No category selected",
+      "es": "Ninguna categoría seleccionada"
+    },
     "menu.exit": {
       "pt": "Sair",
       "en": "Exit",

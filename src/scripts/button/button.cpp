@@ -80,7 +80,8 @@ void Button::Render(SDL_Renderer* r) const {
   const frame::State state = pressed_                 ? frame::State::kPressed
                              : (hovered_ || focused_) ? frame::State::kHighlight
                                                       : frame::State::kNormal;
-  frame::Draw(r, rect_, danger_ ? frame::Kind::kButtonDanger : frame::Kind::kButton, state);
+  frame::Draw(r, rect_, danger_ ? frame::Kind::kButtonDanger : frame::Kind::kButton, state,
+              alpha_);
   if (focused_) {
     // Keyboard focus adds a thin stroke around the fill.
     StrokeRect(r, frame::Inner(rect_), colors::Get("button.focusBorder"), kBorderThin);
@@ -91,6 +92,8 @@ void Button::Render(SDL_Renderer* r) const {
 }
 
 void Button::RenderContent(SDL_Renderer* r) const {
+  SDL_Color ink = colors::Get("button.text");
+  ink.a = static_cast<Uint8>(ink.a * alpha_);
   text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
-                     LabelScale(), colors::Get("button.text"));
+                     LabelScale(), ink);
 }

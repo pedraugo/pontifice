@@ -32,6 +32,8 @@ src/
       loadingScene.*  tela de loading (docs/loading.md): tocha 3D cintilando no preto, pré-carrega a próxima cena
     battle/
       battleScene.*   batalha: render 3D e mão de cartas
+    grimoire/
+      grimoireScene.* grimório (docs/grimorio.md): galeria de cartas com filtro por categoria e páginas 4x2
   scripts/            componentes reutilizáveis, uma pasta por componente
     ui/
       ui.h            escala de texto (ui::Px) e grade de 16 px da interface (ui::Grid, ui::SnapUp)
@@ -285,7 +287,7 @@ O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop princip
 - `Scene`: interface com `Preload` (carga pesada, inclusive envio à GPU, chamada pela tela de loading em outra thread), `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
 - `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_out_seconds` escurece a cena atual até o preto antes da troca (sem eventos nesse tempo) e `fade_in_seconds` faz a nova cena entrar do preto.
 - `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização. Desenha o véu do fade in por cima da cena nova. `Create` é a fábrica de cenas.
-- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto a tocha cintila e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu.
+- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto a tocha cintila e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu. O item Grimório usa a mesma tela de loading com `loading_target = kGrimoire` para compor as frentes das cartas (`GrimoireScene`, docs/grimorio.md); Sair ou `Esc` voltam ao menu.
 
 ## Abertura da batalha
 
@@ -342,9 +344,9 @@ Iluminação, névoa/nuvens, sombras, medidas dos botões, medidas da interface 
 | `light.json` | `light` | Cor, halo e intensidade das tochas (`torch`); luz direcional, ambiente e vinheta da arena (`battle.arena`) e da mão (`battle.hand`); ambiente do loading (`loading`) |
 | `fog.json` | `fog` | Névoa por distância e de altura (`battle.fog`); camadas de névoa de chão (`battle.mist`); manto da abertura (`battle.introMist`) |
 | `shadow.json` | `shadow` | Tamanho do mapa (`mapSize`), `bias` e força, fov, near/far e alvo da câmera de sombra da batalha (`battle`) |
-| `button.json` | `button` | Medidas dos botões em células da grade de 16 px (`button::Cells`): botões de ícone som/dica (`icon.size`, `icon.margin`, `icon.padding` em fração do lado), bandeira dos botões de idioma (`flag`), linhas do menu e da escolha de idioma (`menu`, `language`), Passar turno (`battle.endTurn`: `width`, `height`, `top`) e Não/Sim do diálogo (`dialog`) |
-| `ui.json` | `ui` | Medidas da interface em células de 16 px (`ui::Cells`): HUD (`hud`: `margin`, `padding`, painéis `life` e `field`, painel `piles` de monte/cemitério com `height`, `padding`, `counterGap`, `gap`, janela de resultado `result` com `width`, `padding`, `titleGap`, `rowGap`, `columnWidth`), janela do diálogo (`dialog`: `minWidth`, `height`, `padding`, `titleGap` entre título e pergunta), menu (`menu.titleCenterY`, `menu.footerBottom`) e batalha (`battle`: `statusY`, `hintY`, tooltip `tip`, revelação `reveal`) |
-| `text.json` | `text` | Tamanhos de texto na escala da fonte de depuração (`ui::TextScale`, multiplicado por `ui::kScale` = 1,5): rótulo dos botões (`button.label`), título e rodapé do menu (`menu`), loading (`loading.text`), título e pergunta do diálogo (`dialog.title` em PirataOne, `dialog.question` em Newsreader), HUD (`hud`: `line`, `detail`, `result`, `popup`) e batalha (`battle`: `status`, `hint`, `tip`, `tipDetail`, `revealCaption`, `revealDetail`) |
+| `button.json` | `button` | Medidas dos botões em células da grade de 16 px (`button::Cells`): botões de ícone som/dica (`icon.size`, `icon.margin`, `icon.padding` em fração do lado), bandeira dos botões de idioma (`flag`), linhas do menu e da escolha de idioma (`menu`, `language`), Passar turno (`battle.endTurn`: `width`, `height`, `top`), Não/Sim do diálogo (`dialog`) e filtros, Voltar/Avançar e Sair do grimório (`grimoire`) |
+| `ui.json` | `ui` | Medidas da interface em células de 16 px (`ui::Cells`): HUD (`hud`: `margin`, `padding`, painéis `life` e `field`, painel `piles` de monte/cemitério com `height`, `padding`, `counterGap`, `gap`, janela de resultado `result` com `width`, `padding`, `titleGap`, `rowGap`, `columnWidth`), janela do diálogo (`dialog`: `minWidth`, `height`, `padding`, `titleGap` entre título e pergunta), menu (`menu.titleCenterY`, `menu.footerBottom`), grimório (`grimoire`: título, filtros, grade, navegação) e batalha (`battle`: `statusY`, `hintY`, tooltip `tip`, revelação `reveal`) |
+| `text.json` | `text` | Tamanhos de texto na escala da fonte de depuração (`ui::TextScale`, multiplicado por `ui::kScale` = 1,5): rótulo dos botões (`button.label`), título e rodapé do menu (`menu`), grimório (`grimoire.title`, `grimoire.page`), loading (`loading.text`), título e pergunta do diálogo (`dialog.title` em PirataOne, `dialog.question` em Newsreader), HUD (`hud`: `line`, `detail`, `result`, `popup`) e batalha (`battle`: `status`, `hint`, `tip`, `tipDetail`, `revealCaption`, `revealDetail`) |
 
 - Cores aceitam `#rrggbb`, papel de `colors.json` (`"background.fog"`) ou `[r, g, b]` em 0..1.
 - Valor ausente ou de tipo errado usa o padrão do código (os mesmos números de antes dos arquivos) e avisa no log uma vez.
@@ -375,7 +377,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 
 | Variável | Efeito |
 |---|---|
-| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha); `=menu` pula a escolha de idioma; `=language` força a cena de idioma |
+| `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha); `=menu` pula a escolha de idioma; `=language` força a cena de idioma; `=grimoire` abre o grimório |
 | `PONTIFICE_LANG=en` | Define o idioma (`en`, `es`, `pt`) sem passar pela cena de idioma e abre no menu |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia; `=1920x1080` (ou outro LxA) abre nesse tamanho, útil para screenshots em resolução cheia |

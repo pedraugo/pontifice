@@ -4,5 +4,6 @@
   "menu": {"rowHeight": 4, "rowGap": 2},
   "language": {"rowHeight": 4, "rowGap": 2},
   "battle": {"endTurn": {"width": 21, "height": 3.5, "top": 6}},
-  "dialog": {"width": 14, "height": 3.5}
+  "dialog": {"width": 14, "height": 3.5},
+  "grimoire": {"filterHeight": 3, "filterPadding": 2, "navWidth": 12, "navHeight": 3.5, "exitWidth": 10, "exitHeight": 3.5}
 }

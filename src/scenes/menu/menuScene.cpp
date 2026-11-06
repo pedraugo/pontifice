@@ -39,6 +39,12 @@ MenuScene::MenuScene() {
       });
   difficulty_button_ = difficulty.get();
   buttons_.push_back(std::move(difficulty));
+  buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.grimoire"), [](SceneContext& ctx) {
+    ctx.loading_target = SceneId::kGrimoire;
+    ctx.fade_out_seconds = kMenuFadeOut;
+    ctx.fade_in_seconds = kLoadingFadeIn;
+    ctx.next_scene = SceneId::kLoading;
+  }));
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.exit"),
                                                   [](SceneContext& ctx) { ctx.quit = true; }));
 }

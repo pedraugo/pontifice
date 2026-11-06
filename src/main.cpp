@@ -258,6 +258,7 @@ int main(int /*argc*/, char** /*argv*/) {
   if (env_scene != nullptr && std::strcmp(env_scene, "menu") == 0) first = SceneId::kMenu;
   if (env_scene != nullptr && std::strcmp(env_scene, "battle") == 0) first = SceneId::kBattle;
   if (env_scene != nullptr && std::strcmp(env_scene, "loading") == 0) first = SceneId::kLoading;
+  if (env_scene != nullptr && std::strcmp(env_scene, "grimoire") == 0) first = SceneId::kGrimoire;
   scenes.SwitchTo(first);
   int frame = 0;
 

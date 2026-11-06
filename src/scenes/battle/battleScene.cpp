@@ -114,20 +114,6 @@ int SfxTier(int value) {
 constexpr float kShakeSeconds = 0.45f;
 constexpr float kShakeAmplitude = 0.16f;
 
-Image CardNormalMap(Image image, int downscale) {
-  if (!image.Valid()) return image;
-  // Transparent corners become a flat normal with full alpha.
-  constexpr int kFlat[3] = {128, 128, 255};
-  for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) {
-    const int a = image.rgba[i + 3];
-    if (a == 255) continue;
-    for (int c = 0; c < 3; ++c) {
-      image.rgba[i + c] = static_cast<uint8_t>((image.rgba[i + c] * a + kFlat[c] * (255 - a)) / 255);
-    }
-    image.rgba[i + 3] = 255;
-  }
-  return downscale > 1 ? image.Downscaled(downscale) : image;
-}
 
 void DrawGlowRing(SDL_Renderer* r, const SDL_FRect& inner, float margin, const SDL_FColor c[4]) {
   const SDL_FPoint in[4] = {{inner.x, inner.y},
@@ -311,7 +297,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                 {0, 1, 2, 0, 2, 3});
   back_ = UploadSprite(Image::LoadFile(base + "sprites/cardBack.webp"));
   front_normal_ = UploadSprite(
-      CardNormalMap(Image::LoadFile(base + "sprites/cardFrontNormalMap.webp"), 2));
+      cardface::NormalMap(Image::LoadFile(base + "sprites/cardFrontNormalMap.webp"), 2));
   back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/cardBackNormalMap.webp"));
   for (Board* board : {&board_, &opponent_board_}) {
     board->GetLayout().arena_scale = kArenaScale;

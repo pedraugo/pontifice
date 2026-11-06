@@ -88,6 +88,7 @@ add_executable(pontifice
   src/scenes/menu/menuScene.cpp
   src/scenes/loading/loadingScene.cpp
   src/scenes/battle/battleScene.cpp
+  src/scenes/grimoire/grimoireScene.cpp
   src/scripts/text/text.cpp
   src/scripts/ui/ui.cpp
   src/scripts/button/button.cpp

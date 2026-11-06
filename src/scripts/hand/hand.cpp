@@ -143,15 +143,36 @@ void Hand::MouseDown(math::Vec2 mouse, bool left, int clicks) {
   }
   press_card_ = PickCard(mouse, last_view_proj_, last_width_, last_height_);
   if (press_card_ >= 0 && clicks >= 2) {
-    inspecting_ = press_card_;
-    inspect_card_ = press_card_;
-    inspect_yaw_ = 0.0f;
-    inspect_pitch_ = 0.0f;
-    yaw_target_ = 0.0f;
-    zoom_ = zoom_shown_ = layout_.zoom_start;
+    Inspect(static_cast<size_t>(press_card_));
     press_card_ = -1;
     press_consumed_ = true;
   }
+}
+
+void Hand::SetInspectOrigin(const SDL_FRect& screen_rect, int width, int height) {
+  if (model_ == nullptr || width <= 0 || height <= 0) return;
+  // Screen rectangle mapped onto the plane z = inspect_z seen by the hand camera.
+  const float visible_h = 2.0f * (layout_.camera_z - layout_.inspect_z) *
+                          std::tan(layout_.fov_y * 0.5f);
+  const float aspect = static_cast<float>(width) / static_cast<float>(height);
+  const float cx = screen_rect.x + screen_rect.w / 2.0f;
+  const float cy = screen_rect.y + screen_rect.h / 2.0f;
+  origin_pos_ = {(cx / static_cast<float>(width) - 0.5f) * visible_h * aspect,
+                 (0.5f - cy / static_cast<float>(height)) * visible_h, layout_.inspect_z};
+  const float card_h = model_->BoundsMax().y - model_->BoundsMin().y;
+  origin_scale_ = (screen_rect.h / static_cast<float>(height)) * visible_h /
+                  std::max(card_h, 1e-3f);
+  has_origin_ = true;
+}
+
+void Hand::Inspect(size_t index) {
+  if (index >= cards_.size()) return;
+  inspecting_ = static_cast<int>(index);
+  inspect_card_ = inspecting_;
+  inspect_yaw_ = 0.0f;
+  inspect_pitch_ = 0.0f;
+  yaw_target_ = 0.0f;
+  zoom_ = zoom_shown_ = layout_.zoom_start;
 }
 
 void Hand::MouseUp(math::Vec2 mouse, int clicks) {
@@ -300,10 +321,12 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
       // Rotation scaled by progress so the card does not spin while still in the dock.
       const float t = inspect_t_ * inspect_t_ * (3.0f - 2.0f * inspect_t_);
       const math::Mat4& rest = card.pick;
-      const math::Vec3 from{rest.m[3][0], rest.m[3][1], rest.m[3][2]};
+      const math::Vec3 from = has_origin_ ? origin_pos_
+                                          : math::Vec3{rest.m[3][0], rest.m[3][1], rest.m[3][2]};
       const math::Vec3 to{0.0f, layout_.inspect_y, layout_.inspect_z};
       const math::Vec3 pos = from + (to - from) * t;
-      const float rest_scale = math::Lerp(layout_.scale, layout_.hover_scale, card.hover);
+      const float rest_scale =
+          has_origin_ ? origin_scale_ : math::Lerp(layout_.scale, layout_.hover_scale, card.hover);
       const float visible_h = 2.0f * (layout_.camera_z - layout_.inspect_z) *
                               std::tan(layout_.fov_y * 0.5f);
       const float card_h = model_->BoundsMax().y - model_->BoundsMin().y;

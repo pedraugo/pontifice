@@ -229,4 +229,19 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
 }
 }
 
+Image NormalMap(Image image, int downscale) {
+  if (!image.Valid()) return image;
+  // Transparent corners become a flat normal with full alpha.
+  constexpr int kFlat[3] = {128, 128, 255};
+  for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) {
+    const int a = image.rgba[i + 3];
+    if (a == 255) continue;
+    for (int c = 0; c < 3; ++c) {
+      image.rgba[i + c] = static_cast<uint8_t>((image.rgba[i + c] * a + kFlat[c] * (255 - a)) / 255);
+    }
+    image.rgba[i + 3] = 255;
+  }
+  return downscale > 1 ? image.Downscaled(downscale) : image;
+}
+
 }

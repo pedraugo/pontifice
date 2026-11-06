@@ -9,6 +9,20 @@
   },
   "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5},
   "menu": {"titleCenterY": 12, "footerBottom": 3},
+  "grimoire": {
+    "titleCenterY": 4,
+    "filterY": 8,
+    "filterGap": 1,
+    "gridTop": 13,
+    "gridBottom": 54,
+    "cardGap": 1,
+    "navY": 56,
+    "margin": 4,
+    "exitMargin": 1,
+    "hoverGrow": 0.06,
+    "slideSeconds": 0.8,
+    "slideShrink": 0.25
+  },
   "battle": {
     "statusY": 2,
     "hintY": 4,

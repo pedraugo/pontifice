@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "scenes/battle/battleScene.h"
+#include "scenes/grimoire/grimoireScene.h"
 #include "scenes/language/languageScene.h"
 #include "scenes/loading/loadingScene.h"
 #include "scenes/menu/menuScene.h"
@@ -80,6 +81,8 @@ std::unique_ptr<Scene> SceneManager::Create(SceneId id) {
       return std::make_unique<LoadingScene>();
     case SceneId::kBattle:
       return std::make_unique<BattleScene>();
+    case SceneId::kGrimoire:
+      return std::make_unique<GrimoireScene>();
   }
   return std::make_unique<MenuScene>();
 }

@@ -7,7 +7,7 @@
 
 class Music;
 
-enum class SceneId { kLanguage, kMenu, kLoading, kBattle };
+enum class SceneId { kLanguage, kMenu, kLoading, kBattle, kGrimoire };
 constexpr int kDefaultDifficulty = 1;
 
 class Scene;

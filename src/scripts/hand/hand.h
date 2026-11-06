@@ -85,6 +85,7 @@ class Hand {
     back_normal_ = back;
   }
   Layout& GetLayout() { return layout_; }
+  const Layout& GetLayout() const { return layout_; }
 
   void Add(SDL_GPUTexture* front, bool foil = false, const CardInfo* info = nullptr);
   void SetAway(bool away) { away_ = away; }
@@ -95,7 +96,10 @@ class Hand {
   void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
   // Seconds until the next Add starts its deal animation.
   float DealDelay() const { return pending_delay_; }
-  void Clear() { cards_.clear(); }
+  void Clear() {
+    cards_.clear();
+    has_origin_ = false;
+  }
   size_t Size() const { return cards_.size(); }
 
   void Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int width, int height);
@@ -106,7 +110,14 @@ class Hand {
 
   int Hovered() const { return hovered_; }
   bool Inspecting() const { return inspecting_ >= 0; }
+  void Inspect(size_t index);  // same as a double-click on the card
+  // Inspect starts from (and returns to) this screen rectangle instead of the dock slot,
+  // placed on the inspect plane of the hand camera. Cleared by Clear().
+  void SetInspectOrigin(const SDL_FRect& screen_rect, int width, int height);
   void StopInspect() { inspecting_ = -1; }
+  bool InspectShown() const { return inspect_card_ >= 0; }  // still on screen, even leaving
+  float InspectProgress() const { return inspect_t_; }  // 0 = in the dock, 1 = centered
+  void SetFront(size_t index, SDL_GPUTexture* front) { cards_[index].front = front; }
   void Flip();
   void Wheel(float dy);
   const Card& CardAt(size_t i) const { return cards_[i]; }
@@ -154,6 +165,9 @@ class Hand {
   float yaw_target_ = 0.0f;
   float zoom_ = 0.8f;
   float zoom_shown_ = 0.8f;
+  bool has_origin_ = false;
+  math::Vec3 origin_pos_{0, 0, 0};
+  float origin_scale_ = 1.0f;
   bool rotating_ = false;
   math::Mat4 last_view_proj_;  // last frame, for PickCard in MouseDown
   int last_width_ = 1;
