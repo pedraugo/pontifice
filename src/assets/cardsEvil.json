@@ -1,0 +1,384 @@
+[
+  {
+    "code": "E101",
+    "name": "Satan",
+    "description": "The adversary of God",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Sovereigns",
+    "image": "E101",
+    "imageFile": "e101.webp",
+    "imageUrl": "sprites/evil/e101.webp",
+    "attributes": {
+      "attack": 2950,
+      "defense": 2100,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E102",
+    "name": "Lucifer",
+    "description": "The evil bearer of light",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Sovereigns",
+    "image": "E102",
+    "imageFile": "e102.webp",
+    "imageUrl": "sprites/evil/e102.webp",
+    "attributes": {
+      "attack": 2850,
+      "defense": 2100,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E103",
+    "name": "Fallen Angel",
+    "description": "The renegade",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 1,
+    "hierarchyName": "Sovereigns",
+    "image": "E103",
+    "imageFile": "e103.webp",
+    "imageUrl": "sprites/evil/e103.webp",
+    "attributes": {
+      "attack": 2750,
+      "defense": 2000,
+      "odds": 1,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "E201",
+    "name": "Belial",
+    "description": "Personification of wickedness",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Beasts",
+    "image": "E201",
+    "imageFile": "e201.webp",
+    "imageUrl": "sprites/evil/e201.webp",
+    "attributes": {
+      "attack": 1950,
+      "defense": 1500,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E202",
+    "name": "Beelzebub",
+    "description": "Prince of demons",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Beasts",
+    "image": "E202",
+    "imageFile": "e202.webp",
+    "imageUrl": "sprites/evil/e202.webp",
+    "attributes": {
+      "attack": 1850,
+      "defense": 1400,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E203",
+    "name": "Baal",
+    "description": "False god once worshipped, symbol of idolatry",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Beasts",
+    "image": "E203",
+    "imageFile": "e203.webp",
+    "imageUrl": "sprites/evil/e203.webp",
+    "attributes": {
+      "attack": 1750,
+      "defense": 1300,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+
+
+  {
+    "code": "E301",
+    "name": "Mephisto",
+    "description": "Cunning one who corrupts souls and pacts",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E301",
+    "imageFile": "e301.webp",
+    "imageUrl": "sprites/evil/e301.webp",
+    "attributes": {
+      "attack": 950,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E302",
+    "name": "Asmodeus",
+    "description": "Associated with lust and destruction",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E302",
+    "imageFile": "e302.webp",
+    "imageUrl": "sprites/evil/e302.webp",
+    "attributes": {
+      "attack": 850,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E303",
+    "name": "Abaddon",
+    "description": "Angel of the abyss, lord of destruction",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E303",
+    "imageFile": "e303.webp",
+    "imageUrl": "sprites/evil/e303.webp",
+    "attributes": {
+      "attack": 750,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E304",
+    "name": "Leviathan",
+    "description": "Colossal sea monster that embodies chaos",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E304",
+    "imageFile": "e304.webp",
+    "imageUrl": "sprites/evil/e304.webp",
+    "attributes": {
+      "attack": 650,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E305",
+    "name": "Lilith",
+    "description": "Night spirit associated with seduction and darkness",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E305",
+    "imageFile": "e305.webp",
+    "imageUrl": "sprites/evil/e305.webp",
+    "attributes": {
+      "attack": 550,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "E401",
+    "name": "Devil",
+    "description": "Evil spirit that opposes the divine",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E401",
+    "imageFile": "e401.webp",
+    "imageUrl": "sprites/evil/e401.webp",
+    "attributes": {
+      "attack": 450,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E402",
+    "name": "Demon",
+    "description": "Unclean spirit that corrupts mankind",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E402",
+    "imageFile": "e402.webp",
+    "imageUrl": "sprites/evil/e402.webp",
+    "attributes": {
+      "attack": 450,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E403",
+    "name": "Death",
+    "description": "Reaper of lives and symbol of the end",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E403",
+    "imageFile": "e403.webp",
+    "imageUrl": "sprites/evil/e403.webp",
+    "attributes": {
+      "attack": 450,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E404",
+    "name": "Cain",
+    "description": "First murderer, marked by envy and violence",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E404",
+    "imageFile": "e404.webp",
+    "imageUrl": "sprites/evil/e404.webp",
+    "attributes": {
+      "attack": 450,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E405",
+    "name": "Judas Iscariot",
+    "description": "Disciple who betrayed Jesus for money",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E405",
+    "imageFile": "e405.webp",
+    "imageUrl": "sprites/evil/e405.webp",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E406",
+    "name": "Herod",
+    "description": "Cruel king who ordered the death of the innocents",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E406",
+    "imageFile": "e406.webp",
+    "imageUrl": "sprites/evil/e406.webp",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E407",
+    "name": "Goliath",
+    "description": "Giant who defied Israel and mocked God",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E407",
+    "imageFile": "e407.webp",
+    "imageUrl": "sprites/evil/e407.webp",
+    "attributes": {
+      "attack": 350,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E408",
+    "name": "Serpent",
+    "description": "Symbol of betrayal and human corruption",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E408",
+    "imageFile": "e408.webp",
+    "imageUrl": "sprites/evil/e408.webp",
+    "attributes": {
+      "attack": 250,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E409",
+    "name": "False Prophet",
+    "description": "Deceiver who leads mankind into idolatry",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E409",
+    "imageFile": "e409.webp",
+    "imageUrl": "sprites/evil/e409.webp",
+    "attributes": {
+      "attack": 250,
+      "defense": 50,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E410",
+    "name": "Skull",
+    "description": "Symbol of death and decay",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E410",
+    "imageFile": "e410.webp",
+    "imageUrl": "sprites/evil/e410.webp",
+    "attributes": {
+      "attack": 250,
+      "defense": 50,
+      "odds": 71,
+      "combinable": false
+    }
+  }
+]

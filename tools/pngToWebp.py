@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Converte os PNG de uma pasta para WebP sem perda, no mesmo lugar, e apaga cada PNG convertido.
+"""Converts the PNGs in a directory to lossless WebP, in place, and deletes each converted PNG.
 
-Usa o `cwebp` (brew install webp) em modo lossless com `-exact` (preserva o RGB dos pixels
-transparentes, importante nos normal maps) e esforço máximo de compressão (`-z 9`): os pixels
-decodificados saem idênticos ao PNG. As conversões rodam em paralelo. O PNG só é apagado depois
-de o .webp ser gravado com sucesso; se a conversão falhar, o PNG fica.
+Uses `cwebp` (brew install webp) in lossless mode with `-exact` (preserves the RGB of transparent
+pixels, important for normal maps) and maximum compression effort (`-z 9`): the decoded pixels
+come out identical to the PNG. Conversions run in parallel. The PNG is only deleted after the
+.webp is written successfully; if the conversion fails, the PNG stays.
 
-Uso: python3 tools/pngToWebp.py src/sprites [--no-recursive] [--keep] [-j 8]
+Usage: python3 tools/pngToWebp.py src/sprites [--no-recursive] [--keep] [-j 8]
 """
 
 import argparse
@@ -27,7 +27,7 @@ def convert(png: pathlib.Path, keep: bool) -> tuple[pathlib.Path, bool, str]:
     if result.returncode != 0 or not webp.is_file() or webp.stat().st_size == 0:
         webp.unlink(missing_ok=True)
         detail = result.stderr.decode(errors="replace").strip()
-        return png, False, detail or f"cwebp saiu com {result.returncode}"
+        return png, False, detail or f"cwebp exited with {result.returncode}"
     before, after = png.stat().st_size, webp.stat().st_size
     if not keep:
         png.unlink()
@@ -36,21 +36,21 @@ def convert(png: pathlib.Path, keep: bool) -> tuple[pathlib.Path, bool, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("directory", type=pathlib.Path, help="pasta com os arquivos .png")
-    parser.add_argument("--no-recursive", action="store_true", help="nao entra nas subpastas")
-    parser.add_argument("--keep", action="store_true", help="nao apaga os PNG convertidos")
+    parser.add_argument("directory", type=pathlib.Path, help="directory with the .png files")
+    parser.add_argument("--no-recursive", action="store_true", help="do not descend into subdirectories")
+    parser.add_argument("--keep", action="store_true", help="do not delete the converted PNGs")
     parser.add_argument("-j", "--jobs", type=int, default=os.cpu_count() or 1,
-                        help="conversoes em paralelo (padrao: numero de CPUs)")
+                        help="parallel conversions (default: number of CPUs)")
     args = parser.parse_args()
 
     if shutil.which("cwebp") is None:
-        sys.exit("cwebp nao encontrado: brew install webp")
+        sys.exit("cwebp not found: brew install webp")
     if not args.directory.is_dir():
-        sys.exit(f"{args.directory} nao e uma pasta")
+        sys.exit(f"{args.directory} is not a directory")
     pattern = "*.png" if args.no_recursive else "**/*.png"
     pngs = sorted(p for p in args.directory.glob(pattern) if p.is_file())
     if not pngs:
-        sys.exit(f"nenhum .png em {args.directory}")
+        sys.exit(f"no .png in {args.directory}")
 
     total_before = sum(p.stat().st_size for p in pngs)
     done = 0
@@ -62,8 +62,8 @@ def main() -> None:
                 total_after += png.with_suffix(".webp").stat().st_size
                 print(f"{png.name}: {detail}")
             else:
-                print(f"FALHOU {png}: {detail}", file=sys.stderr)
-    print(f"{done}/{len(pngs)} convertidos: {total_before / 1048576:.1f} MB -> "
+                print(f"FAILED {png}: {detail}", file=sys.stderr)
+    print(f"{done}/{len(pngs)} converted: {total_before / 1048576:.1f} MB -> "
           f"{total_after / 1048576:.1f} MB")
     if done != len(pngs):
         sys.exit(1)

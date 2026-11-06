@@ -114,11 +114,11 @@ Apague `build/` e rode `./build.sh` de novo.
 
 ## Documentação
 
-- [Regras do jogo](docs/regra_jogo.md): objetivo, componentes, fluxo da partida, fim da batalha e regras gerais.
+- [Regras do jogo](docs/regraJogo.md): objetivo, componentes, fluxo da partida, fim da batalha e regras gerais.
 - [Cartas](docs/cartas.md): categorias, hierarquias e cartas de campo.
 - [Campo](docs/campo.md): slots, layout 5x2 e regras de posicionamento.
 - [Batalha](docs/batalha.md): fases do turno, invocação, posições, ataque e cálculo de dano.
 - [HUD](docs/hud.md): carta de campo ativa e pontos de vida na tela.
 - [Idioma](docs/idioma.md): primeira cena, escolha entre inglês, espanhol e português; textos em `assets/translate.json`.
 - [Menu](docs/menu.md): botões Jogar, Nível e Sair.
-- [Detalhes técnicos](docs/detalhes_tecnicos.md): stack, estrutura do projeto, formato das cartas e renderização 3D.
+- [Detalhes técnicos](docs/detalhesTecnicos.md): stack, estrutura do projeto, formato das cartas e renderização 3D.

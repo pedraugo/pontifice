@@ -8,14 +8,15 @@
 #include <utility>
 #include <vector>
 
-#include "scenes/Scene.h"
-#include "scenes/SceneManager.h"
-#include "scripts/colors/Colors.h"
-#include "scripts/config/Config.h"
-#include "scripts/image/Image.h"
-#include "scripts/i18n/I18n.h"
-#include "scripts/audios/Music.h"
-#include "scripts/text/Text.h"
+#include "scenes/scene.h"
+#include "scenes/sceneManager.h"
+#include "scripts/colors/colors.h"
+#include "scripts/config/config.h"
+#include "scripts/image/image.h"
+#include "scripts/i18n/i18n.h"
+#include "scripts/audios/music.h"
+#include "scripts/text/text.h"
+#include "scripts/log/log.h"
 
 namespace {
 
@@ -35,7 +36,7 @@ void SetWindowIcon(SDL_Window* window) {
   const std::string path = std::string(base != nullptr ? base : "./") + "assets/icon.png";
   const Image image = Image::LoadFile(path);
   if (!image.Valid()) {
-    std::fprintf(stderr, "Icone nao carregado: %s\n", path.c_str());
+    LOG("Icon not loaded: %s", path.c_str());
     return;
   }
   SDL_Surface* icon = SDL_CreateSurfaceFrom(image.width, image.height, SDL_PIXELFORMAT_RGBA32,
@@ -54,14 +55,14 @@ void SetWindowIcon(SDL_Window* window) {
   }
 #endif
   if (!SDL_SetWindowIcon(window, icon)) {
-    std::fprintf(stderr, "SDL_SetWindowIcon: %s\n", SDL_GetError());
+    LOG("SDL_SetWindowIcon: %s", SDL_GetError());
   }
   SDL_DestroySurface(icon);
 }
 
 bool Init(App& app) {
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-    std::fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
+    LOG("SDL_Init: %s", SDL_GetError());
     return false;
   }
 
@@ -85,7 +86,7 @@ bool Init(App& app) {
   app.window = SDL_CreateWindow("PONTIFICE", windowed ? window_w : kLogicalWidth,
                                 windowed ? window_h : kLogicalHeight, flags);
   if (app.window == nullptr) {
-    std::fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
+    LOG("SDL_CreateWindow: %s", SDL_GetError());
     return false;
   }
   SetWindowIcon(app.window);
@@ -95,12 +96,12 @@ bool Init(App& app) {
   // O device fica acessível via SDL_GetGPURendererDevice para o render 3D do campo.
   app.renderer = SDL_CreateGPURenderer(nullptr, app.window);
   if (app.renderer == nullptr) {
-    std::fprintf(stderr, "SDL_CreateGPURenderer falhou (%s), usando renderer padrao\n",
+    LOG("SDL_CreateGPURenderer failed (%s), using the default renderer",
                  SDL_GetError());
     app.renderer = SDL_CreateRenderer(app.window, nullptr);
   }
   if (app.renderer == nullptr) {
-    std::fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());
+    LOG("SDL_CreateRenderer: %s", SDL_GetError());
     return false;
   }
 
@@ -108,7 +109,7 @@ bool Init(App& app) {
   SDL_SetRenderLogicalPresentation(app.renderer, kLogicalWidth, kLogicalHeight,
                                    SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
-  std::printf("Renderer: %s\n", SDL_GetRendererName(app.renderer));
+  LOG("Renderer: %s", SDL_GetRendererName(app.renderer));
   return true;
 }
 
@@ -134,16 +135,16 @@ int main(int /*argc*/, char** /*argv*/) {
   {
     const std::string palette = base + "assets/colors.json";
     if (!colors::Load(palette)) {
-      std::fprintf(stderr, "Paleta nao carregada (%s); cores saem em magenta\n", palette.c_str());
+      LOG("Palette not loaded (%s); colors fall back to magenta", palette.c_str());
     }
   }
-  // Ajustes de cena (assets/Light.json, Fog.json, Shadow.json): iluminação, névoa/nuvens e
+  // Ajustes de cena (assets/light.json, fog.json, shadow.json): iluminação, névoa/nuvens e
   // sombras. Valor ausente cai no padrão do código, com aviso no log.
-  for (const auto& [name, file] : {std::pair{"light", "Light.json"}, std::pair{"fog", "Fog.json"},
-                                   std::pair{"shadow", "Shadow.json"}}) {
+  for (const auto& [name, file] : {std::pair{"light", "light.json"}, std::pair{"fog", "fog.json"},
+                                   std::pair{"shadow", "shadow.json"}}) {
     const std::string path = base + "assets/" + file;
     if (!config::Load(name, path)) {
-      std::fprintf(stderr, "Ajustes nao carregados (%s); usando os padroes\n", path.c_str());
+      LOG("Settings not loaded (%s); using defaults", path.c_str());
     }
   }
   // Textos (assets/translate.json): pt, en e es. O idioma é escolhido na primeira cena;
@@ -151,7 +152,7 @@ int main(int /*argc*/, char** /*argv*/) {
   {
     const std::string translate = base + "assets/translate.json";
     if (!i18n::Load(translate)) {
-      std::fprintf(stderr, "Traducoes nao carregadas (%s); textos saem pelas chaves\n",
+      LOG("Translations not loaded (%s); texts fall back to keys",
                    translate.c_str());
     }
   }
@@ -159,8 +160,8 @@ int main(int /*argc*/, char** /*argv*/) {
   if (env_lang != nullptr) i18n::SetLanguage(env_lang);
   // Fontes do jogo (atlas de glifos no renderer): PirataOne nos títulos e rótulos, Newsreader
   // no texto corrido. Sem a de corpo, usa a de título; sem a de título, a fonte de depuração.
-  text::Init(app.renderer, base + "assets/PirataOne.ttf", text::Face::kTitle);
-  text::Init(app.renderer, base + "assets/Newsreader.ttf", text::Face::kBody);
+  text::Init(app.renderer, base + "assets/pirataOne.ttf", text::Face::kTitle);
+  text::Init(app.renderer, base + "assets/newsreader.ttf", text::Face::kBody);
 
   SceneContext ctx;
   ctx.renderer = app.renderer;
@@ -171,7 +172,7 @@ int main(int /*argc*/, char** /*argv*/) {
   // Bloco próprio: as cenas (e seus recursos de GPU) precisam ser destruídas antes de
   // Shutdown(), que destrói o renderer, o device e encerra o SDL.
   {
-  // Trilha sonora (assets/ost.json) toca em loop durante todo o jogo, em qualquer cena.
+  // Trilha sonora (assets/music.json) toca em loop durante todo o jogo, em qualquer cena.
   Music music;
   music.Init(base);
   ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
@@ -187,9 +188,10 @@ int main(int /*argc*/, char** /*argv*/) {
   const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
   // PONTIFICE_DRAG: sequência de gestos separados por ';'. "x0,y0,x1,y1,t" = arrasto do botão
   // esquerdo de (x0,y0) a (x1,y1) começando em t s (pressiona, move em 0,3 s, solta em 0,6 s;
-  // x0=x1,y0=y1 vira clique); "w,dy,t" = roda do mouse dy em t s.
+  // x0=x1,y0=y1 vira clique); "w,dy,t" = roda do mouse dy em t s; "d,x,y,t" = duplo clique.
   struct Gesture {
     bool wheel = false;
+    bool double_click = false;
     float x0 = 0, y0 = 0, x1 = 0, y1 = 0, t = 2.0f, dy = 0;
     int stage = 0;  // 0 nada, 1 pressionado, 2 movido, 3 feito
   };
@@ -205,6 +207,11 @@ int main(int /*argc*/, char** /*argv*/) {
       if (item.rfind("w,", 0) == 0) {
         g.wheel = true;
         std::sscanf(item.c_str(), "w,%f,%f", &g.dy, &g.t);
+      } else if (item.rfind("d,", 0) == 0) {
+        g.double_click = true;
+        std::sscanf(item.c_str(), "d,%f,%f,%f", &g.x0, &g.y0, &g.t);
+        g.x1 = g.x0;
+        g.y1 = g.y0;
       } else {
         std::sscanf(item.c_str(), "%f,%f,%f,%f,%f", &g.x0, &g.y0, &g.x1, &g.y1, &g.t);
       }
@@ -299,9 +306,16 @@ int main(int /*argc*/, char** /*argv*/) {
         scenes.HandleEvent(fake);
         fake.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
         fake.button.button = SDL_BUTTON_LEFT;
+        fake.button.clicks = g.double_click ? 2 : 1;
         fake.button.x = g.x0;
         fake.button.y = g.y0;
         scenes.HandleEvent(fake);
+        if (g.double_click) {
+          fake.type = SDL_EVENT_MOUSE_BUTTON_UP;
+          scenes.HandleEvent(fake);
+          g.stage = 3;
+          continue;
+        }
         g.stage = 1;
       } else if (g.stage == 1 && t >= g.t + 0.3) {
         fake.type = SDL_EVENT_MOUSE_MOTION;
@@ -312,6 +326,7 @@ int main(int /*argc*/, char** /*argv*/) {
       } else if (g.stage == 2 && t >= g.t + 0.6) {
         fake.type = SDL_EVENT_MOUSE_BUTTON_UP;
         fake.button.button = SDL_BUTTON_LEFT;
+        fake.button.clicks = 1;
         fake.button.x = g.x1;
         fake.button.y = g.y1;
         scenes.HandleEvent(fake);
@@ -334,9 +349,9 @@ int main(int /*argc*/, char** /*argv*/) {
       if (shot != nullptr) {
         SDL_SaveBMP(shot, env_shot);
         SDL_DestroySurface(shot);
-        std::printf("Screenshot salvo em %s\n", env_shot);
+        LOG("Screenshot saved to %s", env_shot);
       } else {
-        std::fprintf(stderr, "SDL_RenderReadPixels: %s\n", SDL_GetError());
+        LOG("SDL_RenderReadPixels: %s", SDL_GetError());
       }
       SDL_RenderPresent(app.renderer);
       break;

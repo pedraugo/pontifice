@@ -1,0 +1,273 @@
+[
+  {
+    "code": "N301",
+    "name": "King David",
+    "description": "King of Israel who defeated Goliath",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N301",
+    "imageFile": "n301.webp",
+    "imageUrl": "sprites/neutral/n301.webp",
+    "attributes": {
+      "attack": 700,
+      "defense": 700,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N302",
+    "name": "Moses",
+    "description": "Prophet who freed the Hebrews from Egypt",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N302",
+    "imageFile": "n302.webp",
+    "imageUrl": "sprites/neutral/n302.webp",
+    "attributes": {
+      "attack": 600,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N303",
+    "name": "King Solomon",
+    "description": "King of Israel renowned for his wisdom",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N303",
+    "imageFile": "n303.webp",
+    "imageUrl": "sprites/neutral/n303.webp",
+    "attributes": {
+      "attack": 600,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N304",
+    "name": "Noah",
+    "description": "Built the ark and survived the Flood",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N304",
+    "imageFile": "n304.webp",
+    "imageUrl": "sprites/neutral/n304.webp",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N305",
+    "name": "King Constantine",
+    "description": "Roman emperor who legalized Christianity",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N305",
+    "imageFile": "n305.webp",
+    "imageUrl": "sprites/neutral/n305.webp",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+
+  {
+    "code": "N401",
+    "name": "Templar",
+    "description": "Warrior monk, protector of pilgrims",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N401",
+    "imageFile": "n401.webp",
+    "imageUrl": "sprites/neutral/n401.webp",
+    "attributes": {
+      "attack": 500,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N402",
+    "name": "Duke",
+    "description": "Noble of the highest title, vassal of the king",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N402",
+    "imageFile": "n402.webp",
+    "imageUrl": "sprites/neutral/n402.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N403",
+    "name": "Count",
+    "description": "Noble who rules a county",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N403",
+    "imageFile": "n403.webp",
+    "imageUrl": "sprites/neutral/n403.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N404",
+    "name": "Viscount",
+    "description": "Noble deputy of the count",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N404",
+    "imageFile": "n404.webp",
+    "imageUrl": "sprites/neutral/n404.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N405",
+    "name": "Baron",
+    "description": "Noble of the lowest title, lord of a fief",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N405",
+    "imageFile": "n405.webp",
+    "imageUrl": "sprites/neutral/n405.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N406",
+    "name": "Knight",
+    "description": "Mounted warrior in the service of a lord",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N406",
+    "imageFile": "n406.webp",
+    "imageUrl": "sprites/neutral/n406.webp",
+    "attributes": {
+      "attack": 300,
+      "defense": 300,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N407",
+    "name": "Serf",
+    "description": "Laborer bound to the feudal lord's land",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N407",
+    "imageFile": "n407.webp",
+    "imageUrl": "sprites/neutral/n407.webp",
+    "attributes": {
+      "attack": 200,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N408",
+    "name": "Peasant Woman",
+    "description": "Country woman who tills the land",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N408",
+    "imageFile": "n408.webp",
+    "imageUrl": "sprites/neutral/n408.webp",
+    "attributes": {
+      "attack": 200,
+      "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N409",
+    "name": "Bourgeois Woman",
+    "description": "Townswoman devoted to trade",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N409",
+    "imageFile": "n409.webp",
+    "imageUrl": "sprites/neutral/n409.webp",
+    "attributes": {
+      "attack": 100,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N410",
+    "name": "Artisan Woman",
+    "description": "Woman who crafts goods with her own hands",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N410",
+    "imageFile": "n410.webp",
+    "imageUrl": "sprites/neutral/n410.webp",
+    "attributes": {
+      "attack": 100,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  }
+]

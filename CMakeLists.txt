@@ -65,7 +65,7 @@ add_custom_command(
 find_program(GLSLC glslc)
 set(SPIRV_OUTPUTS)
 if(GLSLC)
-  foreach(shader card.vert card.frag card_shadow.frag)
+  foreach(shader card.vert card.frag cardShadow.frag)
     string(REGEX REPLACE ".*\\." "" stage ${shader})
     set(spv ${CMAKE_BINARY_DIR}/shaders/${shader}.spv)
     add_custom_command(
@@ -83,46 +83,47 @@ endif()
 
 add_executable(pontifice
   src/main.cpp
-  src/scenes/SceneManager.cpp
-  src/scenes/language/LanguageScene.cpp
-  src/scenes/menu/MenuScene.cpp
-  src/scenes/loading/LoadingScene.cpp
-  src/scenes/battle/BattleScene.cpp
-  src/scripts/text/Text.cpp
-  src/scripts/button/Button.cpp
-  src/scripts/button/ButtonText.cpp
-  src/scripts/button/ButtonIcon.cpp
-  src/scripts/dialog/ConfirmDialog.cpp
-  src/scripts/board/Board.cpp
-  src/scripts/sword/Sword.cpp
-  src/scripts/shield/Shield.cpp
-  src/scripts/frame/Frame.cpp
-  src/scripts/draw/Draw.cpp
-  src/scripts/rules/Rules.cpp
-  src/scripts/ai/Ai.cpp
-  src/scripts/image/Image.cpp
-  src/scripts/gpu/Gpu.cpp
-  src/scripts/model/Model.cpp
-  src/scripts/hand/Hand.cpp
-  src/scripts/aura/CardAura.cpp
-  src/scripts/hud/Hud.cpp
-  src/scripts/json/Json.cpp
-  src/scripts/config/Config.cpp
-  src/scripts/i18n/I18n.cpp
-  src/scripts/flag/Flag.cpp
-  src/scripts/colors/Colors.cpp
-  src/scripts/torch/Torch.cpp
-  src/scripts/deck/Deck.cpp
-  src/scripts/cards/Cards.cpp
-  src/scripts/cardface/CardFace.cpp
-  src/scripts/audios/Music.cpp
-  src/scripts/audios/Clip.cpp
-  src/scripts/audios/Sfx.cpp
-  src/scripts/audios/Voices.cpp
+  src/scenes/sceneManager.cpp
+  src/scenes/language/languageScene.cpp
+  src/scenes/menu/menuScene.cpp
+  src/scenes/loading/loadingScene.cpp
+  src/scenes/battle/battleScene.cpp
+  src/scripts/text/text.cpp
+  src/scripts/button/button.cpp
+  src/scripts/button/buttonText.cpp
+  src/scripts/button/buttonIcon.cpp
+  src/scripts/dialog/confirmDialog.cpp
+  src/scripts/board/board.cpp
+  src/scripts/sword/sword.cpp
+  src/scripts/shield/shield.cpp
+  src/scripts/frame/frame.cpp
+  src/scripts/draw/draw.cpp
+  src/scripts/rules/rules.cpp
+  src/scripts/ai/ai.cpp
+  src/scripts/image/image.cpp
+  src/scripts/gpu/gpu.cpp
+  src/scripts/model/model.cpp
+  src/scripts/hand/hand.cpp
+  src/scripts/aura/cardAura.cpp
+  src/scripts/hud/hud.cpp
+  src/scripts/json/json.cpp
+  src/scripts/log/log.cpp
+  src/scripts/config/config.cpp
+  src/scripts/i18n/i18n.cpp
+  src/scripts/flag/flag.cpp
+  src/scripts/colors/colors.cpp
+  src/scripts/torch/torch.cpp
+  src/scripts/deck/deck.cpp
+  src/scripts/cards/cards.cpp
+  src/scripts/cardface/cardFace.cpp
+  src/scripts/audios/music.cpp
+  src/scripts/audios/clip.cpp
+  src/scripts/audios/sfx.cpp
+  src/scripts/audios/voices.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
-# Windows: ícone do executável como recurso (src/icons/icon.ico, gerado por tools/make_icons.py).
+# Windows: ícone do executável como recurso (src/icons/icon.ico, gerado por tools/makeIcons.py).
 if(WIN32)
   enable_language(RC)
   target_sources(pontifice PRIVATE src/icons/pontifice.rc)
@@ -136,28 +137,28 @@ target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
 # a carga leva vários segundos. A trilha e os clipes (stb_vorbis) decodificam na thread de áudio ou na carga. Esses
 # arquivos são compilados otimizados em qualquer build.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/audios/Music.cpp
-                              src/scripts/audios/Clip.cpp
+  set_source_files_properties(src/scripts/image/image.cpp src/scripts/text/text.cpp
+                              src/scripts/cardface/cardFace.cpp src/scripts/audios/music.cpp
+                              src/scripts/audios/clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
 elseif(MSVC)
-  set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/audios/Music.cpp
-                              src/scripts/audios/Clip.cpp
+  set_source_files_properties(src/scripts/image/image.cpp src/scripts/text/text.cpp
+                              src/scripts/cardface/cardFace.cpp src/scripts/audios/music.cpp
+                              src/scripts/audios/clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
 endif()
 target_compile_options(pontifice PRIVATE -Wall -Wextra)
 
 # Testes (ctest --test-dir build): componentes sem SDL, como o monte de cartas.
 enable_testing()
-add_executable(deck_test tests/deck_test.cpp src/scripts/deck/Deck.cpp)
-target_include_directories(deck_test PRIVATE src)
-target_compile_options(deck_test PRIVATE -Wall -Wextra)
-add_test(NAME deck_test COMMAND deck_test)
-add_executable(rules_test tests/rules_test.cpp src/scripts/rules/Rules.cpp src/scripts/ai/Ai.cpp)
-target_include_directories(rules_test PRIVATE src)
-target_compile_options(rules_test PRIVATE -Wall -Wextra)
-add_test(NAME rules_test COMMAND rules_test)
+add_executable(deckTest tests/deckTest.cpp src/scripts/deck/deck.cpp)
+target_include_directories(deckTest PRIVATE src)
+target_compile_options(deckTest PRIVATE -Wall -Wextra)
+add_test(NAME deckTest COMMAND deckTest)
+add_executable(rulesTest tests/rulesTest.cpp src/scripts/rules/rules.cpp src/scripts/ai/ai.cpp)
+target_include_directories(rulesTest PRIVATE src)
+target_compile_options(rulesTest PRIVATE -Wall -Wextra)
+add_test(NAME rulesTest COMMAND rulesTest)
 
 # macOS: alguns Command Line Tools deixam um diretório libc++ antigo e incompleto em
 # /Library/Developer/CommandLineTools/usr/include/c++/v1, que esconde o libc++ do SDK.
@@ -168,7 +169,7 @@ if(APPLE)
     execute_process(COMMAND xcrun --show-sdk-path
                     OUTPUT_VARIABLE _sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "libc++ incompleto em ${_stale_libcxx}; usando ${_sdk_path}/usr/include/c++/v1")
-    foreach(_target pontifice deck_test rules_test)
+    foreach(_target pontifice deckTest rulesTest)
       target_compile_options(${_target} PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>
         $<$<COMPILE_LANGUAGE:CXX>:-isystem${_sdk_path}/usr/include/c++/v1>)

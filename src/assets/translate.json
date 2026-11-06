@@ -147,19 +147,19 @@
       "es": "Ataque igual a la defensa: no pasa nada"
     },
     "battle.hint.playField": {
-      "pt": "Clique na arena para ativar a carta de campo",
-      "en": "Click the arena to activate the field card",
-      "es": "Haz clic en la arena para activar la carta de campo"
+      "pt": "Solte na arena para ativar a carta de campo",
+      "en": "Drop on the arena to activate the field card",
+      "es": "Suelta en la arena para activar la carta de campo"
     },
     "battle.hint.replaceField": {
-      "pt": "Clique na arena: esta carta de campo substitui a atual",
-      "en": "Click the arena: this field card replaces the current one",
-      "es": "Haz clic en la arena: esta carta de campo reemplaza a la actual"
+      "pt": "Solte na arena: esta carta de campo substitui a atual",
+      "en": "Drop on the arena: this field card replaces the current one",
+      "es": "Suelta en la arena: esta carta de campo reemplaza a la actual"
     },
     "battle.hint.summon": {
-      "pt": "Clique num slot do seu lado para invocar a carta em ataque",
-      "en": "Click a slot on your side to summon the card in attack",
-      "es": "Haz clic en una casilla de tu lado para invocarla en ataque"
+      "pt": "Solte num slot do seu lado para invocar a carta em ataque",
+      "en": "Drop on a slot on your side to summon the card in attack",
+      "es": "Suelta en una casilla de tu lado para invocarla en ataque"
     },
     "battle.hint.summonReplace": {
       "pt": "Invocar aqui manda a carta deste slot para o cemitério",
@@ -167,19 +167,19 @@
       "es": "Invocar aquí envía la carta de esta casilla al cementerio"
     },
     "battle.hint.boardFull": {
-      "pt": "Seu lado está cheio: clique numa carta sua para trocá-la",
-      "en": "Your side is full: click one of your cards to replace it",
-      "es": "Tu lado está lleno: haz clic en una carta tuya para cambiarla"
+      "pt": "Seu lado está cheio: solte sobre uma carta sua para trocá-la",
+      "en": "Your side is full: drop onto one of your cards to replace it",
+      "es": "Tu lado está lleno: suelta sobre una carta tuya para cambiarla"
     },
     "battle.hint.alreadySummoned": {
-      "pt": "Só uma invocação por turno: arraste para cima para desmarcar",
-      "en": "One summon per turn: drag the card up again to deselect it",
-      "es": "Una invocación por turno: arrástrala arriba para desmarcarla"
+      "pt": "Só uma invocação por turno: solte para devolver a carta à mão",
+      "en": "One summon per turn: release to return the card to your hand",
+      "es": "Una invocación por turno: suelta para devolver la carta a la mano"
     },
     "battle.hint.handCard": {
-      "pt": "Arraste para cima para jogar ou para baixo para ver de perto",
-      "en": "Drag up to play it or down to take a closer look",
-      "es": "Arrastra hacia arriba para jugarla o hacia abajo para verla"
+      "pt": "Arraste até a arena para jogar ou dê dois cliques para ver de perto",
+      "en": "Drag to the arena to play it or double-click for a closer look",
+      "es": "Arrastra a la arena para jugarla o haz doble clic para verla"
     },
     "battle.hint.cardAttack": {
       "pt": "Arraste ao oponente para atacar ou clique para pôr em defesa",
@@ -212,14 +212,14 @@
       "es": "El oponente no tiene cartas: arrastra una tuya hasta su lado"
     },
     "battle.hint.select": {
-      "pt": "Para invocar, arraste uma carta da mão para cima",
-      "en": "To summon, drag a card from your hand upward",
-      "es": "Para invocar, arrastra una carta de la mano hacia arriba"
+      "pt": "Para invocar, arraste uma carta da mão até a arena",
+      "en": "To summon, drag a card from your hand onto the arena",
+      "es": "Para invocar, arrastra una carta de la mano a la arena"
     },
     "battle.hint.fieldLeft": {
-      "pt": "Carta de campo não gasta a invocação: arraste uma para cima",
-      "en": "Field cards don't use your summon: drag one up to play it",
-      "es": "La carta de campo no gasta la invocación: arrastra una arriba"
+      "pt": "Carta de campo não gasta a invocação: arraste uma até a arena",
+      "en": "Field cards don't use your summon: drag one onto the arena",
+      "es": "La carta de campo no gasta la invocación: arrastra una a la arena"
     },
     "battle.hint.handLimit": {
       "pt": "Mais de 6 cartas: ao passar, as mais fracas são descartadas",

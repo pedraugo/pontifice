@@ -1,6 +1,6 @@
 # Tela de loading
 
-Entre o menu e a batalha há uma tela de loading: fundo liso (`#091119`, o mesmo do menu) e uma única **tocha 3D** (`models/Torch.glb`) cintilando no canto inferior direito, acima do texto `Carregando...`. Enquanto ela queima, a batalha é carregada em outra thread.
+Entre o menu e a batalha há uma tela de loading: fundo liso (`#091119`, o mesmo do menu) e uma única **tocha 3D** (`models/torch.glb`) cintilando no canto inferior direito, acima do texto `Carregando...`. Enquanto ela queima, a batalha é carregada em outra thread.
 
 ```
 +------------------------------------------------------------+
@@ -32,8 +32,8 @@ Se a carga demorar mais que o mínimo, a tocha fica queimando esperando. Os véu
 
 ## Elementos
 
-- **Tocha** (`models/Torch.glb`, gerada por `tools/make_torch.py`): corpo iluminado e chama procedural no shader, que tremula em tamanho e encara a câmera. Câmera fixa (fov 35°, a 11,4 unidades) olhando para a origem; a tocha fica em y = −2,8 (canto inferior, ocupando ~20% da altura da tela) e seu x é calculado para ficar **centralizada com o texto** `Carregando...` (centro do texto convertido para o plano z = 0).
-- **Luz**: só a chama (luz pontual, cor de `Light.json` `torch.color`, intensidade `torch.loading.intensity`), **cintilando** (soma de senos fora de fase, ±20%); sem luz direcional, ambiente mínimo (`loading.ambient`), sem névoa, vinheta ou sombra.
+- **Tocha** (`models/torch.glb`, gerada por `tools/makeTorch.py`): corpo iluminado e chama procedural no shader, que tremula em tamanho e encara a câmera. Câmera fixa (fov 35°, a 11,4 unidades) olhando para a origem; a tocha fica em y = −2,8 (canto inferior, ocupando ~20% da altura da tela) e seu x é calculado para ficar **centralizada com o texto** `Carregando...` (centro do texto convertido para o plano z = 0).
+- **Luz**: só a chama (luz pontual, cor de `light.json` `torch.color`, intensidade `torch.loading.intensity`), **cintilando** (soma de senos fora de fase, ±20%); sem luz direcional, ambiente mínimo (`loading.ambient`), sem névoa, vinheta ou sombra.
 - **Texto**: `Carregando` com pontos que avançam, no canto inferior direito, cor `text.muted`.
 - **Fundo**: `background.loading` (`#091119`, a mesma cor do menu e da cena de idioma).
 

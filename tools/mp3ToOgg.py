@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Converte os MP3 de uma pasta para Ogg Vorbis, no mesmo lugar, e apaga cada MP3 convertido.
+"""Converts the MP3s in a directory to Ogg Vorbis, in place, and deletes each converted MP3.
 
-Cada faixa é decodificada para WAV 24 bits com o `afconvert` do macOS (ou `ffmpeg`, se houver)
-e codificada com `oggenc` (brew install vorbis-tools) em VBR de qualidade -q 3 (~110 kbps,
-estéreo). O MP3 só é apagado depois de o .ogg ser gravado com sucesso; se a conversão falhar,
-o MP3 fica e o script segue para o próximo.
+Each track is decoded to 24-bit WAV with macOS `afconvert` (or `ffmpeg`, if available)
+and encoded with `oggenc` (brew install vorbis-tools) at VBR quality -q 3 (~110 kbps,
+stereo). The MP3 is only deleted after the .ogg is written successfully; if the conversion
+fails, the MP3 stays and the script moves on to the next one.
 
-Uso: python3 tools/mp3ToOgg.py src/audios/music [-q 3] [--no-recursive] [--keep]
+Usage: python3 tools/mp3ToOgg.py src/audios/music [-q 3] [--no-recursive] [--keep]
 """
 
 import argparse
@@ -23,13 +23,13 @@ def decode_to_wav(mp3: pathlib.Path, wav: pathlib.Path) -> None:
     elif shutil.which("ffmpeg"):
         cmd = ["ffmpeg", "-loglevel", "error", "-y", "-i", str(mp3), "-c:a", "pcm_s24le", str(wav)]
     else:
-        sys.exit("afconvert e ffmpeg nao encontrados: instale um deles (brew install ffmpeg)")
+        sys.exit("afconvert and ffmpeg not found: install one of them (brew install ffmpeg)")
     subprocess.run(cmd, check=True, capture_output=True)
 
 
 def encode_to_ogg(wav: pathlib.Path, ogg: pathlib.Path, quality: float) -> None:
     if shutil.which("oggenc") is None:
-        sys.exit("oggenc nao encontrado: brew install vorbis-tools")
+        sys.exit("oggenc not found: brew install vorbis-tools")
     subprocess.run(["oggenc", "-Q", "-q", str(quality), str(wav), "-o", str(ogg)],
                    check=True, capture_output=True)
 
@@ -42,7 +42,7 @@ def convert(mp3: pathlib.Path, quality: float, keep: bool, tmp_dir: pathlib.Path
         encode_to_ogg(wav, ogg, quality)
     except subprocess.CalledProcessError as error:
         detail = error.stderr.decode(errors="replace").strip() if error.stderr else ""
-        print(f"FALHOU {mp3}: {detail or error}", file=sys.stderr)
+        print(f"FAILED {mp3}: {detail or error}", file=sys.stderr)
         ogg.unlink(missing_ok=True)
         return False
     finally:
@@ -56,19 +56,19 @@ def convert(mp3: pathlib.Path, quality: float, keep: bool, tmp_dir: pathlib.Path
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("directory", type=pathlib.Path, help="pasta com os arquivos .mp3")
+    parser.add_argument("directory", type=pathlib.Path, help="directory with the .mp3 files")
     parser.add_argument("-q", "--quality", type=float, default=3.0,
-                        help="qualidade VBR do oggenc, -1 a 10 (padrao 3, ~110 kbps)")
-    parser.add_argument("--no-recursive", action="store_true", help="nao entra nas subpastas")
-    parser.add_argument("--keep", action="store_true", help="nao apaga os MP3 convertidos")
+                        help="oggenc VBR quality, -1 to 10 (default 3, ~110 kbps)")
+    parser.add_argument("--no-recursive", action="store_true", help="do not descend into subdirectories")
+    parser.add_argument("--keep", action="store_true", help="do not delete the converted MP3s")
     args = parser.parse_args()
 
     if not args.directory.is_dir():
-        sys.exit(f"{args.directory} nao e uma pasta")
+        sys.exit(f"{args.directory} is not a directory")
     pattern = "*.mp3" if args.no_recursive else "**/*.mp3"
     mp3s = sorted(p for p in args.directory.glob(pattern) if p.is_file())
     if not mp3s:
-        sys.exit(f"nenhum .mp3 em {args.directory}")
+        sys.exit(f"no .mp3 in {args.directory}")
 
     total_before = sum(p.stat().st_size for p in mp3s)
     done = 0
@@ -79,7 +79,7 @@ def main() -> None:
             if convert(mp3, args.quality, args.keep, tmp_dir):
                 done += 1
                 total_after += mp3.with_suffix(".ogg").stat().st_size
-    print(f"{done}/{len(mp3s)} convertidos: {total_before / 1048576:.1f} MB -> "
+    print(f"{done}/{len(mp3s)} converted: {total_before / 1048576:.1f} MB -> "
           f"{total_after / 1048576:.1f} MB")
     if done != len(mp3s):
         sys.exit(1)
