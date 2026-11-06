@@ -2,17 +2,14 @@
 
 #include "scripts/button/Button.h"
 
-// Botão quadrado com placa e um ícone desenhado com primitivas do renderer, sem sprite:
-// alto-falante (liga/desliga a música) ou "?" (liga/desliga a dica do topo da batalha).
-// Inativo (SetActive(false): música desligada, dicas desligadas) o ícone fica esmaecido e
-// riscado (X ao lado do alto-falante, risco diagonal sobre o "?"). Mesmos estados visuais dos
-// outros botões (hover, pressionado). A cena trata o clique com HandleEvent.
+// Square plated button; the icon is drawn with renderer primitives, no sprite.
 class ButtonIcon : public Button {
  public:
   enum class Icon { kSound, kHint };
 
   explicit ButtonIcon(Icon icon);
 
+  // Inactive: dimmed icon with a red strike (X beside the speaker, slash over the "?").
   void SetActive(bool active) { active_ = active; }
 
  protected:

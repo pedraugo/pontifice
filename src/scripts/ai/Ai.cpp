@@ -34,15 +34,13 @@ Difficulty NextDifficulty(Difficulty d) {
 }
 
 int DeckWeight(const CardInfo& card, Difficulty d) {
-  if (card.IsField()) return card.odds;  // cartas de campo iguais em todos os níveis
-  // Multiplicadores por hierarquia (1 = mais rara e forte ... 4 = comum e fraca), em %.
-  // Médio mantém os odds do baralho. Os limites de cópias (2, e 1 para hierarquia 1) do
-  // sorteio continuam valendo, então "Impossível" enche com 1 e 2 e completa com 3.
+  if (card.IsField()) return card.odds;
+  // Draw multiplier in percent per difficulty row; columns are hierarchy 1 (rarest) to 4.
   static constexpr int kPercent[4][4] = {
-      {0, 0, 40, 100},        // fácil: quase só hierarquia 4
-      {100, 100, 100, 100},   // médio: igual ao seu
-      {600, 1500, 400, 30},   // difícil: 2 e 3 dominam, algumas 1, poucas 4
-      {100000, 100000, 2000, 0},  // impossível: todas as 1 e 2 primeiro, resto 3
+      {0, 0, 40, 100},  // easy: almost only hierarchy 4
+      {100, 100, 100, 100},  // medium: same as the player
+      {600, 1500, 400, 30},  // hard: 2 and 3 dominate
+      {100000, 100000, 2000, 0},  // impossible: every 1 and 2, then 3
   };
   const int h = card.hierarchy < 1 ? 1 : (card.hierarchy > 4 ? 4 : card.hierarchy);
   const long weight = static_cast<long>(card.odds) * kPercent[static_cast<int>(d)][h - 1] / 100;
@@ -54,23 +52,20 @@ namespace {
 int Atk(const CardInfo* c, const rules::Field& f) { return rules::EffectiveAttack(*c, f); }
 int Def(const CardInfo* c, const rules::Field& f) { return rules::EffectiveDefense(*c, f); }
 
-// O que a carta do jogador "vale" como alvo: ataque (modo ataque) ou defesa (modo defesa).
 int TheirGuard(const FieldCard& c, const View& v) {
   if (c.info == nullptr) return 0;
   return c.defense ? Def(c.info, v.field) : Atk(c.info, v.field);
 }
 
-// Alvo mais fraco do jogador: um ataque acima disso destrói alguma carta. Campo vazio: 0.
 int TheirMinGuard(const View& v) {
   int best = 1 << 30;
   for (const FieldCard& c : v.theirs) best = std::min(best, TheirGuard(c, v));
   return v.theirs.empty() ? 0 : best;
 }
 
-}  // namespace
+}
 
 int ChooseFieldCard(const View& view) {
-  // Conta categorias do computador (campo + mão) e do jogador (campo visível).
   int mine_g = 0, mine_e = 0, theirs_g = 0, theirs_e = 0;
   for (const FieldCard& c : view.mine) {
     if (c.info == nullptr) continue;
@@ -93,8 +88,7 @@ int ChooseFieldCard(const View& view) {
     const CardInfo* c = view.hand[i];
     if (c == nullptr || !c->IsField()) continue;
     const char favored = c->favored == "evil" ? 'E' : 'G';
-    if (view.field.active && view.field.favored == favored) continue;  // já vale isso
-    // Ganho: minhas cartas favorecidas + cartas do jogador prejudicadas, menos o contrário.
+    if (view.field.active && view.field.favored == favored) continue;
     const int gain = (favored == 'G' ? mine_g - mine_e + theirs_e - theirs_g
                                      : mine_e - mine_g + theirs_g - theirs_e);
     if (gain > best_gain) {
@@ -125,7 +119,7 @@ std::optional<Summon> ChooseSummon(const View& view) {
     }
   }
   if (atk_index < 0) return std::nullopt;
-  // Campo cheio: só vale substituir se a nova carta é melhor que a pior em campo.
+  // Field full: only worth replacing if the new card beats the weakest one on the field.
   if (full) {
     int worst = 1 << 30;
     for (const FieldCard& c : view.mine) {
@@ -133,15 +127,12 @@ std::optional<Summon> ChooseSummon(const View& view) {
     }
     if (best_atk <= worst) return std::nullopt;
   }
-  // Em ataque se consegue destruir alguma carta do jogador (ou o campo dele está vazio);
-  // senão entra a de maior defesa, em modo de defesa.
   if (view.theirs.empty() || best_atk > TheirMinGuard(view)) return Summon{atk_index, false};
   return Summon{def_index, true};
 }
 
 int ChooseSlot(const std::vector<int>& free_slots, int cols) {
   if (free_slots.empty()) return -1;
-  // Linha de trás (índices maiores) e colunas centrais primeiro.
   int best = free_slots.front();
   float best_score = -1e9f;
   for (int slot : free_slots) {
@@ -159,7 +150,7 @@ int ChooseSlot(const std::vector<int>& free_slots, int cols) {
 
 std::vector<int> ChoosePositionChanges(const View& view) {
   std::vector<int> out;
-  int their_best_atk = 0;  // maior ataque do jogador em modo de ataque (visível)
+  int their_best_atk = 0;
   for (const FieldCard& c : view.theirs) {
     if (c.info != nullptr && !c.defense) {
       their_best_atk = std::max(their_best_atk, Atk(c.info, view.field));
@@ -171,12 +162,8 @@ std::vector<int> ChoosePositionChanges(const View& view) {
     const int a = Atk(c.info, view.field);
     const int d = Def(c.info, view.field);
     if (c.defense) {
-      // Levanta se consegue destruir alguma carta do jogador ou se o campo dele está vazio
-      // (ataque direto).
       if (view.theirs.empty() || a > min_guard) out.push_back(c.slot);
     } else if (!view.theirs.empty() && a <= min_guard && their_best_atk > a && d > a) {
-      // Não destrói nada, perderia para o atacante mais forte do jogador e defende melhor
-      // do que ataca: abaixa.
       out.push_back(c.slot);
     }
   }
@@ -186,12 +173,11 @@ std::vector<int> ChoosePositionChanges(const View& view) {
 std::optional<Attack> ChooseAttack(const View& view) {
   if (!view.can_attack) return std::nullopt;
   std::optional<Attack> best;
-  int best_score = 0;  // só ataques com pontuação positiva
+  int best_score = 0;
   for (const FieldCard& me : view.mine) {
     if (me.info == nullptr || !me.can_attack || me.defense) continue;
     const int a = Atk(me.info, view.field);
     if (view.theirs.empty()) {
-      // Ataque direto: o mais forte primeiro.
       if (a > best_score) {
         best_score = a;
         best = Attack{me.slot, -1};
@@ -204,12 +190,12 @@ std::optional<Attack> ChooseAttack(const View& view) {
       if (t.info == nullptr) {
         continue;
       } else if (t.defense) {
-        if (a > guard) score = 150 + guard;  // tira um escudo; sem dano
+        if (a > guard) score = 150 + guard;  // removes a shield, no damage
       } else {
         if (a > guard) {
-          score = 300 + (a - guard) + guard;  // destrói e causa dano
+          score = 300 + (a - guard) + guard;  // destroys and deals damage
         } else if (a == guard) {
-          score = 50;  // troca igual: as duas saem, sem dano
+          score = 50;  // even trade: both destroyed, no damage
         }
       }
       if (score > best_score) {
@@ -221,4 +207,4 @@ std::optional<Attack> ChooseAttack(const View& view) {
   return best;
 }
 
-}  // namespace ai
+}

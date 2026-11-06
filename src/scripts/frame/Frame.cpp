@@ -8,24 +8,19 @@ namespace frame {
 
 namespace {
 
-// Nó da quina, medido em art/corner.png (linha de 3 px). Coordenadas locais em px da quina
-// inferior esquerda: u cresce para dentro na horizontal, v para dentro na vertical, origem no
-// canto externo da borda. Retângulos sem sobreposição (o alpha não pode somar):
-//   A rabicho da esquerda   B barra de baixo    C haste central
-//   D barra de cima         E rabicho da direita
-// As linhas da borda saem da barra de cima (v >= kKnotSize) e do rabicho da direita
-// (u >= kKnotSize), com os vãos de 4 px da referência entre eles.
 struct Box {
   float u0, v0, u1, v1;
 };
+// Corner knot measured on art/corner.png (3 px line), local px from the outer corner.
 constexpr float kLine = 3.0f;
 constexpr float kKnotSize = 17.0f;
+// u/v grow inward; boxes must not overlap (alpha would add up).
 constexpr Box kKnot[] = {
-    {0.0f, 3.0f, 3.0f, 10.0f},    // A
-    {0.0f, 0.0f, 7.0f, 3.0f},     // B
-    {7.0f, 0.0f, 10.0f, 17.0f},   // C
-    {0.0f, 14.0f, 7.0f, 17.0f},   // D
-    {14.0f, 0.0f, 17.0f, 10.0f},  // E
+    {0.0f, 3.0f, 3.0f, 10.0f},  // left tail, bottom bar, stem, top bar, right tail
+    {0.0f, 0.0f, 7.0f, 3.0f},
+    {7.0f, 0.0f, 10.0f, 17.0f},
+    {0.0f, 14.0f, 7.0f, 17.0f},
+    {14.0f, 0.0f, 17.0f, 10.0f},
 };
 
 SDL_FRect Shrink(const SDL_FRect& rect, float by) {
@@ -37,7 +32,6 @@ void Fill(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c, float alpha) {
   SDL_RenderFillRect(r, &rect);
 }
 
-// Anel de `thickness` px rente à borda de `outer`, em quatro faixas (sem sobrepor).
 void Ring(SDL_Renderer* r, const SDL_FRect& outer, float thickness, SDL_Color c, float alpha) {
   const SDL_FRect top{outer.x, outer.y, outer.w, thickness};
   const SDL_FRect bottom{outer.x, outer.y + outer.h - thickness, outer.w, thickness};
@@ -50,8 +44,6 @@ void Ring(SDL_Renderer* r, const SDL_FRect& outer, float thickness, SDL_Color c,
   Fill(r, right, c, alpha);
 }
 
-// Nó numa quina: (cx, cy) é o canto externo da borda; (su, sv) apontam para dentro da placa;
-// `s` é a escala (1 = linha de 3 px).
 void Knot(SDL_Renderer* r, float cx, float cy, float su, float sv, float s, SDL_Color line) {
   for (const Box& b : kKnot) {
     const float xa = cx + su * b.u0 * s, xb = cx + su * b.u1 * s;
@@ -61,10 +53,8 @@ void Knot(SDL_Renderer* r, float cx, float cy, float su, float sv, float s, SDL_
   }
 }
 
-// Borda com nós: um nó em cada quina e quatro faixas entre eles. `edge` é o retângulo
-// externo da borda (rect sem a outline).
 void BorderWithKnots(SDL_Renderer* r, const SDL_FRect& edge, float border, SDL_Color line) {
-  // Escala: borda de 3 px = 1; menor em placas pequenas para os dois nós de um lado caberem.
+  // Scale 1 = 3 px line; smaller on tiny plates so two knots fit per side.
   const float s = std::min(border / kLine, std::min(edge.w, edge.h) / (2.0f * kKnotSize));
   const float knot = kKnotSize * s;
   const float thick = kLine * s;
@@ -85,14 +75,14 @@ void BorderWithKnots(SDL_Renderer* r, const SDL_FRect& edge, float border, SDL_C
   }
 }
 
-}  // namespace
+}
 
 SDL_FRect Inner(const SDL_FRect& rect) { return Shrink(rect, kInset); }
 
 void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, State state, float alpha) {
   if (rect.w <= 0.0f || rect.h <= 0.0f) return;
   alpha = std::clamp(alpha, 0.0f, 1.0f);
-  // Placas menores que duas vezes a margem encolhem outline e borda na proporção.
+  // Plates smaller than twice the inset shrink outline and border proportionally.
   const float shrink = std::min(1.0f, std::min(rect.w, rect.h) / (2.0f * kInset));
   const float outline = kOutline * shrink;
   const float border = kBorder * shrink;
@@ -104,12 +94,10 @@ void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, State state, float 
   SDL_Color line = colors::Get(state == State::kHighlight ? "frame.borderHighlight" : "frame.border");
   line.a = static_cast<Uint8>(line.a * alpha);
 
-  // Outline, fundo (tudo dentro da outline, inclusive sob a borda) e, por cima, a borda com
-  // os nós nas quinas.
   Ring(r, rect, outline, colors::Get("frame.outline"), alpha);
   const SDL_FRect edge = Shrink(rect, outline);
-  Fill(r, edge, colors::Get(fill), alpha);
+  Fill(r, edge, colors::Get(fill), alpha);  // fill also runs under the border
   BorderWithKnots(r, edge, border, line);
 }
 
-}  // namespace frame
+}

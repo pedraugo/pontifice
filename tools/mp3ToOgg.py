@@ -6,7 +6,7 @@ e codificada com `oggenc` (brew install vorbis-tools) em VBR de qualidade -q 3 (
 estéreo). O MP3 só é apagado depois de o .ogg ser gravado com sucesso; se a conversão falhar,
 o MP3 fica e o script segue para o próximo.
 
-Uso: python3 tools/mp3ToOgg.py src/sounds [-q 3] [--no-recursive] [--keep]
+Uso: python3 tools/mp3ToOgg.py src/audios/music [-q 3] [--no-recursive] [--keep]
 """
 
 import argparse

@@ -10,11 +10,12 @@ bool CardAura::Init(Gpu& gpu, const Model& card, float margin) {
   const float w = hi.x - lo.x;
   const float h = hi.y - lo.y;
   if (w <= 0.0f || h <= 0.0f) return false;
-  const float m = margin * h;       // largura da aura além da borda
-  const float r = 0.06f * w;        // recuo do retângulo interno: cobre os cantos arredondados
+  const float m = margin * h;  // aura width beyond the card edge
+  const float r = 0.06f * w;  // inner rect inset: covers the rounded corners
   const float z = (lo.z + hi.z) * 0.5f;
   const float xs[4] = {lo.x - m, lo.x + r, hi.x - r, hi.x + m};
   const float ys[4] = {lo.y - m, lo.y + r, hi.y - r, hi.y + m};
+  // 4x4 grid; UV = distance past the inner rect per axis, 0 inside, 1 at the outer edge
   std::vector<Vertex> vertices;
   for (int j = 0; j < 4; ++j) {
     for (int i = 0; i < 4; ++i) {
@@ -26,7 +27,7 @@ bool CardAura::Init(Gpu& gpu, const Model& card, float margin) {
   std::vector<Uint32> indices;
   for (int j = 0; j < 3; ++j) {
     for (int i = 0; i < 3; ++i) {
-      if (i == 1 && j == 1) continue;  // meio: coberto pela carta
+      if (i == 1 && j == 1) continue;  // middle cell: covered by the card
       const Uint32 a = static_cast<Uint32>(j * 4 + i);
       indices.insert(indices.end(), {a, a + 1, a + 5, a, a + 5, a + 4});
     }

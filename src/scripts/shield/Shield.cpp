@@ -10,7 +10,6 @@ float SmoothStep(float t) {
   return t * t * (3.0f - 2.0f * t);
 }
 
-// Cresce passando um pouco do tamanho final e volta (entrada com "peso").
 float EaseOutBack(float t) {
   t = math::Clamp(t, 0.0f, 1.0f);
   const float c = 1.9f;
@@ -18,14 +17,12 @@ float EaseOutBack(float t) {
   return 1.0f + (c + 1.0f) * u * u * u + c * u * u;
 }
 
-// Contorno do escudo heráldico no plano XY (y para cima): topo reto, laterais retas e base
-// em curva até a ponta. Convexo, em sentido anti-horário. `s` escala, `n` pontos da curva.
+// Heater shield outline in XY (y up): flat top, straight sides, curved base; convex, CCW
 std::vector<math::Vec2> HeaterOutline(float s, int n = 14) {
   const float w = 0.48f, top = 0.55f, shoulder = 0.05f, tip = -0.6f;
   std::vector<math::Vec2> pts;
   pts.push_back({-w * s, top * s});
   pts.push_back({-w * s, shoulder * s});
-  // Curva da lateral esquerda até a ponta e da ponta até a lateral direita (quarto de elipse).
   for (int i = 1; i < n; ++i) {
     const float a = static_cast<float>(i) / n * (math::kPi / 2.0f);
     pts.push_back({-w * std::cos(a) * s, (shoulder - (shoulder - tip) * std::sin(a)) * s});
@@ -40,13 +37,13 @@ std::vector<math::Vec2> HeaterOutline(float s, int n = 14) {
   return pts;
 }
 
-// Polígono convexo extrudado entre z0 e z1: frente e verso em leque, laterais em quads.
+// Convex polygon extruded from z0 to z1: front/back as fans, sides as quads
 void Extrude(const std::vector<math::Vec2>& pts, float z0, float z1, std::vector<Vertex>& v,
              std::vector<Uint32>& idx) {
   const Uint32 n = static_cast<Uint32>(pts.size());
   for (float z : {z1, z0}) {
     const Uint32 base = static_cast<Uint32>(v.size());
-    v.push_back({0.0f, 0.0f, z, 0.5f, 0.5f});  // centro do leque
+    v.push_back({0.0f, 0.0f, z, 0.5f, 0.5f});
     for (const math::Vec2& p : pts) v.push_back({p.x, p.y, z, 0.5f + p.x, 0.5f - p.y});
     for (Uint32 i = 0; i < n; ++i) {
       idx.insert(idx.end(), {base, base + 1 + i, base + 1 + (i + 1) % n});
@@ -68,11 +65,11 @@ void Box(std::vector<Vertex>& v, std::vector<Uint32>& idx, float x0, float y0, f
   Extrude({{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}}, z0, z1, v, idx);
 }
 
-}  // namespace
+}
 
 bool Shield::Init(Gpu& gpu) {
   const SDL_FColor gold{0.86f, 0.68f, 0.26f, 1.0f};
-  const SDL_FColor silver{0.55f, 0.6f, 0.7f, 1.0f};  // aço: claro demais vira branco sob as tochas
+  const SDL_FColor silver{0.55f, 0.6f, 0.7f, 1.0f};
   auto add = [&](std::vector<Vertex>& v, std::vector<Uint32>& i, SDL_FColor color) {
     Part part;
     part.mesh = gpu.CreateMesh(v, i);
@@ -81,28 +78,31 @@ bool Shield::Init(Gpu& gpu) {
     parts_.push_back(part);
     return true;
   };
-  {  // Borda dourada (contorno inteiro, atrás).
+  {
     std::vector<Vertex> v;
     std::vector<Uint32> i;
+    // Gold border: full outline, behind
     Extrude(HeaterOutline(1.0f), -0.05f, 0.0f, v, i);
     if (!add(v, i, gold)) return false;
   }
-  {  // Corpo prateado (um pouco menor, na frente da borda).
+  {
     std::vector<Vertex> v;
     std::vector<Uint32> i;
+    // Silver body: slightly smaller, in front of the border
     Extrude(HeaterOutline(0.84f), 0.0f, 0.035f, v, i);
     if (!add(v, i, silver)) return false;
   }
-  {  // Cruz dourada em relevo sobre o corpo.
+  {
     std::vector<Vertex> v;
     std::vector<Uint32> i;
+    // Gold cross in relief on the body
     Box(v, i, -0.055f, -0.36f, 0.055f, 0.36f, 0.035f, 0.07f);
     Box(v, i, -0.27f, 0.1f, 0.27f, 0.21f, 0.035f, 0.07f);
     if (!add(v, i, gold)) return false;
   }
-  // Onda de choque: anel plano no plano XY, raio interno 0,85 e externo 1.
   std::vector<Vertex> v;
   std::vector<Uint32> i;
+  // Shock wave: flat ring in XY, inner radius 0.85, outer 1
   const int segments = 48;
   for (int k = 0; k <= segments; ++k) {
     const float a = 2.0f * math::kPi * static_cast<float>(k) / segments;
@@ -128,7 +128,7 @@ void Shield::Play(const math::Vec3& target, const math::Vec3& from, float hit_de
                   bool broken) {
   target_ = target;
   const math::Vec3 d = from - target;
-  yaw_ = std::atan2(d.x, d.z);  // RotateY(yaw) leva +z local (frente) para o atacante
+  yaw_ = std::atan2(d.x, d.z);  // RotateY(yaw) points local +z at the attacker
   hit_ = std::max(0.0f, hit_delay);
   broken_ = broken;
   time_ = 0.0f;
@@ -142,11 +142,10 @@ void Shield::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (!Active()) return;
   const float t = time_;
   const float since_hit = t - hit_;
-  // Escala: surge com peso; segurando, some no fim; quebrando, encolhe depois do golpe.
   float scale = EaseOutBack(t / layout_.appear);
   float recoil = 0.0f, spin = 0.0f, drop = 0.0f, flash = 0.0f;
   if (since_hit >= 0.0f) {
-    recoil = 0.35f * std::exp(-since_hit * 9.0f);  // recua com o golpe e volta
+    recoil = 0.35f * std::exp(-since_hit * 9.0f);
     flash = std::exp(-since_hit * 7.0f);
     if (broken_) {
       const float f = SmoothStep(since_hit / (layout_.broken - hit_));
@@ -166,8 +165,7 @@ void Shield::Render(Gpu& gpu, const math::Mat4& view_proj) const {
                            math::Mat4::Translate({0.0f, 0.0f, -0.25f * recoil}) *
                            math::Mat4::RotateX(-(layout_.lean + recoil)) *
                            math::Mat4::RotateZ(spin) * math::Mat4::Scale(layout_.scale * scale);
-  // Brilho do golpe: as cores passam de 1 (o shader multiplica pela luz). Quebrando, puxa
-  // para o vermelho.
+  // Hit flash pushes colors above 1 (shader multiplies by light); broken tints red
   for (const Part& part : parts_) {
     SDL_FColor c = part.color;
     const float boost = 1.0f + 1.4f * flash;
@@ -181,7 +179,6 @@ void Shield::Render(Gpu& gpu, const math::Mat4& view_proj) const {
     }
     gpu.Draw(part.mesh, nullptr, world, view_proj, c, Gpu::DrawMode::kMesh);
   }
-  // Onda de choque no plano do escudo: cresce e se apaga a partir do golpe.
   if (since_hit >= 0.0f && since_hit < layout_.wave_seconds) {
     const float w = since_hit / layout_.wave_seconds;
     const float radius = layout_.scale * (0.55f + 1.1f * SmoothStep(w));

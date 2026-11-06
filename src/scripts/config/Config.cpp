@@ -9,7 +9,7 @@ namespace config {
 
 namespace {
 
-std::unordered_map<std::string, json::Value> g_files;  // nome -> raiz do JSON
+std::unordered_map<std::string, json::Value> g_files;
 
 void WarnOnce(const std::string& what) {
   static std::unordered_set<std::string> warned;
@@ -22,7 +22,7 @@ bool ToColor(const json::Value& value, SDL_FColor& out) {
     if (!value.string.empty() && value.string[0] == '#') {
       if (!colors::ParseHex(value.string, c)) return false;
     } else {
-      c = colors::Get(value.string);  // papel de colors.json
+      c = colors::Get(value.string);
     }
     out = {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f};
     return true;
@@ -50,7 +50,7 @@ bool ToVec3(const json::Value& value, math::Vec3& out) {
   return true;
 }
 
-}  // namespace
+}
 
 bool Load(const std::string& name, const std::string& path) {
   json::Value root;
@@ -120,4 +120,4 @@ SDL_FColor Color(const json::Value& object, const std::string& key, const SDL_FC
   return v != nullptr && ToColor(*v, out) ? out : fallback;
 }
 
-}  // namespace config
+}

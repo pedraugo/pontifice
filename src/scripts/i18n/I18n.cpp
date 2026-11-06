@@ -10,12 +10,11 @@ namespace i18n {
 
 namespace {
 
-// chave -> (idioma -> texto). Preenchido por Load e só lido depois.
+// key -> (language code -> text).
 std::unordered_map<std::string, std::unordered_map<std::string, std::string>> g_strings;
 std::vector<Language> g_languages;
 std::string g_language = kDefaultLanguage;
 
-// Texto da chave no idioma `code`, ou nullptr se não existe.
 const std::string* Lookup(const std::string& key, const std::string& code) {
   const auto entry = g_strings.find(key);
   if (entry == g_strings.end()) return nullptr;
@@ -23,7 +22,7 @@ const std::string* Lookup(const std::string& key, const std::string& code) {
   return text == entry->second.end() ? nullptr : &text->second;
 }
 
-}  // namespace
+}
 
 bool Load(const std::string& path) {
   json::Value root;
@@ -83,4 +82,4 @@ std::string Format(const std::string& key, std::initializer_list<std::string> ar
   return text;
 }
 
-}  // namespace i18n
+}

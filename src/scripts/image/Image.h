@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-// Imagem RGBA8 em memória, decodificada de WebP (libwebp) ou PNG/JPEG (stb_image).
+// RGBA8 in memory, decoded from WebP (libwebp) or PNG/JPEG (stb_image)
 struct Image {
   int width = 0;
   int height = 0;
@@ -14,7 +14,5 @@ struct Image {
 
   static Image LoadFile(const std::string& path);
   static Image LoadMemory(const uint8_t* data, size_t size);
-  // Cópia reduzida por um fator inteiro (média de blocos factor x factor). Para texturas que
-  // só aparecem pequenas na tela, poupa memória e tempo de envio.
-  Image Downscaled(int factor) const;
+  Image Downscaled(int factor) const;  // box average of factor x factor blocks
 };

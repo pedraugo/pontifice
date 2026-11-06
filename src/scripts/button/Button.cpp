@@ -17,7 +17,7 @@ void StrokeRect(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c, int thickne
   }
 }
 
-}  // namespace
+}
 
 Button::Button(std::string label, Action action)
     : label_(std::move(label)), action_(std::move(action)) {}
@@ -58,13 +58,12 @@ void Button::Render(SDL_Renderer* r) const {
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
-  // Placa: destaque (hover/foco) clareia a borda, pressionado escurece o fundo; foco de
-  // teclado ganha ainda um traço fino em volta do fundo.
   const frame::State state = pressed_                 ? frame::State::kPressed
                              : (hovered_ || focused_) ? frame::State::kHighlight
                                                       : frame::State::kNormal;
   frame::Draw(r, rect_, danger_ ? frame::Kind::kButtonDanger : frame::Kind::kButton, state);
   if (focused_) {
+    // Keyboard focus adds a thin stroke around the fill.
     StrokeRect(r, frame::Inner(rect_), colors::Get("button.focusBorder"), kBorderThin);
   }
   RenderContent(r);

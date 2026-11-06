@@ -11,34 +11,28 @@
 
 namespace {
 
-// Áreas da moldura (px em kWidth x kHeight; ver docs/detalhes_tecnicos.md, "Frente da carta"),
-// medidas nas molduras CardFront*.webp: a faixa de ATK/DEF é alta (quase 100 px) para os
-// números saírem grandes, e a área branca da descrição vai até perto da base.
-constexpr float kNameTop = 58.0f, kNameBottom = 114.0f;      // faixa do topo
-constexpr float kStatsTop = 592.0f, kStatsBottom = 688.0f;   // faixa abaixo da imagem
-constexpr float kDescTop = 712.0f, kDescBottom = 1056.0f;    // área branca de baixo
+// Bands measured on CardFront*.webp (kWidth x kHeight px): name, ATK/DEF, description.
+constexpr float kNameTop = 58.0f, kNameBottom = 114.0f;
+constexpr float kStatsTop = 592.0f, kStatsBottom = 688.0f;
+constexpr float kDescTop = 712.0f, kDescBottom = 1056.0f;
 constexpr float kLeft = 70.0f, kRight = 730.0f;
 constexpr float kNamePx = 56.0f;
-constexpr float kStatsPx = 76.0f;  // ATK/DEF (BUFF/NERF): ~80% da altura da faixa
+constexpr float kStatsPx = 76.0f;
 constexpr float kDescPx = 40.0f;
 constexpr float kDescLine = 50.0f;
 
-// Nome, hierarquia e ATK/DEF: brancos com contorno escuro e sombra (ficam sobre faixas
-// coloridas). Descrição: preta lisa, sobre a área branca.
 constexpr SDL_Color kWhite{255, 255, 255, 255};
 constexpr SDL_Color kOutline{12, 12, 16, 255};
 constexpr SDL_Color kShadow{0, 0, 0, 150};
 constexpr SDL_Color kInk{20, 20, 24, 255};
 
-// Centraliza na caixa vertical [top, bottom] com `px` de em.
 float CenteredTop(float top, float bottom, float px) { return (top + bottom) / 2.0f - px / 2.0f; }
 
 void Label(Image& img, const std::string& s, float x, float y, float px) {
   const char* str = s.c_str();
-  const float t = SDL_max(1.5f, px * 0.055f);   // espessura do contorno
+  const float t = SDL_max(1.5f, px * 0.055f);  // outline thickness
   const float shadow = SDL_max(2.0f, px * 0.08f);
   text::DrawOnImage(img, str, x + shadow, y + shadow, px, kShadow);
-  // Contorno: o texto em escuro nas 8 direções em volta.
   for (int dy = -1; dy <= 1; ++dy) {
     for (int dx = -1; dx <= 1; ++dx) {
       if (dx == 0 && dy == 0) continue;
@@ -48,8 +42,6 @@ void Label(Image& img, const std::string& s, float x, float y, float px) {
   text::DrawOnImage(img, str, x, y, px, kWhite);
 }
 
-// Quebra em linhas que cabem em `max_width` na fonte `face` (por palavras; palavra maior que a
-// linha fica só).
 std::vector<std::string> Wrap(const std::string& textstr, float px, float max_width,
                               text::Face face) {
   std::vector<std::string> lines;
@@ -81,17 +73,16 @@ std::vector<std::string> Wrap(const std::string& textstr, float px, float max_wi
   return lines;
 }
 
-}  // namespace
+}
 
 namespace cardface {
 
 Image FitArt(const Image& source) {
   if (!source.Valid()) return Image{};
-  // Escala de "cobrir" a janela; reduções grandes passam antes por média de blocos (sem
-  // serrilhado), e o resto é amostragem bilinear.
   Image src = source;
   float scale = SDL_max(static_cast<float>(kArtWidth) / src.width,
                         static_cast<float>(kArtHeight) / src.height);
+  // Cover scale; large reductions are box-averaged first, the rest is bilinear.
   const int factor = static_cast<int>(1.0f / scale);
   if (factor >= 2) {
     src = src.Downscaled(factor);
@@ -102,8 +93,7 @@ Image FitArt(const Image& source) {
   out.width = kArtWidth;
   out.height = kArtHeight;
   out.rgba.resize(static_cast<size_t>(kArtWidth) * kArtHeight * 4);
-  // Atalho: já no tamanho da janela (as ilustrações de 1340x900 ficam 670x450 depois da
-  // redução 2x), só recorta o excesso, centrado, sem amostragem por pixel.
+  // Shortcut: already window-sized (1340x900 art becomes 670x450), just crop centered.
   if (scale > 0.99f && scale < 1.01f && src.width >= kArtWidth && src.height >= kArtHeight) {
     const int cx0 = (src.width - kArtWidth) / 2, cy0 = (src.height - kArtHeight) / 2;
     for (int y = 0; y < kArtHeight; ++y) {
@@ -115,7 +105,7 @@ Image FitArt(const Image& source) {
     for (size_t i = 3; i < out.rgba.size(); i += 4) out.rgba[i] = 255;
     return out;
   }
-  const float ox = (src.width - kArtWidth / scale) * 0.5f;  // corte centrado
+  const float ox = (src.width - kArtWidth / scale) * 0.5f;
   const float oy = (src.height - kArtHeight / scale) * 0.5f;
   auto at = [&src](int x, int y, int c) {
     x = SDL_clamp(x, 0, src.width - 1);
@@ -145,7 +135,7 @@ Image FitArt(const Image& source) {
 namespace {
 Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
                   const std::string* stats_left, const std::string* stats_right);
-}  // namespace
+}
 
 Image Compose(const Image& frame, const CardInfo& card, const Image* art) {
   return ComposeWith(frame, card, art, nullptr, nullptr);
@@ -155,7 +145,7 @@ Image ComposeHidden(const Image& frame) {
   CardInfo hidden;
   hidden.name = "?";
   hidden.description = "?";
-  hidden.hierarchy = 0;  // sem número de hierarquia
+  hidden.hierarchy = 0;
   hidden.category = 'N';
   const std::string left = i18n::Get("cardface.atk") + " ?";
   const std::string right = i18n::Get("cardface.def") + " ?";
@@ -163,17 +153,15 @@ Image ComposeHidden(const Image& frame) {
 }
 
 namespace {
-// Compose com os textos de ATK/DEF opcionalmente substituídos (frente oculta).
 Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
                   const std::string* stats_left, const std::string* stats_right) {
   Image img = frame;
   if (!img.Valid()) return img;
-  const float sx = static_cast<float>(img.width) / kWidth;  // tolera moldura em outra escala
+  const float sx = static_cast<float>(img.width) / kWidth;  // tolerates a frame at another scale
   const float sy = static_cast<float>(img.height) / kHeight;
   const float cx = img.width / 2.0f;
 
-  // Ilustração na janela da imagem (opaca, substitui o branco da moldura). Com a moldura em
-  // outra escala, amostra pelo vizinho mais próximo.
+  // Art replaces the frame's white window; nearest-neighbor if the scales differ.
   if (art != nullptr && art->Valid()) {
     const int left = static_cast<int>(kArtLeft * sx), top = static_cast<int>(kArtTop * sy);
     const int w = static_cast<int>(kArtWidth * sx), h = static_cast<int>(kArtHeight * sy);
@@ -191,8 +179,6 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     }
   }
 
-  // Faixa do topo: nome alinhado à esquerda e número da hierarquia à direita (cartas de
-  // campo não têm hierarquia).
   {
     const float px = kNamePx * sy;
     const float y = CenteredTop(kNameTop * sy, kNameBottom * sy, px);
@@ -203,7 +189,6 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     }
   }
 
-  // Abaixo da imagem: ataque à esquerda e defesa à direita; carta de campo mostra buff/nerf.
   {
     const float px = kStatsPx * sy;
     const float y = CenteredTop(kStatsTop * sy, kStatsBottom * sy, px);
@@ -222,8 +207,6 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     Label(img, right, kRight * sx - text::ImageWidth(right.c_str(), px), y, px);
   }
 
-  // Descrição na área branca de baixo, com quebra de linha e centralizada, na fonte de corpo
-  // (Newsreader).
   {
     const float px = kDescPx * sy;
     const float line_h = kDescLine * sy;
@@ -244,6 +227,6 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
   }
   return img;
 }
-}  // namespace
+}
 
-}  // namespace cardface
+}

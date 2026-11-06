@@ -9,7 +9,7 @@ namespace colors {
 
 namespace {
 
-constexpr SDL_Color kMissing{255, 0, 255, 255};  // magenta: papel sem cor definida
+constexpr SDL_Color kMissing{255, 0, 255, 255};
 
 std::unordered_map<std::string, SDL_Color>& Table() {
   static std::unordered_map<std::string, SDL_Color> table;
@@ -28,7 +28,6 @@ int HexDigit(char c) {
   return -1;
 }
 
-// Guarda cada string "#..." de um objeto como "prefixo.chave". Objetos aninhados recursam.
 void Collect(const json::Value& node, const std::string& prefix, const std::string& file) {
   for (const auto& [key, value] : node.object) {
     const std::string name = prefix.empty() ? key : prefix + "." + key;
@@ -46,11 +45,11 @@ void Collect(const json::Value& node, const std::string& prefix, const std::stri
   }
 }
 
-}  // namespace
+}
 
 bool ParseHex(const std::string& hex, SDL_Color& out) {
   if ((hex.size() != 7 && hex.size() != 9) || hex[0] != '#') return false;
-  int digits[8] = {0, 0, 0, 0, 0, 0, 15, 15};  // alpha padrão ff
+  int digits[8] = {0, 0, 0, 0, 0, 0, 15, 15};  // Alpha defaults to ff.
   for (size_t i = 1; i < hex.size(); ++i) {
     digits[i - 1] = HexDigit(hex[i]);
     if (digits[i - 1] < 0) return false;
@@ -84,4 +83,4 @@ SDL_FColor GetF(const std::string& role) {
   return {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f};
 }
 
-}  // namespace colors
+}

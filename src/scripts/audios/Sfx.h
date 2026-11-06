@@ -6,21 +6,19 @@
 #include <unordered_map>
 #include <vector>
 
-#include "scripts/sounds/Clip.h"
+#include "scripts/audios/Clip.h"
 
-// Short one-shot sounds: sword hits, shield blocks, card placement and the like. Each Play
-// gets its own stream, so several effects overlap. Call Update once per frame to release
-// the streams that finished.
-class Effect {
+// Short one-shot sounds; each Play gets its own stream, so effects overlap.
+class Sfx {
  public:
-  Effect() = default;
-  ~Effect();
-  Effect(const Effect&) = delete;
-  Effect& operator=(const Effect&) = delete;
+  Sfx() = default;
+  ~Sfx();
+  Sfx(const Sfx&) = delete;
+  Sfx& operator=(const Sfx&) = delete;
 
-  // Loads and caches sounds/<file> under `name`; false if the file does not decode.
   bool Load(const std::string& name, const std::string& path);
   bool Play(const std::string& name, float gain = 1.0f);
+  // Call once per frame to release finished streams.
   void Update();
   void StopAll();
 
@@ -30,7 +28,7 @@ class Effect {
   bool Muted() const { return muted_; }
 
  private:
-  std::unordered_map<std::string, sounds::Clip> clips_;
+  std::unordered_map<std::string, audios::Clip> clips_;
   std::vector<SDL_AudioStream*> playing_;
   float volume_ = 1.0f;
   bool muted_ = false;

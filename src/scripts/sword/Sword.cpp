@@ -10,11 +10,11 @@ float SmoothStep(float t) {
   return t * t * (3.0f - 2.0f * t);
 }
 
-}  // namespace
+}
 
+// 6 faces, 4 vertices each, UV (0,0)-(1,1); normals come from derivatives in the shader
 void Sword::Box(std::vector<Vertex>& v, std::vector<Uint32>& idx, float x0, float y0, float z0,
                 float x1, float y1, float z1) {
-  // 6 faces, 4 vértices cada, UV (0,0)-(1,1); normal vem das derivadas no shader.
   const float xs[2] = {x0, x1}, ys[2] = {y0, y1}, zs[2] = {z0, z1};
   auto face = [&](math::Vec3 a, math::Vec3 b, math::Vec3 c, math::Vec3 d) {
     const Uint32 base = static_cast<Uint32>(v.size());
@@ -33,7 +33,6 @@ void Sword::Box(std::vector<Vertex>& v, std::vector<Uint32>& idx, float x0, floa
 }
 
 bool Sword::Init(Gpu& gpu) {
-  // Espada com a lâmina ao longo de +y a partir da guarda (y = 0); cabo para -y.
   struct Spec {
     float x0, y0, z0, x1, y1, z1;
     SDL_FColor color;
@@ -41,12 +40,13 @@ bool Sword::Init(Gpu& gpu) {
   const SDL_FColor steel{0.86f, 0.89f, 0.96f, 1.0f};
   const SDL_FColor gold{0.82f, 0.66f, 0.28f, 1.0f};
   const SDL_FColor leather{0.30f, 0.18f, 0.10f, 1.0f};
+  // Blade, tip, guard, grip, pommel; blade runs along +y from the guard (y = 0), grip toward -y
   const Spec specs[] = {
-      {-0.07f, 0.0f, -0.018f, 0.07f, 1.35f, 0.018f, steel},    // lâmina
-      {-0.045f, 1.35f, -0.012f, 0.045f, 1.6f, 0.012f, steel},  // ponta (mais estreita)
-      {-0.30f, -0.04f, -0.05f, 0.30f, 0.04f, 0.05f, gold},     // guarda
-      {-0.045f, -0.40f, -0.045f, 0.045f, -0.04f, 0.045f, leather},  // cabo
-      {-0.08f, -0.52f, -0.08f, 0.08f, -0.40f, 0.08f, gold},    // pomo
+      {-0.07f, 0.0f, -0.018f, 0.07f, 1.35f, 0.018f, steel},
+      {-0.045f, 1.35f, -0.012f, 0.045f, 1.6f, 0.012f, steel},
+      {-0.30f, -0.04f, -0.05f, 0.30f, 0.04f, 0.05f, gold},
+      {-0.045f, -0.40f, -0.045f, 0.045f, -0.04f, 0.045f, leather},
+      {-0.08f, -0.52f, -0.08f, 0.08f, -0.40f, 0.08f, gold},
   };
   for (const Spec& s : specs) {
     std::vector<Vertex> v;
@@ -58,7 +58,6 @@ bool Sword::Init(Gpu& gpu) {
     if (part.mesh.index_count == 0) return false;
     parts_.push_back(part);
   }
-  // Rastro: quad horizontal de 1 x 1 em y = 0, centrado.
   slash_ = gpu.CreateMesh({{-0.5f, 0, -0.5f, 0, 0},
                            {0.5f, 0, -0.5f, 1, 0},
                            {0.5f, 0, 0.5f, 1, 1},
@@ -76,7 +75,7 @@ void Sword::Destroy(Gpu& gpu) {
 void Sword::Play(const math::Vec3& target, const math::Vec3& from) {
   target_ = target;
   const math::Vec3 d = target - from;
-  yaw_ = std::atan2(d.x, d.z);  // RotateY(yaw) leva +z local para a direção do golpe
+  yaw_ = std::atan2(d.x, d.z);  // RotateY(yaw) points local +z along the strike
   time_ = 0.0f;
 }
 
@@ -87,14 +86,11 @@ void Sword::Update(float dt) {
 void Sword::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (!Active()) return;
   const float t = time_ / layout_.seconds;
-  // Golpe: ângulo vai de erguido-para-trás a cravado-na-carta até swing_end; depois a espada
-  // some (encolhe) rapidamente.
   const float swing = SmoothStep(t / layout_.swing_end);
   const float angle = math::Lerp(layout_.angle_start, layout_.angle_end, swing);
   const float fade = t <= layout_.swing_end
                          ? 1.0f
                          : 1.0f - SmoothStep((t - layout_.swing_end) / (1.0f - layout_.swing_end));
-  // Punho: acima do alvo, recuado para o atacante; desce um pouco junto com o golpe.
   const float drop = 0.35f * swing;
   const math::Mat4 world =
       math::Mat4::Translate({target_.x, target_.y + layout_.pivot_height - drop, target_.z}) *
@@ -103,7 +99,6 @@ void Sword::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   for (const Part& part : parts_) {
     gpu.Draw(part.mesh, nullptr, world, view_proj, part.color, Gpu::DrawMode::kMesh);
   }
-  // Rastro de corte a partir do impacto: cresce rápido na diagonal e se apaga.
   const float since_hit = time_ - layout_.seconds * layout_.swing_end;
   if (since_hit >= 0.0f && since_hit < layout_.slash_seconds) {
     const float s = since_hit / layout_.slash_seconds;

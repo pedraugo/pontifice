@@ -19,4 +19,4 @@ std::optional<std::string> Deck::Draw() {
   return top;
 }
 
-}  // namespace deck
+}

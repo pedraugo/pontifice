@@ -4,18 +4,16 @@
 
 #include <string>
 
-// Paleta do jogo, lida de assets/colors.json (cores extraídas do ícone). Cada cor é pedida
-// pelo papel que cumpre ("panel.fill", "text.primary", "status.buff"), nunca pelo tom.
-// Sem o arquivo, ou para um papel desconhecido, devolve magenta e avisa no log uma vez.
 namespace colors {
 
-// Carrega "roles.*.*" e "palette.*" do arquivo. Pode ser chamado de novo para recarregar.
+// Loads "roles.*" (flattened, no prefix) and "palette.*"; call again to reload.
 bool Load(const std::string& path);
 
+// By role ("panel.fill", "text.primary"), never by hue; unknown role is magenta, logged once.
 SDL_Color Get(const std::string& role);
 SDL_FColor GetF(const std::string& role);
 
-// "#rrggbb" ou "#rrggbbaa". Retorna false se o texto não tem esse formato.
+// "#rrggbb" or "#rrggbbaa".
 bool ParseHex(const std::string& hex, SDL_Color& out);
 
-}  // namespace colors
+}

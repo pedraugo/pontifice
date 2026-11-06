@@ -9,8 +9,7 @@
 
 namespace {
 
-// Grade de 16 px: janela de no mínimo 48 x 16 células, margem interna de 3 células, botões
-// de 14 x 5 células nos cantos de baixo.
+// Window at least 48 x 16 grid cells, 3-cell padding, 14 x 5 buttons in the bottom corners.
 constexpr float kMinWidth = ui::Grid(48);
 constexpr float kHeight = ui::Grid(16);
 constexpr float kPadding = ui::Grid(3);
@@ -18,7 +17,7 @@ constexpr float kButtonWidth = ui::Grid(14);
 constexpr float kButtonHeight = ui::Grid(5);
 constexpr float kQuestionScale = 2.5f * ui::kScale;
 
-}  // namespace
+}
 
 ConfirmDialog::ConfirmDialog() : no_(""), yes_("") {}
 
@@ -29,7 +28,6 @@ void ConfirmDialog::Open(const std::string& question, const std::string& no_labe
   no_.SetLabel(no_label);
   yes_.SetLabel(yes_label);
   yes_.SetDanger(yes_danger);
-  // Largura pela pergunta (nunca menor que kMinWidth), centralizada na tela.
   const float text_w = text::Width(question_.c_str(), kQuestionScale);
   const float w = std::max(kMinWidth, ui::SnapUp(text_w + 2 * kPadding));
   panel_ = SDL_FRect{(width - w) / 2.0f, (height - kHeight) / 2.0f, w, kHeight};
@@ -37,6 +35,7 @@ void ConfirmDialog::Open(const std::string& question, const std::string& no_labe
   no_.SetRect(SDL_FRect{panel_.x + kPadding, button_y, kButtonWidth, kButtonHeight});
   yes_.SetRect(SDL_FRect{panel_.x + panel_.w - kPadding - kButtonWidth, button_y, kButtonWidth,
                          kButtonHeight});
+  // Focus starts on No, the safe answer.
   SetFocus(0);
   open_ = true;
 }
@@ -81,14 +80,12 @@ void ConfirmDialog::Render(SDL_Renderer* r, int width, int height) const {
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
-  // Véu sobre a batalha congelada.
   SDL_Color c = colors::Get("background.overlay");
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
   SDL_RenderFillRect(r, &full);
 
   frame::Draw(r, panel_, frame::Kind::kWindow);
-  // Pergunta centrada no espaço acima dos botões.
   const float top = panel_.y + kPadding;
   const float bottom = panel_.y + panel_.h - kPadding - kButtonHeight;
   const float question_y = (top + bottom) / 2.0f;

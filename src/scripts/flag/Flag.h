@@ -4,19 +4,14 @@
 
 #include <string>
 
-// Bandeiras desenhadas com primitivas do renderer (sem sprite), para a cena de idioma
-// (docs/idioma.md): Estados Unidos (inglês), Espanha (espanhol) e Brasil (português).
-// Simplificadas para ler bem em ~48 px de altura: sem brasão na espanhola e sem a faixa
-// "Ordem e Progresso" na brasileira; as estrelas da americana viram uma grade de pontos.
 namespace flag {
 
+// Simplified to read at ~48 px: no coat of arms, no motto band, stars as a dot grid.
 enum class Country { kUnitedStates, kSpain, kBrazil };
 
-// Código de translate.json ("us", "es", "br"); desconhecido vira Brasil.
-Country FromCode(const std::string& code);
+Country FromCode(const std::string& code);  // translate.json codes; unknown -> Brazil
 
-// Desenha a bandeira ocupando `rect` (proporção ideal 3:2), com borda escura fina.
-// `saturation`: 1 = cores reais; 0 = preto e branco (cena de idioma sem hover/foco).
+// Ideal aspect 3:2. saturation 1 = real colors, 0 = black and white.
 void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect, float saturation = 1.0f);
 
-}  // namespace flag
+}

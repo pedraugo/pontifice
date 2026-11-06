@@ -7,11 +7,6 @@
 
 struct SceneContext;
 
-// Botão com placa da interface (scripts/frame/Frame.*: fundo escuro, borda clara e outline) e
-// rótulo centrado; ao clicar, chama a ação da cena (ex.: "Passar turno", Não/Sim do diálogo).
-// Categorias: normal e perigo (SetDanger: fundo vermelho, para Sair e confirmar abandono).
-// Os outros dois tipos derivam dele: ButtonText (só texto, sem placa: menu e idiomas) e
-// ButtonIcon (placa com ícone: som e dica). Estados (hover, foco, pressionado) em docs/menu.md.
 class Button {
  public:
   using Action = std::function<void(SceneContext&)>;
@@ -21,27 +16,18 @@ class Button {
   void SetRect(const SDL_FRect& rect) { rect_ = rect; }
   void SetLabel(std::string label) { label_ = std::move(label); }
   void SetFocused(bool focused) { focused_ = focused; }
-  // Ação destrutiva (Sair, confirmar abandono): placa de fundo vermelho escuro
-  // (frame::Kind::kButtonDanger).
-  void SetDanger(bool danger) { danger_ = danger; }
-  // Largura do rótulo na escala do botão (para dimensionar botões só de texto).
+  void SetDanger(bool danger) { danger_ = danger; }  // red plate for destructive actions
   float LabelWidth() const;
 
-  // Retorna true quando um clique completo (pressionar e soltar dentro) acontece.
-  bool HandleEvent(const SDL_Event& event);
-  // Placa e, por cima, RenderContent. Subclasses sem placa (ButtonText) sobrescrevem e
-  // desenham só o conteúdo.
+  bool HandleEvent(const SDL_Event& event);  // true on press and release inside
   virtual void Render(SDL_Renderer* r) const;
 
-  // Chama a ação (se houver). A cena chama depois de HandleEvent ou pelo teclado.
-  virtual void OnClick(SceneContext& ctx);
+  virtual void OnClick(SceneContext& ctx);  // scene calls it after a click or by keyboard
 
   bool Contains(float x, float y) const;
   const SDL_FRect& Rect() const { return rect_; }
 
  protected:
-  // Conteúdo sobre a placa: por padrão o rótulo centralizado. Subclasses podem desenhar
-  // algo a mais.
   virtual void RenderContent(SDL_Renderer* r) const;
   const std::string& Label() const { return label_; }
   bool Highlighted() const { return hovered_ || focused_ || pressed_; }

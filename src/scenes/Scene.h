@@ -5,7 +5,7 @@
 #include <memory>
 #include <optional>
 
-class Soundtrack;
+class Music;
 
 enum class SceneId { kLanguage, kMenu, kLoading, kBattle };
 constexpr int kDefaultDifficulty = 1;
@@ -21,7 +21,7 @@ struct PreloadInfo {
 
 struct SceneContext {
   SDL_Renderer* renderer = nullptr;
-  Soundtrack* soundtrack = nullptr;
+  Music* music = nullptr;
   SDL_GPUDevice* gpu_device = nullptr;
   int logical_width = 0;
   int logical_height = 0;

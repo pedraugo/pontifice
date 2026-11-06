@@ -8,33 +8,24 @@
 #include "scripts/math/Math.h"
 #include "scripts/model/Model.h"
 
-// Tocha (models/Torch.glb, gerada por tools/make_torch.py): corpo iluminado normalmente e
-// chama procedural no shader (Gpu::DrawMode::kFlame) num quad que fica sempre na vertical e
-// virado para a câmera, mais um halo maior e translúcido. É a fonte de luz das cenas:
-// FlamePosition dá onde colocar a luz pontual para uma dada matriz de mundo.
 class Torch {
  public:
-  // Medidas do modelo (mesmas de tools/make_torch.py).
+  // Model measurements, same as tools/make_torch.py
   static constexpr float kFlameBaseY = 0.82f;
   static constexpr float kFlameCenterY = 1.04f;
-  // Cor da luz que a tocha lança nas cenas (Atmosphere::light_color), de assets/Light.json
-  // (torch.color): amarelo-branco, como a chama perto do núcleo. O halo usa a mesma cor.
   static SDL_FColor LightColor();
 
   bool LoadGlb(Gpu& gpu, const std::string& path) { return model_.LoadGlb(gpu, path); }
   bool Upload(Gpu& gpu, Model::Data&& data) { return model_.Upload(gpu, std::move(data)); }
 
-  // Corpo (opaco) e chama (transparente) separados: a cena desenha o corpo antes das camadas
-  // de névoa e a chama depois delas, senão o quad da chama, que escreve profundidade, abre um
-  // buraco retangular na névoa atrás dele. camera_pos orienta o quad (billboard em torno de y).
+  // Body and flame are split: draw the body before mist layers and the flame after them
   void DrawBody(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj) const;
-  void DrawBodyDepth(Gpu& gpu, const math::Mat4& world) const;  // passe de sombra (sem chama)
-  // ignite: 0 = apagada, 1 = chama inteira (cresce a partir da base, como ao acender).
+  void DrawBodyDepth(Gpu& gpu, const math::Mat4& world) const;
+  // Billboard around y toward camera_pos; ignite 0 = out, 1 = full flame grown from the base
   void DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj,
                  const math::Vec3& camera_pos, float ignite = 1.0f) const;
 
-  // Centro da chama no mundo: a chama sobe na vertical a partir da base, mesmo com a tocha
-  // inclinada, então o centro fica acima da base e não ao longo do cabo.
+  // Flame center in world space: the flame rises vertically even when the torch is tilted
   static math::Vec3 FlamePosition(const math::Mat4& world) {
     const math::Vec3 base = world.TransformPoint({0.0f, kFlameBaseY, 0.0f});
     return base + math::Vec3{0.0f, (kFlameCenterY - kFlameBaseY) * Scale(world), 0.0f};

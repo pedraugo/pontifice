@@ -7,7 +7,7 @@
 #include "scripts/button/ButtonText.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/i18n/I18n.h"
-#include "scripts/sounds/Soundtrack.h"
+#include "scripts/audios/Music.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -106,7 +106,7 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 
   if (sound_button_.HandleEvent(event)) {
-    if (ctx.soundtrack != nullptr) ctx.soundtrack->ToggleMuted();
+    if (ctx.music != nullptr) ctx.music->ToggleMuted();
     return;
   }
   for (size_t i = 0; i < buttons_.size(); ++i) {
@@ -131,7 +131,7 @@ void MenuScene::Render(SceneContext& ctx) {
                      colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
-  sound_button_.SetActive(ctx.soundtrack == nullptr || !ctx.soundtrack->Muted());
+  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,

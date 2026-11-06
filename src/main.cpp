@@ -14,7 +14,7 @@
 #include "scripts/config/Config.h"
 #include "scripts/image/Image.h"
 #include "scripts/i18n/I18n.h"
-#include "scripts/sounds/Soundtrack.h"
+#include "scripts/audios/Music.h"
 #include "scripts/text/Text.h"
 
 namespace {
@@ -172,9 +172,9 @@ int main(int /*argc*/, char** /*argv*/) {
   // Shutdown(), que destrói o renderer, o device e encerra o SDL.
   {
   // Trilha sonora (assets/ost.json) toca em loop durante todo o jogo, em qualquer cena.
-  Soundtrack soundtrack;
-  soundtrack.Init(base);
-  ctx.soundtrack = &soundtrack;  // vive até o fim deste bloco, depois das cenas
+  Music music;
+  music.Init(base);
+  ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
   SceneManager scenes(std::move(ctx));
 
   // Depuração: PONTIFICE_SCENE=menu abre direto no menu (pulando a escolha de idioma),

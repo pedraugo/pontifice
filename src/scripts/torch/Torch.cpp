@@ -21,20 +21,16 @@ void Torch::DrawBodyDepth(Gpu& gpu, const math::Mat4& world) const {
 void Torch::DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_proj,
                       const math::Vec3& camera_pos, float ignite) const {
   if (ignite <= 0.0f) return;
-  // Chama: parte da base no mundo, sobe na vertical (ignora a inclinação do cabo), encara a
-  // câmera girando em torno de y e tremula de leve em tamanho. O shader faz o resto.
   const float t =
       static_cast<float>(std::fmod(static_cast<double>(SDL_GetTicksNS()) * 1e-9, 3600.0));
   const math::Vec3 base = world.TransformPoint({0.0f, kFlameBaseY, 0.0f});
   const float s = Scale(world);
   const float yaw = std::atan2(camera_pos.x - base.x, camera_pos.z - base.z);
-  // Ao acender, a chama cresce da base (altura e largura) e vai ficando opaca.
-  const float grow = 0.25f + 0.75f * ignite;
+  const float grow = 0.25f + 0.75f * ignite;  // grows from the base while igniting
   const float sy = grow * (1.0f + 0.06f * std::sin(t * 13.0f) + 0.04f * std::sin(t * 7.3f + 1.0f));
   const float sx = grow * (1.0f + 0.04f * std::sin(t * 9.1f + 2.0f));
-  // O quad escreve profundidade: o halo fica um pouco atrás da chama (ao longo da normal, que
-  // aponta para a câmera) e é desenhado antes, senão um dos dois perde o teste de profundidade.
   const math::Vec3 normal{std::sin(yaw), 0.0f, std::cos(yaw)};
+  // The quad writes depth: the glow sits slightly behind the flame and is drawn first
   auto flame_matrix = [&](float wx, float wy, float back) {
     return math::Mat4::Translate(base - normal * (back * s)) * math::Mat4::RotateY(yaw) *
            math::Mat4::Scale({s * sx * wx, s * sy * wy, s}) *
@@ -44,7 +40,6 @@ void Torch::DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_
   const float glow_alpha = config::Float("light", "torch.glowAlpha", 0.22f);
   for (const Model::Part& part : model_.Parts()) {
     if (part.name != "Flame") continue;
-    // Halo: a mesma chama, maior e bem translúcida, dá o brilho difuso em volta.
     gpu.Draw(part.mesh, nullptr, flame_matrix(2.1f, 1.3f, 0.04f), view_proj,
              SDL_FColor{light.r, light.g, light.b, glow_alpha * ignite},
              Gpu::DrawMode::kFlameGlow);

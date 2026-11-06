@@ -12,7 +12,7 @@
 
 namespace {
 
-// Fonte MSL embutida: o Metal compila em tempo de execução, sem ferramenta externa.
+// Embedded MSL source; Metal compiles it at runtime, no offline tool needed
 const unsigned char kMslSource[] = {
 #include "scripts/gpu/card_metal.inc"
 };
@@ -33,7 +33,7 @@ Uint32 MipLevels(int w, int h) {
   return levels;
 }
 
-}  // namespace
+}
 
 Gpu::~Gpu() {
   if (device_ == nullptr) return;
@@ -70,8 +70,6 @@ bool Gpu::EnsureTarget() {
     SDL_Log("Gpu sem renderer: chame SetRenderer antes de BeginFrame");
     return false;
   }
-  // Textura alvo: criada pelo renderer para poder ser desenhada com SDL_RenderTexture,
-  // e acessada aqui como SDL_GPUTexture para servir de color target.
   target_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, width_,
                               height_);
   if (target_ == nullptr) {
@@ -93,7 +91,6 @@ bool Gpu::InitDevice(SDL_GPUDevice* device, int width, int height,
   device_ = device;
   width_ = width;
   height_ = height;
-  // Mesmo formato da textura alvo criada em EnsureTarget.
   const SDL_GPUTextureFormat color_format =
       SDL_GetGPUTextureFormatFromPixelFormat(SDL_PIXELFORMAT_RGBA32);
 
@@ -121,7 +118,7 @@ bool Gpu::InitDevice(SDL_GPUDevice* device, int width, int height,
   SDL_GPUShader* vs = LoadShader(SDL_GPU_SHADERSTAGE_VERTEX, shader_dir, "vs_main",
                                  "card.vert.spv", 0);
   SDL_GPUShader* fs = LoadShader(SDL_GPU_SHADERSTAGE_FRAGMENT, shader_dir, "fs_main",
-                                 "card.frag.spv", 4);  // textura, normal map, 2 shadow maps
+                                 "card.frag.spv", 4);
   if (vs == nullptr || fs == nullptr) return false;
 
   SDL_GPUVertexBufferDescription vb_desc{};
@@ -215,7 +212,6 @@ bool Gpu::InitDevice(SDL_GPUDevice* device, int width, int height,
 
 bool Gpu::InitShadows(const std::string& shader_dir,
                       const SDL_GPUVertexInputState& vertex_input) {
-  // Mapa de profundidade amostrável: D32 float (precisão para a perspectiva ampla da luz).
   const SDL_GPUTextureFormat format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
   const SDL_GPUTextureUsageFlags usage =
       SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
@@ -234,8 +230,6 @@ bool Gpu::InitShadows(const std::string& shader_dir,
     t = SDL_CreateGPUTexture(device_, &info);
     if (t == nullptr) return false;
   }
-  // Sampler de comparação: devolve 1 onde a profundidade de referência <= a do mapa (iluminado);
-  // o filtro linear dá PCF por hardware em cada amostra.
   SDL_GPUSamplerCreateInfo si{};
   si.min_filter = SDL_GPU_FILTER_LINEAR;
   si.mag_filter = SDL_GPU_FILTER_LINEAR;
@@ -243,12 +237,12 @@ bool Gpu::InitShadows(const std::string& shader_dir,
   si.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
   si.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
   si.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+  // Compare sampler: 1 where ref depth <= map (lit); linear filter gives hardware PCF
   si.enable_compare = true;
   si.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
   shadow_sampler_ = SDL_CreateGPUSampler(device_, &si);
   if (shadow_sampler_ == nullptr) return false;
 
-  // Pipeline só de profundidade: mesmo vertex shader (mvp = matriz da luz), fragmento vazio.
   SDL_GPUShader* vs = LoadShader(SDL_GPU_SHADERSTAGE_VERTEX, shader_dir, "vs_main",
                                  "card.vert.spv", 0);
   SDL_GPUShader* fs = LoadShader(SDL_GPU_SHADERSTAGE_FRAGMENT, shader_dir, "fs_shadow",
@@ -291,7 +285,7 @@ SDL_GPUShader* Gpu::LoadShader(SDL_GPUShaderStage stage, const std::string& shad
   if (formats & SDL_GPU_SHADERFORMAT_MSL) {
     info.format = SDL_GPU_SHADERFORMAT_MSL;
     info.code = reinterpret_cast<const Uint8*>(kMslSource);
-    info.code_size = sizeof(kMslSource) - 1;  // sem o terminador nulo
+    info.code_size = sizeof(kMslSource) - 1;  // drop the null terminator
     info.entrypoint = entrypoint;
   } else if (formats & SDL_GPU_SHADERFORMAT_SPIRV) {
     const std::string path = shader_dir + "/" + spv_name;
@@ -371,7 +365,7 @@ SDL_GPUTexture* Gpu::CreateTexture(const Image& image) {
   info.type = SDL_GPU_TEXTURETYPE_2D;
   info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
   info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-  if (levels > 1) info.usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;  // exigido para gerar mips
+  if (levels > 1) info.usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;  // needed to generate mips
   info.width = w;
   info.height = h;
   info.layer_count_or_depth = 1;
@@ -463,15 +457,15 @@ void Gpu::EndShadowPass() {
 
 bool Gpu::BeginFrame(SDL_FColor clear) {
   if (!EnsureTarget()) return false;
-  // Garante que tudo que o renderer 2D enfileirou antes vai para a GPU antes do passe 3D.
+  // Push queued 2D renderer work to the GPU before the 3D pass
   SDL_FlushRenderer(renderer_);
 
-  if (cmd_ == nullptr) cmd_ = SDL_AcquireGPUCommandBuffer(device_);  // ou vem dos passes de sombra
+  if (cmd_ == nullptr) cmd_ = SDL_AcquireGPUCommandBuffer(device_);
   if (cmd_ == nullptr) {
     SDL_Log("SDL_AcquireGPUCommandBuffer: %s", SDL_GetError());
     return false;
   }
-  // Módulo de uma hora: mantém precisão de float para o ruído animado do shader.
+  // Wrap every hour to keep float precision for the shader's animated noise
   time_ = static_cast<float>(std::fmod(static_cast<double>(SDL_GetTicksNS()) * 1e-9, 3600.0));
 
   return BeginPass(SDL_GPU_LOADOP_CLEAR, clear);
@@ -514,7 +508,6 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
                SDL_GPUTexture* normal_map) {
   if (pass_ == nullptr || mesh.index_count == 0) return;
 
-  // Transparentes não escrevem profundidade (ver pipeline_transparent_).
   const bool opaque = mode == DrawMode::kMesh || mode == DrawMode::kFoil;
   SDL_GPUGraphicsPipeline* wanted = opaque ? pipeline_ : pipeline_transparent_;
   if (wanted != bound_pipeline_) {
@@ -529,9 +522,9 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
   } vu{view_proj * model, model, {light_vp_[0], light_vp_[1]}};
   SDL_PushGPUVertexUniformData(cmd_, 0, &vu, sizeof(vu));
 
-  // Mesma ordem de FragmentUniforms em card.metal / card.frag.glsl.
   const Atmosphere& a = atmosphere_;
   const math::Vec3 l = math::Normalize(a.light_dir);
+  // Same order as FragmentUniforms in card.metal / card.frag.glsl
   struct FragmentUniforms {
     float color[4];
     float params[4];
@@ -546,6 +539,7 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
     float resolution[4];
     float mist[4];
     float shadow[4];
+  // params = {texture mode (0 none, 1 texture, 2 + normal map), draw mode, time, vignette}
   } fu{{tint.r, tint.g, tint.b, tint.a},
        {texture == nullptr ? 0.0f : (normal_map != nullptr ? 2.0f : 1.0f),
         static_cast<float>(mode), time_, a.vignette},
@@ -563,8 +557,7 @@ void Gpu::Draw(const GpuMesh& mesh, SDL_GPUTexture* texture, const math::Mat4& m
         1.0f / static_cast<float>(shadow_size_), 0.0f}};
   SDL_PushGPUFragmentUniformData(cmd_, 0, &fu, sizeof(fu));
 
-  // Sem suporte a sombras, os slots 2 e 3 recebem a profundidade principal com o sampler
-  // comum só para manter a assinatura; o shader não os lê (strength = 0).
+  // Without shadow support slots 2-3 get placeholders; the shader ignores them (strength 0)
   SDL_GPUTextureSamplerBinding bindings[4] = {
       {texture != nullptr ? texture : white_, sampler_},
       {normal_map != nullptr ? normal_map : flat_normal_, sampler_},

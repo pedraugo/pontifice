@@ -9,7 +9,7 @@ namespace {
 
 SDL_FColor ToF(SDL_Color c) { return {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f}; }
 
-}  // namespace
+}
 
 void FillPolygon(SDL_Renderer* r, const SDL_FPoint* pts, int n, SDL_Color color) {
   if (n < 3) return;
@@ -25,7 +25,7 @@ void Line(SDL_Renderer* r, SDL_FPoint a, SDL_FPoint b, SDL_Color color, float th
   const float dy = b.y - a.y;
   const float len = std::sqrt(dx * dx + dy * dy);
   if (len <= 0.0f) return;
-  // Normal unitária vezes meia espessura: o segmento vira um retângulo.
+  // Unit normal times half thickness: the segment becomes a quad
   const float nx = -dy / len * thickness * 0.5f;
   const float ny = dx / len * thickness * 0.5f;
   const SDL_FPoint quad[4] = {{a.x + nx, a.y + ny}, {b.x + nx, b.y + ny},
@@ -45,4 +45,4 @@ void Arc(SDL_Renderer* r, SDL_FPoint c, float radius, float a0, float a1, SDL_Co
   }
 }
 
-}  // namespace draw
+}

@@ -25,7 +25,7 @@ Image FromStb(unsigned char* pixels, int w, int h, const char* what) {
   return img;
 }
 
-// WebP: contêiner RIFF com tipo "WEBP" (bytes 0-3 "RIFF", 8-11 "WEBP").
+// RIFF container with "WEBP" type: bytes 0-3 "RIFF", 8-11 "WEBP"
 bool IsWebP(const uint8_t* data, size_t size) {
   return size >= 12 && std::memcmp(data, "RIFF", 4) == 0 && std::memcmp(data + 8, "WEBP", 4) == 0;
 }
@@ -50,7 +50,7 @@ Image Decode(const uint8_t* data, size_t size, const char* what) {
   return FromStb(pixels, w, h, what);
 }
 
-}  // namespace
+}
 
 Image Image::LoadFile(const std::string& path) {
   size_t size = 0;

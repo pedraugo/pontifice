@@ -111,10 +111,10 @@ add_executable(pontifice
   src/scripts/deck/Deck.cpp
   src/scripts/cards/Cards.cpp
   src/scripts/cardface/CardFace.cpp
-  src/scripts/sounds/Soundtrack.cpp
-  src/scripts/sounds/Clip.cpp
-  src/scripts/sounds/Effect.cpp
-  src/scripts/sounds/Storyteller.cpp
+  src/scripts/audios/Music.cpp
+  src/scripts/audios/Clip.cpp
+  src/scripts/audios/Sfx.cpp
+  src/scripts/audios/Voices.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
@@ -133,13 +133,13 @@ target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
 # arquivos são compilados otimizados em qualquer build.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/sounds/Soundtrack.cpp
-                              src/scripts/sounds/Clip.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/audios/Music.cpp
+                              src/scripts/audios/Clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
 elseif(MSVC)
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/sounds/Soundtrack.cpp
-                              src/scripts/sounds/Clip.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/audios/Music.cpp
+                              src/scripts/audios/Clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
 endif()
 target_compile_options(pontifice PRIVATE -Wall -Wextra)
@@ -182,6 +182,6 @@ add_custom_target(copy_assets ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/models $<TARGET_FILE_DIR:pontifice>/models
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/sounds $<TARGET_FILE_DIR:pontifice>/sounds
-  COMMENT "Copiando assets, sprites, models e sounds")
+          ${CMAKE_SOURCE_DIR}/src/audios $<TARGET_FILE_DIR:pontifice>/audios
+  COMMENT "Copiando assets, sprites, models e audios")
 add_dependencies(copy_assets pontifice)

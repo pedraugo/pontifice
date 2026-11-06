@@ -6,7 +6,7 @@
 - **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
 - **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG), stb_truetype (fonte TTF/OTF) e stb_vorbis (decodificação de Ogg Vorbis). Todas baixadas via `FetchContent`; cgltf e stb são header-only.
-- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"ost"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Soundtrack::SetCategory` e `Soundtrack::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a nova categoria entra em **fade in** de 2 s; o menu toca as faixas **em sequência** e a batalha **em ordem aleatória** (`"random": ["battle"]` em ost.json: cada faixa sorteada ao entrar na batalha e a cada troca, sem repetir a que acabou de tocar; a retomada depois da pausa continua a mesma faixa); o volume é **por cena** (`"volume": {"menu": 0.15, "battle": 0.25}`; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa tem um **ganho de normalização** em ost.json (`{"file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada faixa e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`ButtonIcon`, menu e batalha) chama `Soundtrack::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
+- **Áudio**: `SDL_AudioStream` com callback; a trilha de `assets/ost.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"ost"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Music::SetCategory` e `Music::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a nova categoria entra em **fade in** de 2 s; o menu toca as faixas **em sequência** e a batalha **em ordem aleatória** (`"random": ["battle"]` em ost.json: cada faixa sorteada ao entrar na batalha e a cada troca, sem repetir a que acabou de tocar; a retomada depois da pausa continua a mesma faixa); o volume é **por cena** (`"volume": {"menu": 0.15, "battle": 0.25}`; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa tem um **ganho de normalização** em ost.json (`{"file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada faixa e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`ButtonIcon`, menu e batalha) chama `Music::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas.
 - **Renderização**: `SDL_GPU` (Metal no macOS, Vulkan no Linux, D3D12 no Windows). O menu e o HUD usam o renderer 2D do SDL criado sobre o mesmo device (`SDL_CreateGPURenderer`). O 3D usa o device diretamente, com shaders próprios, e desenha em uma textura alvo que o renderer 2D exibe como `SDL_Texture`.
 - **Shaders**: fonte em `src/shaders/`. `card.metal` é embutido no binário e compilado pelo Metal em tempo de execução. `card.vert.glsl` e `card.frag.glsl` são o equivalente para Vulkan; o CMake compila para SPIR-V quando `glslc` está instalado e o jogo carrega `shaders/card.*.spv` ao lado do binário.
 - **Janela**: tela cheia sem borda na resolução do monitor por padrão (`SDL_WINDOW_FULLSCREEN` + modo desktop), sem `SDL_WINDOW_RESIZABLE`. `PONTIFICE_WINDOWED=1` abre em janela 1280x720 (depuração).
@@ -87,10 +87,10 @@ src/
       Cards.*         dados das cartas (assets/Cards*.json) e montagem do monte por peso `odds`
     cardface/
       CardFace.*      frente da carta: moldura da categoria + nome, ATK/DEF e descrição desenhados (CPU)
-    sounds/
-      Soundtrack.*    trilha sonora: lê assets/ost.json, decodifica Ogg Vorbis (stb_vorbis), toca em loop (sequência ou sorteio) com fade e intervalo
-      Effect.*        efeitos curtos (espada, escudo...): clipes em cache, vários tocam ao mesmo tempo
-      Storyteller.*   narrações e falas: uma voz por vez, em fila; Interrupt corta e esvazia
+    audios/
+      Music.*         trilha sonora: lê assets/ost.json, decodifica Ogg Vorbis (stb_vorbis), toca em loop (sequência ou sorteio) com fade e intervalo
+      Sfx.*           efeitos curtos (espada, escudo...): clipes em cache, vários tocam ao mesmo tempo
+      Voices.*        narrações e falas: uma voz por vez, em fila; Interrupt corta e esvazia
       Clip.*          clipe Ogg Vorbis decodificado em memória e playback one-shot por SDL_AudioStream
   shaders/
     card.metal        shader Metal (macOS), embutido no binário
@@ -98,7 +98,7 @@ src/
     card_shadow.frag.glsl  fragmento vazio do passe de sombra (Vulkan)
   assets/             dados das cartas em JSON, paleta de cores e ícone do jogo
     colors.json       paleta extraída do ícone e cores por papel (texto, fundo, borda, HUD, menu)
-    ost.json          trilha sonora: volume por cena (menu 0,15; batalha 0,25), categorias "ost" (menu/loading) e "battle" de Ogg Vorbis em sounds/ e quais tocam em ordem aleatória ("random": batalha)
+    ost.json          trilha sonora: volume por cena (menu 0,15; batalha 0,25), categorias "ost" (menu/loading) e "battle" de Ogg Vorbis em audios/music/ e quais tocam em ordem aleatória ("random": batalha)
     PirataOne.ttf     fonte de título do jogo: títulos, botões, painéis, rótulos (tem acentos Latin-1)
     Newsreader.ttf    fonte de corpo: linha de situação e dica da batalha, descrição da carta (frente) e modo/categoria/hierarquia do tooltip
     icon.png          ícone (1024x1024); vira ícone da janela/Dock em tempo de execução
@@ -106,7 +106,7 @@ src/
     CardsEvil.json
     CardsNeutral.json
     CardsField.json
-  sounds/             músicas de fundo (Ogg Vorbis) listadas em assets/ost.json
+  audios/             áudio em Ogg Vorbis: music/menu e music/battle (listadas em assets/ost.json), sfx/ (efeitos) e voices/ (falas)
   sprites/            texturas das cartas (WebP) e fontes de arte (PSD)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta

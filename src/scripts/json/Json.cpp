@@ -78,7 +78,7 @@ class Parser {
 
   bool ParseObject(Value& out) {
     out.type = Value::Type::kObject;
-    ++pos_;  // '{'
+    ++pos_;
     SkipSpace();
     if (Peek() == '}') {
       ++pos_;
@@ -106,7 +106,7 @@ class Parser {
 
   bool ParseArray(Value& out) {
     out.type = Value::Type::kArray;
-    ++pos_;  // '['
+    ++pos_;
     SkipSpace();
     if (Peek() == ']') {
       ++pos_;
@@ -164,7 +164,7 @@ class Parser {
   }
 
   bool ParseString(std::string& out) {
-    ++pos_;  // '"'
+    ++pos_;
     out.clear();
     while (true) {
       if (End()) return Fail("string sem fechamento");
@@ -188,7 +188,7 @@ class Parser {
         case 'u': {
           unsigned code = 0;
           if (!ParseHex4(code)) return false;
-          // Par substituto (caracteres fora do BMP): 😀.
+          // UTF-16 surrogate pair: code points outside the BMP.
           if (code >= 0xD800 && code <= 0xDBFF && text_.compare(pos_, 2, "\\u") == 0) {
             pos_ += 2;
             unsigned low = 0;
@@ -219,7 +219,7 @@ class Parser {
   size_t pos_ = 0;
 };
 
-}  // namespace
+}
 
 const Value* Value::Find(const std::string& key) const {
   if (type != Type::kObject) return nullptr;
@@ -265,4 +265,4 @@ bool LoadFile(const std::string& path, Value& out) {
   return true;
 }
 
-}  // namespace json
+}

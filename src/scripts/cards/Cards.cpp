@@ -40,7 +40,7 @@ void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
     card.buff = Int(item.Path("attributes.buff"));
     card.nerf = Int(item.Path("attributes.nerf"));
     if (card.code.empty()) continue;
-    // Textos no idioma atual; a chave ausente mantém o português do arquivo.
+    // Missing translation key keeps the JSON text.
     card.name = i18n::GetOr("card." + card.code + ".name", card.name);
     card.description = i18n::GetOr("card." + card.code + ".description", card.description);
     if (card.hierarchy > 0 && !card.category_name.empty()) {
@@ -52,7 +52,7 @@ void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
   }
 }
 
-}  // namespace
+}
 
 std::string CardInfo::CategoryLabel() const {
   switch (category) {
@@ -106,7 +106,6 @@ std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
   std::map<std::string, int> copies;
   auto limit = [](const CardInfo& card) { return card.hierarchy == 1 ? 1 : 2; };
   auto w = [&weight](const CardInfo& card) { return weight ? weight(card) : card.odds; };
-  // Sorteio por peso entre as cartas que ainda podem entrar; para quando não há mais nenhuma.
   while (static_cast<int>(deck.size()) < size) {
     long total = 0;
     for (const CardInfo& card : all) {
@@ -129,4 +128,4 @@ std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
   return deck;
 }
 
-}  // namespace cards
+}

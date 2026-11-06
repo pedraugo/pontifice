@@ -47,7 +47,7 @@ Image DecodeNormalTexture(const cgltf_material* material) {
   return DecodeTexture(material->normal_texture.texture);
 }
 
-}  // namespace
+}
 
 Model::~Model() {
   if (gpu_ == nullptr) return;
@@ -83,6 +83,7 @@ Model::Data Model::Parse(const std::string& path) {
 
     float world[16];
     cgltf_node_transform_world(&node, world);
+    // cgltf and math::Mat4 are both column-major
     math::Mat4 xf;
     for (int c = 0; c < 4; ++c) {
       for (int l = 0; l < 4; ++l) xf.m[c][l] = world[c * 4 + l];
@@ -161,7 +162,7 @@ void Model::Draw(Gpu& gpu, const math::Mat4& model, const math::Mat4& view_proj,
                  const Skin& skin) const {
   for (const Part& part : parts_) {
     SDL_GPUTexture* texture = part.texture;
-    SDL_GPUTexture* normal_map = part.normal;  // do glb; a skin pode substituir
+    SDL_GPUTexture* normal_map = part.normal;
     if (part.role == Role::kFront) {
       if (skin.front != nullptr) texture = skin.front;
       if (skin.front_normal != nullptr) normal_map = skin.front_normal;

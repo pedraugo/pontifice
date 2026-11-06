@@ -1,9 +1,10 @@
-#include "scripts/sounds/Clip.h"
+#include "scripts/audios/Clip.h"
 
+// Owns the stb_vorbis implementation; Music.cpp includes it header-only.
 #define STB_VORBIS_NO_STDIO
 #include <stb_vorbis.c>
 
-namespace sounds {
+namespace audios {
 
 float Clip::Seconds() const {
   if (!Valid()) return 0.0f;
@@ -65,4 +66,4 @@ bool Finished(SDL_AudioStream* stream) {
   return stream == nullptr || SDL_GetAudioStreamQueued(stream) <= 0;
 }
 
-}  // namespace sounds
+}

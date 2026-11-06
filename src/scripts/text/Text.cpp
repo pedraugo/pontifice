@@ -12,41 +12,31 @@
 
 namespace {
 
-constexpr float kCellPx = 8.0f;  // altura da linha por unidade de scale (fonte de depuração)
-// Em (altura ascent..descent) por altura de linha, por fonte. A fonte de depuração enchia a
-// célula de 8 px; na PirataOne as maiúsculas ocupam bem menos do em, então o em é ampliado
-// para o texto manter o tamanho visual com os mesmos `scale`. A Newsreader é ~1,8x mais larga
-// que a PirataOne no mesmo em: sem ampliação, a linha de situação da batalha ainda cabe entre
-// os painéis do topo.
+constexpr float kCellPx = 8.0f;  // line height per scale unit (debug-font convention)
+// Em per line height: PirataOne caps are small, so its em is enlarged to keep visual size.
 constexpr float kTitleEmBoost = 1.6f;
 constexpr float kBodyEmBoost = 1.0f;
 constexpr int kAtlasSize = 2048;
-// Dois intervalos de codepoints no atlas: ASCII imprimível e Latin-1 (sinais como ¿ ¡ º e
-// letras acentuadas).
 constexpr int kFirstChar = 32;
-constexpr int kNumChars = 95;  // 32..126
+constexpr int kNumChars = 95;
 constexpr int kFirstLatin = 0xA0;
-constexpr int kNumLatin = 96;  // 0xA0..0xFF
+constexpr int kNumLatin = 96;
 constexpr int kNumGlyphs = kNumChars + kNumLatin;
-// Tamanhos do atlas, escolhidos pelos PIXELS DA TELA (tamanho lógico x razão de pixels da
-// janela, 2x no Retina), nunca ampliados: até 128 px vem do atlas; acima disso o texto é
-// rasterizado no tamanho exato numa textura própria (cache, ver DrawBig).
+// Atlas sizes picked by device px (logical x pixel ratio); above 128 px see DrawBig.
 constexpr float kSizes[] = {16.0f, 32.0f, 64.0f, 128.0f};
 constexpr int kNumSizes = 4;
-// Sobreamostragem por tamanho: 2x2 nos pequenos (nitidez), 2x1 em 64 e nenhuma em 128, para
-// os quatro tamanhos caberem juntos no atlas de 2048.
+// Less oversampling at large sizes so all four fit in one 2048 atlas.
 constexpr unsigned kOversampleX[] = {2, 2, 2, 1};
 constexpr unsigned kOversampleY[] = {2, 2, 1, 1};
-// Textos maiores que o atlas, rasterizados no tamanho exato (título do menu, resultado da
-// batalha, itens no Retina): cache por (fonte, tamanho em px, texto).
 constexpr size_t kBigCacheMax = 64;
 
+// Text larger than the atlas, rasterized at exact size; cached by (face, px, text).
 struct BigText {
   std::string key;
   SDL_Texture* texture = nullptr;
-  int width = 0;   // px de dispositivo
+  int width = 0;
   int height = 0;
-  float ascent = 0.0f;  // px de dispositivo, do topo da textura (com margem) à linha de base
+  float ascent = 0.0f;  // device px from texture top (with pad) to baseline
 };
 
 struct Font {
@@ -54,9 +44,9 @@ struct Font {
   std::vector<unsigned char> file;
   stbtt_fontinfo info{};
   stbtt_packedchar chars[kNumSizes][kNumGlyphs];
-  float ascent[kNumSizes];   // px acima da linha de base em cada tamanho
-  float descent[kNumSizes];  // px abaixo (negativo)
-  float em_boost = kTitleEmBoost;  // em = kCellPx * scale * em_boost
+  float ascent[kNumSizes];
+  float descent[kNumSizes];
+  float em_boost = kTitleEmBoost;
   bool ready = false;
 };
 
@@ -70,8 +60,7 @@ std::deque<BigText>& BigCache() {
   return cache;
 }
 
-// Razão pixels de dispositivo / pixels lógicos (ex.: 2,0 em Retina com 1920x1080 lógico).
-// Atualizada a cada Draw (tem o renderer); Width usa o último valor.
+// Device px / logical px (2.0 on Retina); refreshed by Draw, Width uses the last value.
 float& PixelRatioRef() {
   static float ratio = 1.0f;
   return ratio;
@@ -88,20 +77,16 @@ void UpdatePixelRatio(SDL_Renderer* r) {
     PixelRatioRef() = SDL_max(sx, 0.01f);
     return;
   }
-  // Letterbox: mesma escala nos dois eixos, a menor que cabe.
   const float ratio = SDL_min(static_cast<float>(out_w) / static_cast<float>(logical_w),
                               static_cast<float>(out_h) / static_cast<float>(logical_h));
   PixelRatioRef() = SDL_max(ratio, 0.01f);
 }
 
-// Fonte a usar para `face`: a de corpo, se carregou; senão a de título (que pode não estar
-// pronta, e aí o chamador cai na fonte de depuração).
 const Font& Pick(text::Face face) {
   const Font& f = G(face);
   return f.ready ? f : G(text::Face::kTitle);
 }
 
-// Índice do codepoint no atlas, ou -1 se não está nos intervalos empacotados.
 int GlyphSlot(Uint32 ch) {
   if (ch >= static_cast<Uint32>(kFirstChar) && ch < static_cast<Uint32>(kFirstChar + kNumChars)) {
     return static_cast<int>(ch) - kFirstChar;
@@ -112,8 +97,6 @@ int GlyphSlot(Uint32 ch) {
   return -1;
 }
 
-// Fallback para codepoints fora do atlas (ou para a fonte de depuração, só ASCII): troca
-// letras acentuadas pela base ("Dilúvio" vira "Diluvio"); o resto vira '?'.
 char FoldChar(Uint32 ch) {
   if (ch < 0x80) return static_cast<char>(ch);
   if (ch == 0xA1) return '!';
@@ -142,8 +125,6 @@ std::string FoldToAscii(const char* str) {
   return out;
 }
 
-// Codepoints a desenhar: os que existem no atlas (e na fonte) ficam; os outros são
-// dobrados para ASCII.
 std::vector<Uint32> Codepoints(const char* str, const stbtt_fontinfo& info) {
   std::vector<Uint32> out;
   Uint32 ch = 0;
@@ -157,8 +138,6 @@ std::vector<Uint32> Codepoints(const char* str, const stbtt_fontinfo& info) {
   return out;
 }
 
-// Índice do tamanho de atlas a usar para `device_px` (px na tela): o menor que não precise
-// ampliar; senão o maior (acima dele, Draw usa DrawBig).
 int SizeIndex(float device_px) {
   for (int i = 0; i < kNumSizes; ++i) {
     if (kSizes[i] >= device_px) return i;
@@ -168,7 +147,6 @@ int SizeIndex(float device_px) {
 
 bool IsBig(float device_px) { return device_px > kSizes[kNumSizes - 1]; }
 
-// Largura em px no tamanho nativo do atlas `s`, somando avanços e kerning.
 float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
   const float scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
   float w = 0.0f;
@@ -184,7 +162,7 @@ float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
   return w;
 }
 
-}  // namespace
+}
 
 namespace text {
 
@@ -205,8 +183,6 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path, Face face) {
     return false;
   }
 
-  // Atlas: os três tamanhos empacotados na mesma textura, com sobreamostragem horizontal
-  // para o texto pequeno ficar mais nítido.
   std::vector<unsigned char> bitmap(static_cast<size_t>(kAtlasSize) * kAtlasSize);
   stbtt_pack_context pack{};
   if (!stbtt_PackBegin(&pack, bitmap.data(), kAtlasSize, kAtlasSize, 0, 1, nullptr)) {
@@ -237,7 +213,6 @@ bool Init(SDL_Renderer* r, const std::string& ttf_path, Face face) {
   }
   stbtt_PackEnd(&pack);
 
-  // Textura RGBA branca com o alpha do atlas: a cor vem do color mod.
   std::vector<unsigned char> rgba(bitmap.size() * 4);
   for (size_t i = 0; i < bitmap.size(); ++i) {
     rgba[i * 4] = rgba[i * 4 + 1] = rgba[i * 4 + 2] = 255;
@@ -285,8 +260,6 @@ float Width(const char* str, float scale, Face face) {
 
 namespace {
 
-// Texto grande: rasteriza no tamanho exato em pixels de dispositivo (DrawOnImage) numa
-// textura própria, guardada no cache; desenha a textura escalada para o retângulo lógico.
 void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x, float y,
              float scale, SDL_Color color) {
   const float ratio = PixelRatioRef();
@@ -307,14 +280,13 @@ void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x
     const float k = stbtt_ScaleForPixelHeight(&f.info, static_cast<float>(device_px));
     int ascent = 0, descent = 0, line_gap = 0;
     stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
-    constexpr int kPad = 2;  // margem para o filtro linear não cortar a borda
+    constexpr int kPad = 2;  // margin so linear filtering does not clip the edge
     Image img;
     img.width = static_cast<int>(std::ceil(ImageWidth(str, static_cast<float>(device_px), face))) +
                 2 * kPad;
     img.height = static_cast<int>(std::ceil((ascent - descent) * k)) + 2 * kPad;
     if (img.width <= 2 * kPad || img.height <= 2 * kPad) return;
     img.rgba.assign(static_cast<size_t>(img.width) * img.height * 4, 0);
-    // Branco com alpha do glifo: a cor vem do color mod, como no atlas.
     for (size_t i = 0; i < img.rgba.size(); i += 4) img.rgba[i] = img.rgba[i + 1] = img.rgba[i + 2] = 255;
     DrawOnImage(img, str, static_cast<float>(kPad), static_cast<float>(kPad),
                 static_cast<float>(device_px), SDL_Color{255, 255, 255, 255}, face);
@@ -332,7 +304,6 @@ void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x
     hit = &cache.back();
   }
 
-  // Mesmo alinhamento do caminho do atlas: caixa ascent..descent centrada na célula.
   const float k_logical = stbtt_ScaleForPixelHeight(&f.info, px);
   int ascent = 0, descent = 0, line_gap = 0;
   stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
@@ -347,7 +318,7 @@ void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x
   SDL_RenderTexture(r, hit->texture, nullptr, &dst);
 }
 
-}  // namespace
+}
 
 void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color,
           Face face) {
@@ -370,16 +341,15 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
   const std::vector<Uint32> cps = Codepoints(str, f.info);
 
   const int s = SizeIndex(px * PixelRatioRef());
-  const float k = px / kSizes[s];  // do tamanho do atlas para o tamanho pedido
+  const float k = px / kSizes[s];
   const float kern_scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
   SDL_SetTextureColorMod(f.atlas, color.r, color.g, color.b);
   SDL_SetTextureAlphaMod(f.atlas, color.a);
 
-  // `y` é o topo da célula de 8 px * scale; a caixa ascent..descent da fonte é centralizada
-  // nela, então o texto fica alinhado com o layout feito para a fonte de depuração.
   float pen_x = 0.0f;
   const float cell = kCellPx * scale;
   const float font_box = (f.ascent[s] - f.descent[s]) * k;
+  // Font box (ascent..descent) centered in the cell, matching the old debug-font layout.
   const float baseline = y + (cell - font_box) / 2.0f + f.ascent[s] * k;
   for (size_t i = 0; i < cps.size(); ++i) {
     const int slot = GlyphSlot(cps[i]);
@@ -431,9 +401,8 @@ void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Co
     const int cp = static_cast<int>(cps[i]);
     int advance = 0, lsb = 0;
     stbtt_GetCodepointHMetrics(&f.info, cp, &advance, &lsb);
-    // Subpixel em x: a posição fracionária da pena entra no raster do glifo.
     const float pen_floor = std::floor(pen);
-    const float shift_x = pen - pen_floor;
+    const float shift_x = pen - pen_floor;  // subpixel x goes into the glyph raster
     int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
     stbtt_GetCodepointBitmapBoxSubpixel(&f.info, cp, k, k, shift_x, 0.0f, &x0, &y0, &x1, &y1);
     const int gw = x1 - x0, gh = y1 - y0;
@@ -473,4 +442,4 @@ void DrawCentered(SDL_Renderer* r, const char* str, float center_x, float center
   Draw(r, str, center_x - w / 2.0f, center_y - h / 2.0f, scale, color, face);
 }
 
-}  // namespace text
+}

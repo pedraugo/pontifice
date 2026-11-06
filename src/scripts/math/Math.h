@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-// Álgebra linear mínima para o render 3D. Matrizes column-major, como no Metal e no GLSL.
 namespace math {
 
 constexpr float kPi = 3.14159265358979323846f;
@@ -15,8 +14,7 @@ struct Vec2 {
   float x = 0, y = 0;
 };
 
-// Ponto dentro de um quadrilátero convexo (qualquer orientação). Usado nos testes de mouse
-// sobre cartas e slots projetados na tela.
+// Any winding; used for mouse hit tests on projected cards and slots.
 inline bool PointInConvexQuad(Vec2 p, const Vec2 q[4]) {
   float sign = 0.0f;
   for (int i = 0; i < 4; ++i) {
@@ -54,8 +52,9 @@ struct Vec4 {
   float x = 0, y = 0, z = 0, w = 0;
 };
 
+// Column-major, as in Metal and GLSL; translation lives in m[3].
 struct Mat4 {
-  // m[coluna][linha]
+  // Indexed m[column][row].
   float m[4][4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
 
   static Mat4 Identity() { return Mat4{}; }
@@ -108,7 +107,7 @@ struct Mat4 {
     return r;
   }
 
-  // Projeção perspectiva com profundidade em [0, 1] (Metal, Vulkan, D3D).
+  // Depth maps to [0, 1] (Metal, Vulkan, D3D), not [-1, 1].
   static Mat4 Perspective(float fov_y_rad, float aspect, float near, float far) {
     Mat4 r;
     const float f = 1.0f / std::tan(fov_y_rad / 2.0f);
@@ -165,4 +164,4 @@ struct Mat4 {
   }
 };
 
-}  // namespace math
+}

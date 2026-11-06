@@ -18,7 +18,7 @@ int Modifier(const CardInfo& card, const Field& field) {
   return card.category == field.favored ? field.buff : -field.nerf;
 }
 
-}  // namespace
+}
 
 int EffectiveAttack(const CardInfo& card, const Field& field) {
   const int value = card.attack + Modifier(card, field);
@@ -34,8 +34,7 @@ Outcome Resolve(int attacker_attack, bool defender_defense_mode, int defender_at
                 int defender_defense) {
   Outcome out;
   if (!defender_defense_mode) {
-    // Contra carta em modo de ataque: quem tem menos ataque é destruído e seu dono perde a
-    // diferença; empate destrói as duas sem dano.
+    // Attack mode: lower attack is destroyed and its owner loses the difference; tie destroys both.
     if (attacker_attack > defender_attack) {
       out.defender_destroyed = true;
       out.defender_damage = attacker_attack - defender_attack;
@@ -47,8 +46,7 @@ Outcome Resolve(int attacker_attack, bool defender_defense_mode, int defender_at
     }
     return out;
   }
-  // Contra carta em modo de defesa: maior que a defesa destrói sem dano; menor, ninguém é
-  // destruído e o atacante perde a diferença; igual, nada acontece.
+  // Defense mode: higher destroys without damage; lower hurts the attacker; equal does nothing.
   if (attacker_attack > defender_defense) {
     out.defender_destroyed = true;
   } else if (attacker_attack < defender_defense) {
@@ -63,4 +61,4 @@ Outcome ResolveDirect(int attacker_attack) {
   return out;
 }
 
-}  // namespace rules
+}

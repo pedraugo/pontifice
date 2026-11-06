@@ -8,11 +8,11 @@
 
 namespace {
 
-constexpr float kFlagHeight = ui::Grid(2.5f);     // 40 px
-constexpr float kFlagWidth = kFlagHeight * 1.5f;  // 3:2
+constexpr float kFlagHeight = ui::Grid(2.5f);  // 40 px
+constexpr float kFlagWidth = kFlagHeight * 1.5f;  // 3:2 aspect
 constexpr float kFlagGap = ui::Grid(1);
 
-}  // namespace
+}
 
 ButtonText::ButtonText(std::string label, Action action)
     : Button(std::move(label), std::move(action)) {}
@@ -30,7 +30,6 @@ void ButtonText::Render(SDL_Renderer* r) const {
     text::DrawCentered(r, Label().c_str(), rect.x + rect.w / 2.0f, cy, LabelScale(), ink);
     return;
   }
-  // Bandeira em preto e branco; ganha cor com hover/foco, junto com o texto.
   flag::Draw(r, *flag_, SDL_FRect{rect.x, cy - kFlagHeight / 2.0f, kFlagWidth, kFlagHeight},
              highlight ? 1.0f : 0.0f);
   text::DrawCentered(r, Label().c_str(), rect.x + kFlagWidth + kFlagGap + LabelWidth() / 2.0f,

@@ -14,16 +14,15 @@ float SmoothStep(float t) {
   return t * t * (3.0f - 2.0f * t);
 }
 
-}  // namespace
+}
 
 bool Board::Init(Gpu& gpu) {
-  // Quad horizontal de lado 1 em y = 0, mesma ordem de vértices da névoa da batalha.
   highlight_quad_ = gpu.CreateMesh({{-0.5f, 0, -0.5f, 0, 0},
                                     {0.5f, 0, -0.5f, 1, 0},
                                     {0.5f, 0, 0.5f, 1, 1},
                                     {-0.5f, 0, 0.5f, 0, 1}},
                                    {0, 1, 2, 0, 2, 3});
-  // Moldura: quatro tiras em volta de um quadrado de lado 1 (anel externo de lado 1).
+  // Frame: four strips forming a square ring of side 1 at y = 0.
   const float o = 0.5f;
   const float i = 0.5f - layout_.frame_thickness;
   std::vector<Vertex> v;
@@ -36,10 +35,10 @@ bool Board::Init(Gpu& gpu) {
     v.push_back({x0, 0, z1, 0, 1});
     idx.insert(idx.end(), {b, b + 1, b + 2, b, b + 2, b + 3});
   };
-  strip(-o, -o, o, -i);  // fundo
-  strip(-o, i, o, o);    // frente
-  strip(-o, -i, -i, i);  // esquerda
-  strip(i, -i, o, i);    // direita
+  strip(-o, -o, o, -i);
+  strip(-o, i, o, o);
+  strip(-o, -i, -i, i);
+  strip(i, -i, o, i);
   frame_quad_ = gpu.CreateMesh(v, idx);
   return highlight_quad_.index_count > 0 && frame_quad_.index_count > 0;
 }
@@ -51,10 +50,9 @@ void Board::Destroy(Gpu& gpu) {
 
 math::Vec3 Board::SlotPosition(int slot) const {
   const int col = slot % kCols;
-  const int row = slot / kCols;  // 0 = linha A (junto da canaleta), 1 = linha B
+  const int row = slot / kCols;
   const float s = layout_.arena_scale;
-  // Do ponto de vista do dono as colunas vão da esquerda para a direita; no lado do fundo
-  // isso espelha x.
+  // Back side mirrors x so columns run left to right from the owner's view.
   const float x = (static_cast<float>(col) - (kCols - 1) / 2.0f) * layout_.tile * side_;
   const float z = (layout_.channel_half + (static_cast<float>(row) + 0.5f) * layout_.tile) * side_;
   return {x * s, layout_.top_y * s, z * s};
@@ -174,33 +172,29 @@ bool Board::TogglePosition(int slot) {
 math::Mat4 Board::CardMatrix(int slot, const Card& card) const {
   const float t = SmoothStep(card.place);
   const math::Vec3 target = SlotPosition(slot);
-  // Deitada: RotateX(-pi/2) leva a frente (+z do modelo) para cima (+y) e o topo da carta
-  // (+y) para longe do jogador (-z). A borda de trás do modelo fica em BoundsMin().z.
   const float zmin = model_ != nullptr ? model_->BoundsMin().z : 0.0f;
-  // Descarte: sobe e encolhe a partir do lugar.
   const float d = SmoothStep(card.discard);
   const float hover = SmoothStep(card.hover);
   const float scale = layout_.card_scale * math::Lerp(layout_.place_scale, 1.0f, t) *
                       (1.0f - d) * math::Lerp(1.0f, layout_.hover_scale, hover) *
                       math::Lerp(1.0f, layout_.spent_scale, card.spent);
+  // Lying flat, the model back edge sits at BoundsMin().z; lift it onto the tile.
   const float lift = -zmin * scale + 0.004f + layout_.discard_rise * d +
                      layout_.hover_lift * hover;
   const math::Vec3 from =
       target + math::Vec3{layout_.place_from.x, layout_.place_from.y, layout_.place_from.z * side_};
   const math::Vec3 rest = target + math::Vec3{0.0f, lift, 0.0f};
   math::Vec3 pos = from + (rest - from) * t;
-  // Investida: vai em arco até perto do alvo e volta (seno de 0 a pi).
   if (card.lunge < 1.0f) {
+    // Lunge arc: sin from 0 to pi goes toward the target and back.
     const float l = std::sin(card.lunge * math::kPi);
     const math::Vec3 to = card.lunge_target - rest;
     pos = pos + to * (layout_.lunge_reach * l) + math::Vec3{0.0f, layout_.lunge_height * l, 0.0f};
   }
   const float tilt = math::Lerp(layout_.place_tilt, -math::kPi / 2.0f, t);
   math::Mat4 m = math::Mat4::Translate(pos);
-  // Lado do fundo: a carta fica de pé para o seu dono (meia-volta em torno do eixo vertical).
-  if (side_ < 0) m = m * math::Mat4::RotateY(math::kPi);
-  // Defesa: giro de 90° no plano da mesa (em torno do eixo vertical), animado.
-  m = m * math::Mat4::RotateY(card.defense_t * math::kPi / 2.0f);
+  if (side_ < 0) m = m * math::Mat4::RotateY(math::kPi);  // upright for its owner
+  m = m * math::Mat4::RotateY(card.defense_t * math::kPi / 2.0f);  // defense: 90 degree turn
   m = m * math::Mat4::RotateX(tilt);
   return m * math::Mat4::Scale(scale);
 }
@@ -240,15 +234,11 @@ void Board::Update(float dt) {
 }
 
 void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const {
-  // Flash de dano: tinge para vermelho e volta. Já atacou: translúcida (opaca de novo sob o
-  // mouse, para ler).
   const float f = card.flash;
-  const float spent = card.spent * (1.0f - SmoothStep(card.hover));
+  const float spent = card.spent * (1.0f - SmoothStep(card.hover));  // opaque again under the mouse
   const SDL_FColor tint{1.0f, 1.0f - 0.65f * f, 1.0f - 0.65f * f,
                         math::Lerp(1.0f, layout_.spent_alpha, spent)};
-  gpu.SetDesaturate(card.spent);  // já atacou: preto e branco
-  // Carta foil: aura atrás (no plano da carta, sobre a mesa), mais fraca se já atacou e
-  // sumindo junto com a carta no descarte.
+  gpu.SetDesaturate(card.spent);
   if (card.foil && aura_ != nullptr) {
     aura_->Draw(gpu, card.world, view_proj, (1.0f - 0.8f * spent) * (1.0f - card.discard));
   }
@@ -258,20 +248,16 @@ void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) co
 
 void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (model_ != nullptr) {
-    // A carta sob o mouse (ampliada) por último, para ficar por cima das vizinhas.
     for (int slot = 0; slot < kSlots; ++slot) {
       if (cards_[slot].occupied && slot != hover_card_) DrawCard(gpu, view_proj, cards_[slot].card);
     }
     for (const Leaving& l : leaving_) DrawCard(gpu, view_proj, l.card);
+    // Hovered (enlarged) card drawn last to stay on top of its neighbors.
     if (hover_card_ >= 0 && hover_card_ < kSlots && cards_[hover_card_].occupied) {
       DrawCard(gpu, view_proj, cards_[hover_card_].card);
     }
   }
   if (highlight_quad_.index_count == 0) return;
-  // Modo de invocação: slots vazios com quad translúcido um pouco acima do ladrilho,
-  // pulsando. O slot sob o mouse (vazio ou com carta) recebe uma moldura quadrada (amarela;
-  // a batalha troca o papel com carta de campo ativa, SetHoverRole). Cores de
-  // assets/colors.json ("board.*").
   const float side = layout_.tile * layout_.arena_scale * layout_.highlight_inset;
   const float y = layout_.highlight_lift;
   if (highlight_) {

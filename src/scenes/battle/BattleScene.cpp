@@ -14,7 +14,7 @@
 #include "scripts/frame/Frame.h"
 #include "scripts/i18n/I18n.h"
 #include "scripts/image/Image.h"
-#include "scripts/sounds/Soundtrack.h"
+#include "scripts/audios/Music.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -1082,9 +1082,9 @@ void BattleScene::Pause(SceneContext& ctx) {
   attack_from_ = -1;
   attack_drag_ = false;
   press_ = {-1.0f, -1.0f};
-  if (ctx.soundtrack != nullptr) {
-    ctx.soundtrack->SetScene("menu");
-    ctx.soundtrack->SetCategory("ost");
+  if (ctx.music != nullptr) {
+    ctx.music->SetScene("menu");
+    ctx.music->SetCategory("ost");
   }
   abandon_dialog_.Open(i18n::Get("battle.abandon.question"), i18n::Get("battle.abandon.no"),
                        i18n::Get("battle.abandon.yes"), ctx.logical_width, ctx.logical_height,
@@ -1094,9 +1094,9 @@ void BattleScene::Pause(SceneContext& ctx) {
 void BattleScene::Resume(SceneContext& ctx) {
   paused_ = false;
   abandon_dialog_.Close();
-  if (ctx.soundtrack != nullptr) {
-    ctx.soundtrack->SetScene("battle");
-    ctx.soundtrack->SetCategory("battle", true);
+  if (ctx.music != nullptr) {
+    ctx.music->SetScene("battle");
+    ctx.music->SetCategory("battle", true);
   }
 }
 
@@ -1159,7 +1159,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     }
   }
   if (sound_button_.HandleEvent(event)) {
-    if (ctx.soundtrack != nullptr) ctx.soundtrack->ToggleMuted();
+    if (ctx.music != nullptr) ctx.music->ToggleMuted();
     return;
   }
   // Clicks on the buttons never reach the table.
@@ -1738,7 +1738,7 @@ void BattleScene::Render(SceneContext& ctx) {
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
-  sound_button_.SetActive(ctx.soundtrack == nullptr || !ctx.soundtrack->Muted());
+  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
   hint_button_.SetActive(hints_enabled_);
   hint_button_.Render(r);
