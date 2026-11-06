@@ -44,8 +44,6 @@ class Hud {
 
   // Monte: `used` cartas já saíram, `remaining` ainda estão nele; a soma é kDeckSize.
   void SetDeck(int used, int remaining);
-  int DeckUsed() const { return deck_used_; }
-  int DeckRemaining() const { return deck_remaining_; }
 
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }

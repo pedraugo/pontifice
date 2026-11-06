@@ -224,14 +224,6 @@ Hand::Card Hand::Remove(size_t index) {
   return removed;
 }
 
-std::vector<size_t> Hand::Selected() const {
-  std::vector<size_t> out;
-  for (size_t i = 0; i < cards_.size(); ++i) {
-    if (cards_[i].selected) out.push_back(i);
-  }
-  return out;
-}
-
 void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int width,
                   int height) {
   last_view_proj_ = view_proj;
@@ -354,14 +346,6 @@ math::Mat4 Hand::PoseMatrix(const math::Vec3& pos, float scale, float yaw, float
                             float roll) {
   return math::Mat4::Translate(pos) * math::Mat4::RotateZ(roll) * math::Mat4::RotateY(yaw) *
          math::Mat4::RotateX(pitch) * math::Mat4::Scale(scale);
-}
-
-math::Mat4 Hand::CenterMatrix(float height_fraction, float yaw, float pitch) const {
-  if (model_ == nullptr) return math::Mat4::Identity();
-  math::Vec3 pos;
-  float scale = 1.0f;
-  CenterPose(height_fraction, pos, scale);
-  return PoseMatrix(pos, scale, yaw, pitch, 0.0f);
 }
 
 void Hand::DrawLoose(Gpu& gpu, const math::Mat4& view_proj, const math::Mat4& world,

@@ -128,7 +128,6 @@ math::Mat4 LoadingScene::ViewProj(int width, int height) const {
 }
 
 void LoadingScene::Update(SceneContext& ctx, float dt_seconds) {
-  ++frames_;
   time_ += SDL_min(dt_seconds, kMaxDt);
   if (done_) return;  // escurecendo para a batalha; a tocha segue animando
   if (next_ == nullptr) StartPreload(ctx);

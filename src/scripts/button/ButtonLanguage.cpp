@@ -22,7 +22,6 @@ ButtonLanguage::ButtonLanguage(std::string code, std::string name, flag::Country
                    i18n::SetLanguage(code);
                    ctx.next_scene = SceneId::kMenu;
                  }),
-      code_(std::move(code)),
       country_(country) {}
 
 float ButtonLanguage::ContentWidth() const {

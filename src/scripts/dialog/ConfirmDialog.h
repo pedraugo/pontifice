@@ -23,7 +23,6 @@ class ConfirmDialog {
   void Open(const std::string& question, const std::string& no_label,
             const std::string& yes_label, int width, int height, bool yes_danger = false);
   void Close() { open_ = false; }
-  bool IsOpen() const { return open_; }
 
   // Resposta do evento (kNone se ainda não respondeu). Não fecha sozinha: a cena decide.
   Result HandleEvent(const SDL_Event& event);

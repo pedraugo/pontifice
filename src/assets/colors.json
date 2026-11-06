@@ -37,14 +37,11 @@
       "menu": "#091119",
       "language": "#091119",
       "loading": "#091119",
-      "battle": "#1e2835",
-      "fog": "#1e2835",
+            "fog": "#1e2835",
       "mist": "#b9bec7",
       "overlay": "#04090fa0"
     },
     "border": {
-      "default": "#8c99af",
-      "focus": "#e1e9f4",
       "subtle": "#3c4859"
     },
     "panel": {
@@ -72,11 +69,9 @@
     },
     "hud": {
       "fieldName": "#f1f7fd",
-      "fieldLabel": "#aeb9cc",
       "lifeLabel": "#e1e9f4",
       "lifeValue": "#f1f7fd",
       "lifeZero": "#d9655a",
-      "counterLabel": "#aeb9cc",
       "counterValue": "#e1e9f4",
       "deckEmpty": "#d9655a"
     },

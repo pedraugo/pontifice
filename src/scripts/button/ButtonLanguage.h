@@ -13,7 +13,6 @@ class ButtonLanguage : public ButtonText {
  public:
   ButtonLanguage(std::string code, std::string name, flag::Country country);
   void Render(SDL_Renderer* r) const override;
-  const std::string& Code() const { return code_; }
 
   // Largura do conteúdo (bandeira + espaço + nome) e altura da linha, para a cena alinhar
   // todos os itens numa mesma coluna.
@@ -21,6 +20,5 @@ class ButtonLanguage : public ButtonText {
   static constexpr float RowHeight() { return ui::Grid(4); }
 
  private:
-  std::string code_;
   flag::Country country_;
 };

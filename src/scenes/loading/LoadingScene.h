@@ -39,7 +39,6 @@ class LoadingScene : public Scene {
   Atmosphere atmosphere_;
   float torch_light_ = 0.9f;  // intensidade base da luz da chama (Light.json, torch.loading)
   float time_ = 0.0f;       // segundos desde a entrada
-  int frames_ = 0;
   bool loaded_ = false;
   bool done_ = false;       // cena alvo já entregue ao SceneManager (troca com fade out)
   bool ready_ = false;      // render 3D disponível

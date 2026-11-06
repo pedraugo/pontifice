@@ -329,7 +329,7 @@ Cartas de **hierarquia 1** são **foil**: a frente é desenhada em `Gpu::DrawMod
 - **Estrelas**: brilhos em cruz que piscam em pontos sorteados, mais fortes inclinando.
 - **Aura** (`scripts/aura/CardAura.*`, `Gpu::DrawMode::kAura`): grade 4x4 no espaço local da carta, no plano do meio da espessura, desenhada logo antes da carta; UV = distância além da borda. Energia que flui (ruído animado) e pulsa, branco-dourada junto à borda e em arco-íris para fora, com a borda externa irregular. Mais fraca em carta que já atacou e some junto no descarte.
 
-Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. Todas as cartas têm ilustração: neutras (`sprites/neutral/`), malignas (`sprites/evil/`), benévolas (`sprites/good/`) e de campo (`sprites/field/`). O painel de campo do HUD mostra só a ilustração da carta ativa (`BattleScene::HudArt`).
+Na revelação da carta do oponente a carta é desenhada em 3D na camada da mão (`Hand::CenterPose`/`PoseMatrix`/`DrawLoose`), com a mesma pele, foil e aura das suas cartas, balançando para o arco-íris correr. Nome, hierarquia e ATK/DEF são brancos com contorno escuro (8 direções, ~5% do tamanho) e sombra, legíveis sobre as faixas coloridas; a descrição é preta lisa, sem contorno nem sombra, sobre a área branca. Todas as cartas têm ilustração: neutras (`sprites/neutral/`), malignas (`sprites/evil/`), benévolas (`sprites/good/`) e de campo (`sprites/field/`). O painel de campo do HUD mostra só a ilustração da carta ativa (`BattleScene::HudArt`).
 
 ## Ajustes em JSON
 
@@ -354,7 +354,7 @@ Shadow mapping **por tocha**: cada luz pontual tem um mapa de profundidade de 20
 2. No passe principal o vertex shader projeta cada vértice nos dois espaços de luz; o fragment shader amostra os mapas com sampler de comparação e **PCF 3x3** (bordas suaves) e multiplica a contribuição da luz correspondente. Bias com inclinação (cresce onde a luz chega de raspão). Fora do frustum da luz não há sombra.
 3. A névoa de chão também recebe sombra (metade da força), então o muro e as tochas projetam sombra no nevoeiro.
 
-`Atmosphere::shadow_strength` (0,85 na arena, 0 na mão e no loading) e `shadow_bias`, ambos de `Shadow.json`. Ocultadores: arena e corpos das tochas na batalha. Se o backend não suportar D32 amostrável, `Gpu::ShadowsSupported()` é falso e tudo segue sem sombra.
+`Atmosphere::shadow_strength` (0,85 na arena, 0 na mão e no loading) e `shadow_bias`, ambos de `Shadow.json`. Ocultadores: arena e corpos das tochas na batalha. Se o backend não suportar D32 amostrável, o pipeline de sombra não é criado e tudo segue sem sombra.
 
 ## Tochas e iluminação
 

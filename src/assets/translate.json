@@ -24,21 +24,8 @@
     }
   ],
   "strings": {
-    "language.en": {
-      "pt": "English",
-      "en": "English",
-      "es": "English"
-    },
-    "language.es": {
-      "pt": "Español",
-      "en": "Español",
-      "es": "Español"
-    },
-    "language.pt": {
-      "pt": "Português",
-      "en": "Português",
-      "es": "Português"
-    },
+
+
     "menu.play": {
       "pt": "Jogar",
       "en": "Play",

@@ -33,7 +33,6 @@ class Deck {
 
   // Tira a carta do topo; vazio se o monte acabou (o jogador perde, ver docs/regra_jogo.md).
   std::optional<std::string> Draw();
-  void PutOnTop(std::string code) { cards_.push_back(std::move(code)); }
   void PutOnBottom(std::string code) { cards_.insert(cards_.begin(), std::move(code)); }
 
   size_t Size() const { return cards_.size(); }

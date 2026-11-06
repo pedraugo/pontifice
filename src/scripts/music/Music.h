@@ -40,10 +40,8 @@ class Music {
   // em ost.json ("menu", "battle"); chave desconhecida mantém o atual.
   void SetVolume(float volume);
   void SetScene(const std::string& key);
-  float Volume() const { return target_volume_.load(); }
   // Música ligada/desligada (botão de alto-falante): desligar leva o volume a zero em rampa
   // e ligar volta ao volume da cena.
-  void SetMuted(bool muted) { muted_.store(muted); }
   bool Muted() const { return muted_.load(); }
   void ToggleMuted() { muted_.store(!muted_.load()); }
   // Troca a categoria de faixas ("ost", "battle"): a atual sai em fade out (kSwitchSeconds)

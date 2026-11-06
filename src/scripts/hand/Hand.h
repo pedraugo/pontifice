@@ -88,10 +88,8 @@ class Hand {
   // Carta avulsa (fora da mão) com a mesma câmera, luz e pele das cartas da mão: verso,
   // normal maps, foil e aura. Usada na revelação da carta jogada pelo oponente, para ela ter
   // exatamente o mesmo efeito de uma carta na sua mão.
-  // Matriz no centro da tela, na profundidade da inspeção: altura = fração da altura
-  // visível; yaw/pitch giram a carta (Y e X).
-  math::Mat4 CenterMatrix(float height_fraction, float yaw, float pitch) const;
-  // Posição e escala da carta no centro (as de CenterMatrix), para animar até lá.
+  // Posição e escala da carta no centro da tela, na profundidade da inspeção: altura =
+  // fração da altura visível (a revelação anima até lá e monta a matriz com PoseMatrix).
   void CenterPose(float height_fraction, math::Vec3& pos, float& scale) const;
   // Matriz de uma pose: translação, giros (Z na mão em leque, Y, X) e escala uniforme.
   static math::Mat4 PoseMatrix(const math::Vec3& pos, float scale, float yaw, float pitch,
@@ -117,7 +115,6 @@ class Hand {
     away_ = away;
     away_t_ = away ? 1.0f : 0.0f;
   }
-  bool Away() const { return away_; }
   // Atrasa a entrada das próximas cartas em pelo menos `seconds` (ex.: esperar o fade in).
   void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
   void Clear() { cards_.clear(); }
@@ -133,15 +130,12 @@ class Hand {
   void MouseUp(math::Vec2 mouse);
 
   int Hovered() const { return hovered_; }
-  bool Raised() const { return raised_; }
   bool Inspecting() const { return inspecting_ >= 0; }
   void StopInspect() { inspecting_ = -1; }  // a carta volta animada para a mão
   void Flip();  // vira a carta inspecionada (meia-volta em Y, animada)
   // Roda do mouse durante a inspeção: aproxima/afasta entre zoom_min e zoom_max da altura.
   void Wheel(float dy);
   const Card& CardAt(size_t i) const { return cards_[i]; }
-  bool IsSelected(size_t i) const { return i < cards_.size() && cards_[i].selected; }
-  std::vector<size_t> Selected() const;
   // Carta selecionada (candidata à invocação) ou -1.
   int Candidate() const;
   void Deselect();

@@ -41,9 +41,6 @@ class Button {
   // algo a mais.
   virtual void RenderContent(SDL_Renderer* r) const;
   const std::string& Label() const { return label_; }
-  bool Hovered() const { return hovered_; }
-  bool Pressed() const { return pressed_; }
-  bool Focused() const { return focused_; }
   bool Highlighted() const { return hovered_ || focused_ || pressed_; }
   static constexpr float LabelScale() { return 3.0f * ui::kScale; }
 

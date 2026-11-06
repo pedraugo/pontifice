@@ -84,7 +84,6 @@ class Gpu {
   bool BeginShadowPass(int light, const math::Mat4& light_view_proj);
   void DrawShadow(const GpuMesh& mesh, const math::Mat4& model);
   void EndShadowPass();
-  bool ShadowsSupported() const { return shadow_pipeline_ != nullptr; }
 
   // Um quadro: BeginFrame limpa a textura alvo, Draw enfileira malhas, EndFrame envia à GPU.
   bool BeginFrame(SDL_FColor clear);
@@ -112,8 +111,6 @@ class Gpu {
   void SetDesaturate(float amount) { desaturate_ = amount; }
 
   SDL_Texture* Target() const { return target_; }
-  int Width() const { return width_; }
-  int Height() const { return height_; }
 
  private:
   SDL_GPUShader* LoadShader(SDL_GPUShaderStage stage, const std::string& shader_dir,
