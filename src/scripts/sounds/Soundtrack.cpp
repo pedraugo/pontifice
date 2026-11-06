@@ -1,9 +1,10 @@
-#include "scripts/music/Music.h"
+#include "scripts/sounds/Soundtrack.h"
 
 #include <algorithm>
 
 #define STB_VORBIS_NO_STDIO
-#include <stb_vorbis.c>
+#define STB_VORBIS_HEADER_ONLY
+#include <stb_vorbis.c>  // implementation lives in Clip.cpp
 
 #include "scripts/json/Json.h"
 
@@ -16,7 +17,7 @@ constexpr float kSwitchSeconds = 1.5f;  // fade out da faixa ao trocar de catego
 
 }  // namespace
 
-struct Music::Decoder {
+struct Soundtrack::Decoder {
   stb_vorbis* vorbis = nullptr;
   int channels = 0;
   int sample_rate = 0;
@@ -24,9 +25,9 @@ struct Music::Decoder {
   std::vector<uint8_t> file;  // Ogg inteiro em memória: stb_vorbis lê daqui, sem stdio
 };
 
-Music::~Music() { Shutdown(); }
+Soundtrack::~Soundtrack() { Shutdown(); }
 
-bool Music::Init(const std::string& base_path) {
+bool Soundtrack::Init(const std::string& base_path) {
   base_ = base_path;
   json::Value root;
   if (!json::LoadFile(base_ + "assets/ost.json", root)) return false;
@@ -111,7 +112,7 @@ bool Music::Init(const std::string& base_path) {
   // O stream converte do formato da faixa (f32, canais e taxa do Ogg) para o do dispositivo.
   const SDL_AudioSpec spec{SDL_AUDIO_F32, static_cast<int>(decoder_->channels),
                            static_cast<int>(decoder_->sample_rate)};
-  stream_ = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, &Music::Feed,
+  stream_ = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, &Soundtrack::Feed,
                                       this);
   if (stream_ == nullptr) {
     SDL_Log("SDL_OpenAudioDeviceStream: %s; jogo segue sem musica", SDL_GetError());
@@ -132,7 +133,7 @@ bool Music::Init(const std::string& base_path) {
   return true;
 }
 
-void Music::Shutdown() {
+void Soundtrack::Shutdown() {
   // Destruir o stream primeiro: depois disso o callback não roda mais e o decoder é só nosso.
   if (stream_ != nullptr) {
     SDL_DestroyAudioStream(stream_);
@@ -144,7 +145,7 @@ void Music::Shutdown() {
   tracks_.clear();
 }
 
-void Music::CloseTrack() {
+void Soundtrack::CloseTrack() {
   if (decoder_ != nullptr && decoder_->open) {
     stb_vorbis_close(decoder_->vorbis);
     decoder_->vorbis = nullptr;
@@ -152,7 +153,7 @@ void Music::CloseTrack() {
   }
 }
 
-bool Music::OpenTrack(size_t index) {
+bool Soundtrack::OpenTrack(size_t index) {
   CloseTrack();
   const std::string path = base_ + tracks_[index].file;
   track_gain_ = tracks_[index].gain;
@@ -188,7 +189,7 @@ bool Music::OpenTrack(size_t index) {
 
 // Mede o RMS de cada faixa de todas as categorias (decodifica inteira) e sugere o ganho que
 // a leva à referência kReferenceRms. Só depuração: PONTIFICE_AUDIO_ANALYZE=1 no Init.
-void Music::Analyze() {
+void Soundtrack::Analyze() {
   constexpr double kReferenceRms = 0.10;  // -20 dBFS
   for (const Category& category : categories_) {
     for (const Track& track : category.tracks) {
@@ -229,7 +230,7 @@ void Music::Analyze() {
 // Próxima faixa da categoria ativa. current_ >= tracks_.size() = nenhuma tocou ainda.
 // Sequencial: a seguinte (começa na 0). Aleatória: qualquer uma menos a que acabou de tocar,
 // em ordem sorteada; se nenhuma abrir, tenta repetir a atual. Faixas que falham são puladas.
-bool Music::OpenNextTrack() {
+bool Soundtrack::OpenNextTrack() {
   const size_t n = tracks_.size();
   if (n == 0) return false;
   if (random_ && n > 1) {
@@ -251,9 +252,9 @@ bool Music::OpenNextTrack() {
   return false;
 }
 
-void Music::SetVolume(float volume) { target_volume_.store(SDL_clamp(volume, 0.0f, 1.0f)); }
+void Soundtrack::SetVolume(float volume) { target_volume_.store(SDL_clamp(volume, 0.0f, 1.0f)); }
 
-void Music::SetCategory(const std::string& name, bool resume) {
+void Soundtrack::SetCategory(const std::string& name, bool resume) {
   for (size_t i = 0; i < categories_.size(); ++i) {
     if (categories_[i].name == name) {
       pending_category_.store(static_cast<int>(i) * 2 + (resume ? 1 : 0));
@@ -263,7 +264,7 @@ void Music::SetCategory(const std::string& name, bool resume) {
   SDL_Log("Musica: categoria desconhecida \"%s\"", name.c_str());
 }
 
-void Music::SetScene(const std::string& key) {
+void Soundtrack::SetScene(const std::string& key) {
   const auto it = scene_volumes_.find(key);
   if (it == scene_volumes_.end()) return;
   SetVolume(it->second);
@@ -273,7 +274,7 @@ void Music::SetScene(const std::string& key) {
 // Ganho por quadro: sobe de 0 a 1 em kFadeSeconds no início e desce a 0 no fim da faixa,
 // vezes o volume, que caminha em rampa até o alvo (troca de cena). Numa retomada (faixa
 // aberta no meio), o fade in vem de fade_in_left_/fade_in_total_.
-void Music::ApplyFade(float* samples, size_t frames, int channels) {
+void Soundtrack::ApplyFade(float* samples, size_t frames, int channels) {
   const float rate = static_cast<float>(decoder_->sample_rate);
   const float fade_frames = kFadeSeconds * rate;
   const float target = muted_.load() ? 0.0f : target_volume_.load();
@@ -296,9 +297,9 @@ void Music::ApplyFade(float* samples, size_t frames, int channels) {
   }
 }
 
-void SDLCALL Music::Feed(void* userdata, SDL_AudioStream* stream, int additional_bytes,
+void SDLCALL Soundtrack::Feed(void* userdata, SDL_AudioStream* stream, int additional_bytes,
                          int /*total_bytes*/) {
-  Music* self = static_cast<Music*>(userdata);
+  Soundtrack* self = static_cast<Soundtrack*>(userdata);
   Decoder* dec = self->decoder_;
   if (additional_bytes <= 0 || dec == nullptr || !dec->open) return;
 

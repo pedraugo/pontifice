@@ -10,22 +10,19 @@
 
 namespace {
 
-// Linhas de 4 células com 2 células entre elas; a coluna (bandeira + nome, alinhados à
-// esquerda) tem a largura do item mais largo e fica centrada na tela.
 constexpr float kRowHeight = ui::Grid(4);
 constexpr float kRowGap = ui::Grid(2);
 
-}  // namespace
+}
 
 LanguageScene::LanguageScene() {
   for (const i18n::Language& language : i18n::Languages()) {
     AddLanguage(language.code, language.name, flag::FromCode(language.flag));
   }
-  // Sem translate.json: só português, para o jogo seguir para o menu.
+  // Without translate.json: Portuguese only, so the menu is reachable.
   if (buttons_.empty()) AddLanguage("pt", "Português", flag::Country::kBrazil);
 }
 
-// Item de texto com bandeira; ao clicar, define o idioma (i18n) e abre o menu.
 void LanguageScene::AddLanguage(const std::string& code, const std::string& name,
                                 flag::Country country) {
   auto button = std::make_unique<ButtonText>(name, [code](SceneContext& ctx) {
@@ -38,7 +35,6 @@ void LanguageScene::AddLanguage(const std::string& code, const std::string& name
 
 void LanguageScene::OnEnter(SceneContext& ctx) {
   LayoutButtons(ctx);
-  // Nenhum idioma começa selecionado: o foco só aparece com as setas (ou hover do mouse).
   focused_ = -1;
   for (auto& button : buttons_) button->SetFocused(false);
 }
@@ -58,7 +54,6 @@ void LanguageScene::LayoutButtons(const SceneContext& ctx) {
 void LanguageScene::MoveFocus(int delta) {
   const int count = static_cast<int>(buttons_.size());
   if (focused_ < 0) {
-    // Sem foco: seta para baixo vai ao primeiro, para cima ao último.
     focused_ = delta > 0 ? 0 : count - 1;
   } else {
     focused_ = (focused_ + delta + count) % count;
@@ -96,7 +91,7 @@ void LanguageScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 }
 
-void LanguageScene::Update(SceneContext& /*ctx*/, float /*dt_seconds*/) {}
+void LanguageScene::Update(SceneContext&, float) {}
 
 void LanguageScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;

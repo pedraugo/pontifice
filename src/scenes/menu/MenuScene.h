@@ -7,8 +7,6 @@
 #include "scripts/button/Button.h"
 #include "scripts/button/ButtonIcon.h"
 
-// Menu, logo depois da escolha de idioma. Fundo liso, título "PONTIFICE" em texto (PirataOne)
-// e itens só de texto (Jogar, Nível, Sair). Layout descrito em docs/menu.md.
 class MenuScene : public Scene {
  public:
   MenuScene();
@@ -24,7 +22,7 @@ class MenuScene : public Scene {
   void ActivateFocused(SceneContext& ctx);
 
   std::vector<std::unique_ptr<Button>> buttons_;
-  Button* difficulty_button_ = nullptr;  // "Nível: <nome>" (menu.level), cicla
-  ButtonIcon sound_button_{ButtonIcon::Icon::kSound};  // canto inferior esquerdo: liga/desliga a música
-  int focused_ = -1;  // -1: nenhum item focado
+  Button* difficulty_button_ = nullptr;
+  ButtonIcon sound_button_{ButtonIcon::Icon::kSound};
+  int focused_ = -1;
 };

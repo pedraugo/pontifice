@@ -111,7 +111,10 @@ add_executable(pontifice
   src/scripts/deck/Deck.cpp
   src/scripts/cards/Cards.cpp
   src/scripts/cardface/CardFace.cpp
-  src/scripts/music/Music.cpp
+  src/scripts/sounds/Soundtrack.cpp
+  src/scripts/sounds/Clip.cpp
+  src/scripts/sounds/Effect.cpp
+  src/scripts/sounds/Storyteller.cpp
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
@@ -126,15 +129,17 @@ target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SO
 target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
 # Decodificação de imagens (libwebp/stb_image), rasterização da fonte (stb_truetype) e composição das
 # frentes das cartas rodam na carga da batalha sobre imagens grandes: sem otimização (Debug)
-# a carga leva vários segundos. A trilha (stb_vorbis) decodifica na thread de áudio. Esses
+# a carga leva vários segundos. A trilha e os clipes (stb_vorbis) decodificam na thread de áudio ou na carga. Esses
 # arquivos são compilados otimizados em qualquer build.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/music/Music.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/sounds/Soundtrack.cpp
+                              src/scripts/sounds/Clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
 elseif(MSVC)
   set_source_files_properties(src/scripts/image/Image.cpp src/scripts/text/Text.cpp
-                              src/scripts/cardface/CardFace.cpp src/scripts/music/Music.cpp
+                              src/scripts/cardface/CardFace.cpp src/scripts/sounds/Soundtrack.cpp
+                              src/scripts/sounds/Clip.cpp
                               PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
 endif()
 target_compile_options(pontifice PRIVATE -Wall -Wextra)

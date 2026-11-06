@@ -24,12 +24,12 @@
 // string ou {"file": "...", "gain": 1.3}: o ganho normaliza o volume entre faixas
 // masterizadas em níveis diferentes (PONTIFICE_AUDIO_ANALYZE=1 mede o RMS de cada uma e
 // sugere o ganho para uma referência comum).
-class Music {
+class Soundtrack {
  public:
-  Music() = default;
-  ~Music();
-  Music(const Music&) = delete;
-  Music& operator=(const Music&) = delete;
+  Soundtrack() = default;
+  ~Soundtrack();
+  Soundtrack(const Soundtrack&) = delete;
+  Soundtrack& operator=(const Soundtrack&) = delete;
 
   // base_path: diretório do binário (SDL_GetBasePath). Falha sem áudio é só registrada: o
   // jogo segue em silêncio.

@@ -6,27 +6,24 @@
 #include "scenes/language/LanguageScene.h"
 #include "scenes/loading/LoadingScene.h"
 #include "scenes/menu/MenuScene.h"
-#include "scripts/music/Music.h"
+#include "scripts/sounds/Soundtrack.h"
 
 SceneManager::SceneManager(SceneContext ctx) : ctx_(std::move(ctx)) {}
 
 void SceneManager::SwitchTo(SceneId id) {
   if (current_) current_->OnExit(ctx_);
   ctx_.next_scene.reset();
-  // Trilha por cena (assets/ost.json): menu e loading tocam a categoria "ost" no volume do
-  // menu (a cena de idioma também); a batalha troca para "battle" (fade out/fade in) no
-  // volume da batalha.
-  if (ctx_.music != nullptr) {
+  if (ctx_.soundtrack != nullptr) {
     const bool battle = id == SceneId::kBattle;
-    ctx_.music->SetScene(battle ? "battle" : "menu");
-    ctx_.music->SetCategory(battle ? "battle" : "ost");
+    ctx_.soundtrack->SetScene(battle ? "battle" : "menu");
+    ctx_.soundtrack->SetCategory(battle ? "battle" : "ost");
   }
   fade_in_total_ = fade_in_left_ = ctx_.fade_in_seconds;
   ctx_.fade_in_seconds = 0.0f;
   fade_out_total_ = fade_out_left_ = 0.0f;
   ctx_.fade_out_seconds = 0.0f;
   if (ctx_.preloaded) {
-    current_ = std::move(ctx_.preloaded);  // já passou por OnEnter na tela de loading
+    current_ = std::move(ctx_.preloaded);  // OnEnter already ran in the loading scene
     return;
   }
   current_ = Create(id);
@@ -34,8 +31,7 @@ void SceneManager::SwitchTo(SceneId id) {
 }
 
 void SceneManager::HandleEvent(const SDL_Event& event) {
-  // Escurecendo para a troca: a cena já decidiu sair, não recebe mais entrada.
-  if (fade_out_total_ > 0.0f) return;
+  if (fade_out_total_ > 0.0f) return;  // no input during fade out
   if (current_) current_->HandleEvent(ctx_, event);
   ApplyPendingSwitch();
 }
@@ -66,7 +62,6 @@ void SceneManager::Render() {
 
 void SceneManager::ApplyPendingSwitch() {
   if (!ctx_.next_scene.has_value()) return;
-  // Troca com fade out: começa a escurecer e só troca quando o véu está preto.
   if (fade_out_total_ <= 0.0f && ctx_.fade_out_seconds > 0.0f) {
     fade_out_total_ = fade_out_left_ = ctx_.fade_out_seconds;
     ctx_.fade_out_seconds = 0.0f;

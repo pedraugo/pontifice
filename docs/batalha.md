@@ -114,5 +114,5 @@ Toda carta que o oponente joga, invocação ou carta de campo, aparece grande no
 - Se uma carta estiver em inspeção, o primeiro `Esc` só sai da inspeção.
 - Com a partida encerrada (vitória ou derrota), `Esc` volta direto ao menu, sem pergunta.
 
-Implementação: `scripts/dialog/ConfirmDialog.*` (janela reutilizável), `BattleScene::Pause`/`Resume` e `Music::SetCategory(nome, resume)`, que guarda a faixa e a posição de cada categoria ao sair dela. Textos em `assets/translate.json` (`battle.abandon.*`).
+Implementação: `scripts/dialog/ConfirmDialog.*` (janela reutilizável), `BattleScene::Pause`/`Resume` e `Soundtrack::SetCategory(nome, resume)`, que guarda a faixa e a posição de cada categoria ao sair dela. Textos em `assets/translate.json` (`battle.abandon.*`).
 

@@ -7,20 +7,16 @@
 #include "scripts/button/ButtonText.h"
 #include "scripts/colors/Colors.h"
 #include "scripts/i18n/I18n.h"
-#include "scripts/music/Music.h"
+#include "scripts/sounds/Soundtrack.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
 namespace {
 
-// Grade de 16 px: itens só de texto (ButtonText) em linhas de 4 células, 2 células
-// entre elas, cada um centrado em x com a largura do próprio rótulo. Título "PONTIFICE" em
-// PirataOne (fonte de título), centrado em y = 12 células.
 constexpr float kRowHeight = ui::Grid(4);
 constexpr float kRowGap = ui::Grid(2);
-constexpr float kTitleScale = 8.0f * ui::kScale;  // linha de 96 px
+constexpr float kTitleScale = 8.0f * ui::kScale;
 constexpr float kTitleCenterY = ui::Grid(12);
-// Transição para o loading (docs/loading.md): o menu escurece e o loading entra do preto.
 constexpr float kMenuFadeOut = 0.5f;
 constexpr float kLoadingFadeIn = 0.5f;
 constexpr float kFooterScale = 2.0f * ui::kScale;
@@ -32,28 +28,24 @@ std::string DifficultyLabel(int level) {
   return i18n::Format("menu.level", {i18n::Get(ai::DifficultyKey(difficulty))});
 }
 
-}  // namespace
+}
 
 MenuScene::MenuScene() {
-  // Jogar: o menu escurece, a tela de loading entra do preto, prepara a batalha e abre em
-  // seguida.
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.play"), [](SceneContext& ctx) {
     ctx.loading_target = SceneId::kBattle;
     ctx.fade_out_seconds = kMenuFadeOut;
     ctx.fade_in_seconds = kLoadingFadeIn;
     ctx.next_scene = SceneId::kLoading;
   }));
-  // Nível do oponente (docs/menu.md): cada clique passa ao próximo; vale para a próxima batalha.
   auto difficulty = std::make_unique<ButtonText>(
       DifficultyLabel(kDefaultDifficulty), [this](SceneContext& ctx) {
         ctx.difficulty = static_cast<int>(
             ai::NextDifficulty(static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3))));
         difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
-        LayoutButtons(ctx);  // o rótulo muda de largura
+        LayoutButtons(ctx);
       });
   difficulty_button_ = difficulty.get();
   buttons_.push_back(std::move(difficulty));
-  // Sair: encerra o jogo.
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.exit"),
                                                   [](SceneContext& ctx) { ctx.quit = true; }));
 }
@@ -63,7 +55,6 @@ void MenuScene::OnEnter(SceneContext& ctx) {
   LayoutButtons(ctx);
   sound_button_.SetRect(SDL_FRect{kSoundMargin, ctx.logical_height - kSoundMargin - kSoundButtonSize,
                                   kSoundButtonSize, kSoundButtonSize});
-  // Nenhum item começa selecionado (como na cena de idioma): foco só com as setas ou hover.
   focused_ = -1;
   for (auto& button : buttons_) button->SetFocused(false);
 }
@@ -115,7 +106,7 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 
   if (sound_button_.HandleEvent(event)) {
-    if (ctx.music != nullptr) ctx.music->ToggleMuted();
+    if (ctx.soundtrack != nullptr) ctx.soundtrack->ToggleMuted();
     return;
   }
   for (size_t i = 0; i < buttons_.size(); ++i) {
@@ -127,7 +118,7 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
 }
 
-void MenuScene::Update(SceneContext& /*ctx*/, float /*dt_seconds*/) {}
+void MenuScene::Update(SceneContext&, float) {}
 
 void MenuScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
@@ -135,13 +126,12 @@ void MenuScene::Render(SceneContext& ctx) {
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
 
-  // Título em texto, fonte de título (PirataOne), centrado.
   const float center_x = ctx.logical_width / 2.0f;
   text::DrawCentered(r, "PONTIFICE", center_x, kTitleCenterY, kTitleScale,
                      colors::Get("text.title"));
 
   for (auto& button : buttons_) button->Render(r);
-  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
+  sound_button_.SetActive(ctx.soundtrack == nullptr || !ctx.soundtrack->Muted());
   sound_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,

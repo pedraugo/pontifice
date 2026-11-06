@@ -7,10 +7,6 @@
 #include "scenes/Scene.h"
 #include "scripts/button/ButtonText.h"
 
-// Primeira cena do jogo (docs/idioma.md): escolha do idioma antes do menu. Fundo liso
-// ("background.language") e um item por idioma de assets/translate.json: texto clicável com a
-// bandeira à esquerda e o nome no próprio idioma. Clicar (ou Enter) define o idioma e abre o
-// menu.
 class LanguageScene : public Scene {
  public:
   LanguageScene();
@@ -26,5 +22,5 @@ class LanguageScene : public Scene {
   void MoveFocus(int delta);
 
   std::vector<std::unique_ptr<ButtonText>> buttons_;
-  int focused_ = -1;  // -1: nenhum item focado
+  int focused_ = -1;
 };

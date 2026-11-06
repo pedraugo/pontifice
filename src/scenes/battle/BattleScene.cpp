@@ -14,7 +14,7 @@
 #include "scripts/frame/Frame.h"
 #include "scripts/i18n/I18n.h"
 #include "scripts/image/Image.h"
-#include "scripts/music/Music.h"
+#include "scripts/sounds/Soundtrack.h"
 #include "scripts/text/Text.h"
 #include "scripts/ui/Ui.h"
 
@@ -25,15 +25,10 @@ std::string BasePath() {
   return base != nullptr ? std::string(base) : std::string("./");
 }
 
-// A arena é um prisma trapezoidal: topo 1,9 x 1,9 (tabuleiro), base 2,5 x 2,5, altura 0,36 unidades no
-// modelo (um ladrilho); escalada para caber na câmera.
 constexpr float kArenaScale = 4.2f;
-// Alturas da arena no mundo (bounds do glb y[-0.061, 0.3] vezes a escala).
 constexpr float kArenaBaseY = -0.061f * kArenaScale;
 constexpr float kArenaTopY = 0.3f * kArenaScale;
 
-// Camadas de névoa (altura acima da base da arena e opacidade), de assets/Fog.json:
-// battle.mist.layers (base, sempre) e battle.introMist.layers (manto da abertura).
 std::vector<BattleScene::MistLayer> LoadMistLayers(const char* path) {
   std::vector<BattleScene::MistLayer> layers;
   const json::Value* list = config::Node("fog", path);
@@ -47,62 +42,45 @@ std::vector<BattleScene::MistLayer> LoadMistLayers(const char* path) {
   return layers;
 }
 
-// Tochas fincadas no chão de cada lado da arena; são a única luz da arena.
 constexpr float kTorchX = 6.4f;
 constexpr float kTorchZ = -1.0f;
 constexpr float kTorchScale = 2.6f;
-constexpr float kTorchTilt = 0.10f;   // rad, levemente inclinadas para fora
+constexpr float kTorchTilt = 0.10f;
 
-// Abertura da batalha: a arena sobe de dentro de uma névoa densa enquanto a câmera se
-// aproxima. A névoa extra fica em alturas fixas do mundo, por isso a arena "fura" camada por
-// camada ao subir, e vai rareando até restarem só as camadas da base.
 constexpr float kIntroSeconds = 1.6f;
-constexpr float kIntroDrop = 3.2f;                     // quanto a arena começa abaixo do lugar
-// Tochas emergem depois da arena: começam a subir quando ela já está quase no lugar.
-constexpr float kTorchIntroStart = 1.1f;   // s depois da entrada
+constexpr float kIntroDrop = 3.2f;
+constexpr float kTorchIntroStart = 1.1f;
 constexpr float kTorchIntroSeconds = 1.2f;
-constexpr float kTorchIntroDrop = 4.5f;    // começam bem abaixo do chão
-constexpr float kIgniteSeconds = 0.6f;     // o fogo acende depois de a tocha ter surgido
-constexpr float kMatchStart = 3.2f;        // s: sorteio e primeiro turno, com as tochas acesas
-constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};  // câmera longe e alta
+constexpr float kTorchIntroDrop = 4.5f;
+constexpr float kIgniteSeconds = 0.6f;
+constexpr float kMatchStart = 3.2f;
+constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};
 constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
 
-// Virada de campo (docs/detalhes_tecnicos.md): a câmera orbita 180° em torno do centro da
-// arena no turno do computador e volta no seu.
 constexpr float kOrbitSeconds = 1.0f;
 
-// Layout 2D na grade de 16 px (ui::Grid). Botão "Passar turno": centro superior, logo abaixo
-// da dica (kHintY), entre os painéis de campo e de vida e acima da arena.
-constexpr float kButtonWidth = ui::Grid(21);   // 336 px
-constexpr float kButtonHeight = ui::Grid(5);   // 80 px
-constexpr float kButtonMargin = ui::Grid(1);   // botão de som no canto inferior esquerdo
-constexpr float kEndTurnTop = ui::Grid(6);     // 96 px: dica centrada em 64 px, 18 px de linha
-// Dica menor que a linha de situação (24 px de linha): 18 px.
+constexpr float kButtonWidth = ui::Grid(21);
+constexpr float kButtonHeight = ui::Grid(5);
+constexpr float kButtonMargin = ui::Grid(1);
+constexpr float kEndTurnTop = ui::Grid(6);
 constexpr float kHintScale = 1.5f * ui::kScale;
-// Botão de som: 3 x 3 células no canto inferior esquerdo.
 constexpr float kSoundButtonSize = ui::Grid(3);
-// Tooltip da carta no campo: imagem da carta à esquerda, textos à direita.
-constexpr float kTipScale = 2.0f * ui::kScale;        // 24 px
-constexpr float kTipDetailScale = 1.5f * ui::kScale;  // 18 px
+constexpr float kTipScale = 2.0f * ui::kScale;
+constexpr float kTipDetailScale = 1.5f * ui::kScale;
 constexpr float kTipPadding = ui::Grid(1);
 constexpr float kTipGap = ui::Grid(0.5f);
-constexpr float kTipOffset = ui::Grid(1);     // distância do cursor
-constexpr float kTipImageH = ui::Grid(14);    // altura da frente da carta (224 px)
-constexpr float kTipTextW = ui::Grid(24);     // largura da coluna de texto (quebra da descrição)
-// Topo: linha de situação e dica (centros em y).
+constexpr float kTipOffset = ui::Grid(1);
+constexpr float kTipImageH = ui::Grid(14);
+constexpr float kTipTextW = ui::Grid(24);
 constexpr float kStatusY = ui::Grid(2);
 constexpr float kHintY = ui::Grid(4);
 constexpr float kCardAspect = 1600.0f / 2230.0f;
 
 constexpr float kStatusScale = 2.0f * ui::kScale;
-constexpr float kClickSlop = 6.0f;      // px lógicos: até aqui um arrasto conta como clique
-constexpr float kAttackDragPx = 24.0f;  // px lógicos de arrasto para virar ataque
+constexpr float kClickSlop = 6.0f;
+constexpr float kAttackDragPx = 24.0f;
 constexpr int kHandLimit = 6;
-// Pausas do turno do computador (s), para o jogador acompanhar cada jogada.
 constexpr float kOpponentPause = 0.7f;
-// Carta de campo ativa ou selecionada: velocidade da transição da arena dourada e da névoa colorida
-// (maior = mais rápida) e reforço do dourado (o tint multiplica a pedra; acima de 1 ela
-// brilha em vez de só escurecer).
 constexpr float kFieldGlowSpeed = 6.0f;
 constexpr float kFieldArenaBoost = 1.5f;
 
@@ -110,29 +88,21 @@ SDL_FColor LerpColor(SDL_FColor a, SDL_FColor b, float t) {
   return SDL_FColor{a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t,
                     a.a + (b.a - a.a) * t};
 }
-// Revelação da carta jogada pelo oponente: tempo total no centro da tela (com entrada e saída
-// em fade), altura da carta (perto dos 557 px nativos da frente do HUD) e escala de entrada.
 constexpr float kRevealSeconds = 2.0f;
-constexpr float kRevealTravel = 0.5f;    // voo da mão do oponente até o centro, virando
-constexpr float kHandHideSeconds = 0.5f; // mão do oponente se recolhe antes da virada
+constexpr float kRevealTravel = 0.5f;
+constexpr float kHandHideSeconds = 0.5f;
 constexpr float kRevealFadeIn = 0.2f;
 constexpr float kRevealFadeOut = 0.25f;
-constexpr float kRevealCardH = ui::Grid(35);  // 560 px
+constexpr float kRevealCardH = ui::Grid(35);
 constexpr float kRevealCaptionScale = 3.0f * ui::kScale;
 constexpr float kRevealDetailScale = 2.5f * ui::kScale;
-constexpr float kAttackHit = 0.25f;  // momento do impacto dentro da investida
-// Tremor da arena ao abater uma carta: duração e deslocamento máximo da câmera (unidades do
-// mundo), que cai com o quadrado do tempo restante.
+constexpr float kAttackHit = 0.25f;
 constexpr float kShakeSeconds = 0.45f;
 constexpr float kShakeAmplitude = 0.16f;
 
-// Normal map da carta pronto para a GPU: pixels transparentes (fora dos cantos arredondados)
-// viram normal plana (128, 128, 255), na proporção da transparência, para o filtro linear
-// não puxar a borda da carta para uma normal inválida; depois reduz 2x, para a mesma
-// resolução da frente composta (cardface::kWidth x kHeight). Reduções e normalização no
-// shader mantêm o relevo.
 Image CardNormalMap(Image image, int downscale) {
   if (!image.Valid()) return image;
+  // Transparent corners become a flat normal with full alpha.
   constexpr int kFlat[3] = {128, 128, 255};
   for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) {
     const int a = image.rgba[i + 3];
@@ -145,9 +115,6 @@ Image CardNormalMap(Image image, int downscale) {
   return downscale > 1 ? image.Downscaled(downscale) : image;
 }
 
-// Aura 2D (revelação de carta foil): anel em volta de `inner`, da cor de cada canto (sentido
-// horário a partir do superior esquerdo) para transparente a `margin` px. Quatro trapézios
-// com cores por vértice: a cor gira em volta da carta conforme os cantos mudam.
 void DrawGlowRing(SDL_Renderer* r, const SDL_FRect& inner, float margin, const SDL_FColor c[4]) {
   const SDL_FPoint in[4] = {{inner.x, inner.y},
                             {inner.x + inner.w, inner.y},
@@ -181,7 +148,6 @@ SDL_FColor Hue(float x, float alpha) {
                     0.5f + 0.5f * std::cos(kTau * (x + 0.67f)), alpha};
 }
 
-// Faixa grossa ao longo de uma polilinha (SDL_RenderGeometry): largura e cor por ponto.
 void DrawStrip(SDL_Renderer* r, const std::vector<SDL_FPoint>& pts,
                const std::vector<float>& widths, const std::vector<SDL_FColor>& colors_) {
   const size_t n = pts.size();
@@ -211,15 +177,12 @@ void DrawStrip(SDL_Renderer* r, const std::vector<SDL_FPoint>& pts,
                      static_cast<int>(idx.size()));
 }
 
-// Linha de ataque: arco (Bézier quadrática) da carta atacante até o mouse, curvado para cima
-// com altura proporcional à distância; engrossa até a ponta, com contorno escuro, brilho em
-// volta, um pulso de luz que corre da carta para o alvo e ponta de seta na direção da curva.
 void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color color, float time) {
   const float dx = to.x - from.x, dy = to.y - from.y;
   const float dist = SDL_sqrtf(dx * dx + dy * dy);
   if (dist < 8.0f) return;
-  // Normal do segmento voltada para cima na tela (y menor); linha vertical curva para a direita.
   float nx = -dy / dist, ny = dx / dist;
+  // The arc always bends upward on screen.
   if (ny > 0.0f || (ny == 0.0f && nx < 0.0f)) {
     nx = -nx;
     ny = -ny;
@@ -229,13 +192,11 @@ void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color co
   constexpr int kSegments = 48;
   constexpr float kHeadLength = 34.0f;
   constexpr float kHeadWidth = 34.0f;
-  // Pontos da curva; a faixa para na base da seta (recuo de kHeadLength ao longo da ponta).
   auto at = [&](float t) {
     const float u = 1.0f - t;
     return SDL_FPoint{u * u * from.x + 2 * u * t * ctrl.x + t * t * to.x,
                       u * u * from.y + 2 * u * t * ctrl.y + t * t * to.y};
   };
-  // Tangente no fim (direção de ctrl para to): orienta a seta.
   float ex = to.x - ctrl.x, ey = to.y - ctrl.y;
   const float elen = SDL_sqrtf(ex * ex + ey * ey);
   ex /= SDL_max(elen, 1e-4f);
@@ -244,13 +205,13 @@ void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color co
   std::vector<SDL_FPoint> pts;
   std::vector<float> core_w, glow_w, outline_w;
   std::vector<SDL_FColor> core_c, glow_c, outline_c;
+  // The curve stops before the arrowhead.
   const float head_t = SDL_max(0.0f, 1.0f - kHeadLength / SDL_max(dist * 1.15f, 1.0f));
   const SDL_FColor c{color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f};
   for (int i = 0; i <= kSegments; ++i) {
     const float s = static_cast<float>(i) / kSegments;
     pts.push_back(i == kSegments ? base : at(s * head_t));
-    const float w = 4.0f + 6.0f * s;  // engrossa até a ponta
-    // Pulso: faixa clara que corre ao longo do arco (ciclo de 0,8 s).
+    const float w = 4.0f + 6.0f * s;
     const float phase = s - SDL_fmodf(time * 1.25f, 1.0f);
     const float pulse = SDL_expf(-phase * phase * 120.0f);
     core_w.push_back(w);
@@ -264,9 +225,8 @@ void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color co
   DrawStrip(r, pts, glow_w, glow_c);
   DrawStrip(r, pts, outline_w, outline_c);
   DrawStrip(r, pts, core_w, core_c);
-  // Ponta de seta: contorno escuro um pouco maior e a seta na cor.
   auto head = [&](float grow, SDL_FColor fill) {
-    const float px = -ey, py = ex;  // perpendicular à ponta
+    const float px = -ey, py = ex;
     const float half = kHeadWidth * 0.5f + grow;
     const SDL_FPoint tip{to.x + ex * grow, to.y + ey * grow};
     const SDL_FPoint b0{base.x - ex * grow + px * half, base.y - ey * grow + py * half};
@@ -290,7 +250,7 @@ const char* SlotName(int slot, char* buffer) {
   return buffer;
 }
 
-}  // namespace
+}
 
 BattleScene::~BattleScene() {
   if (field_front_2d_ != nullptr) SDL_DestroyTexture(field_front_2d_);
@@ -316,8 +276,6 @@ BattleScene::~BattleScene() {
 void BattleScene::Preload(const PreloadInfo& info) {
   preloaded_ = true;
   const std::string base = BasePath();
-  // Frente da carta de campo para o HUD: aparece com ~120 px de altura, então vai reduzida 4x
-  // (400x557); vira SDL_Texture em OnEnter, na thread principal.
   hud_field_ = Image::LoadFile(base + "sprites/CardFrontField.webp").Downscaled(4);
   if (info.gpu_device == nullptr) return;
 
@@ -338,7 +296,6 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                  {0.5f, 0.5f, 0, 1, 0}, {-0.5f, 0.5f, 0, 0, 0}},
                                 {0, 1, 2, 0, 2, 3});
   back_ = UploadSprite(Image::LoadFile(base + "sprites/CardBack.webp"));
-  // Frente: 1600x2230 com cantos transparentes, reduzido para 800x1115 (CardNormalMap).
   front_normal_ = UploadSprite(
       CardNormalMap(Image::LoadFile(base + "sprites/CardFrontNormalMap.webp"), 2));
   back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/CardBackNormalMap.webp"));
@@ -353,24 +310,16 @@ void BattleScene::Preload(const PreloadInfo& info) {
   opponent_board_.SetSide(-1.0f);
   sword_.Init(*gpu_);
   shield_.Init(*gpu_);
-  // Molduras reduzidas 2x (800x1115): a carta na mão é pequena e a frente de cada carta é
-  // composta a partir delas com os textos (cardface).
   frames_[0] = Image::LoadFile(base + "sprites/CardFrontGood.webp").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/CardFrontEvil.webp").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/CardFrontNeutral.webp").Downscaled(2);
   frames_[3] = Image::LoadFile(base + "sprites/CardFrontField.webp").Downscaled(2);
-  // Frente oculta da mão do oponente: uma só textura para todas as cartas dele.
   hidden_face_ = UploadSprite(cardface::ComposeHidden(
       Image::LoadFile(base + "sprites/CardFrontOpponent.webp").Downscaled(2)));
 
-  // Montes: 40 cartas sorteadas por peso e embaralhadas (deck::Deck) para cada lado, ANTES de
-  // qualquer carta aparecer; as 5 da sua mão inicial são compradas e compostas já aqui. O
-  // computador também compra 5 (só os dados; a frente é composta quando a carta entra).
   cards_ = cards::LoadAll(base);
-  // Ilustrações (imageUrl de cada carta), ajustadas uma vez à janela da imagem. Cartas sem o
-  // arquivo ficam com a janela em branco. Decodificar ~65 WebPs grandes é a parte mais lenta
-  // da carga: roda em várias threads (libwebp e FitArt não têm estado compartilhado).
   arts_.clear();
+  // Card art decoded in parallel: the slowest part of loading.
   {
     const Uint64 started = SDL_GetTicksNS();
     std::vector<const CardInfo*> todo;
@@ -397,8 +346,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
     SDL_Log("Ilustracoes de cartas: %zu (%.0f ms, %u threads)", arts_.size(),
             static_cast<double>(SDL_GetTicksNS() - started) / 1e6, workers);
   }
-  // Depuração: PONTIFICE_SEED=n fixa o sorteio (montes, compras e quem começa) para repetir
-  // uma partida igual.
+  // Debug: PONTIFICE_SEED fixes the deck shuffle.
   if (const char* env = SDL_getenv("PONTIFICE_SEED")) {
     rng_.seed(static_cast<unsigned>(SDL_atoi(env)));
   } else {
@@ -406,8 +354,6 @@ void BattleScene::Preload(const PreloadInfo& info) {
   }
   deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_));
   deck_.Shuffle();
-  // Monte do computador conforme o nível (menu; PONTIFICE_DIFFICULTY=easy|medium|hard|impossible
-  // força, para depuração).
   int level = info.difficulty;
   if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
     if (std::strcmp(env, "easy") == 0) level = 0;
@@ -422,9 +368,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                                }));
   opponent_deck_.Shuffle();
   SDL_Log("Nivel do oponente: %s", ai::DifficultyKey(difficulty_));
-  // Depuração: PONTIFICE_HAND=G101,E101,... força os códigos da mão inicial. O monte continua
-  // embaralhado e perde uma carta do topo por carta forçada, para o contador do HUD ficar
-  // como numa partida normal (35/40).
+  // Debug: PONTIFICE_HAND=N301,E101 forces the starting hand.
   std::vector<std::string> forced;
   if (const char* env = SDL_getenv("PONTIFICE_HAND")) {
     std::string spec = env;
@@ -441,7 +385,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
     if (!forced.empty()) {
       if (i < static_cast<int>(forced.size())) {
         code = forced[i];
-        deck_.Draw();
+        deck_.Draw();  // still draws, to keep the deck count right
       }
     } else {
       code = deck_.Draw();
@@ -450,8 +394,6 @@ void BattleScene::Preload(const PreloadInfo& info) {
     const Face face = MakeCardFace(*code);
     if (face.texture != nullptr) initial_hand_.push_back(face);
   }
-  // Depuração: PONTIFICE_OPPONENT_HAND=G101,E101,... força a mão inicial do computador (como
-  // PONTIFICE_HAND; o monte dele perde uma carta do topo por carta forçada).
   if (const char* env = SDL_getenv("PONTIFICE_OPPONENT_HAND")) {
     std::string spec = env;
     size_t pos = 0;
@@ -476,7 +418,6 @@ void BattleScene::Preload(const PreloadInfo& info) {
     SDL_Log("Torch.glb nao carregado; gere com tools/make_torch.py");
     torch_.reset();
   }
-  // Quad horizontal em y = 0; cada camada de névoa o desenha transladado para sua altura.
   const float h = config::Float("fog", "battle.mist.halfSize", 40.0f);
   mist_quad_ = gpu_->CreateMesh(
       {{-h, 0, -h, 0, 0}, {h, 0, -h, 1, 0}, {h, 0, h, 1, 1}, {-h, 0, h, 0, 1}},
@@ -509,7 +450,6 @@ void BattleScene::ToggleSampleFieldCard() {
     field_ = rules::Field{};
     return;
   }
-  // Primeira carta de assets/CardsField.json.
   for (const CardInfo& card : cards_) {
     if (card.IsField()) {
       PlayField(Side::kPlayer, card);
@@ -522,7 +462,6 @@ BattleScene::Face BattleScene::MakeCardFace(const std::string& code) {
   const CardInfo* card = cards::Find(cards_, code);
   if (card == nullptr || gpu_ == nullptr) return {};
   const Image& frame = FrameFor(*card);
-  // Hierarquia 1 (Divindades, Soberanos): carta foil.
   return {UploadSprite(cardface::Compose(frame, *card, ArtFor(*card))), card->hierarchy == 1,
           card};
 }
@@ -533,8 +472,6 @@ SDL_Texture* BattleScene::HudArt(const CardInfo& card, bool large) {
   if (const auto it = hud_arts_.find(key); it != hud_arts_.end()) return it->second;
   const Image* art = ArtFor(card);
   if (art == nullptr) return nullptr;
-  // Miniatura: 668x448 reduzida 4x (167x112), no painel tem 64 px de altura. Ampliação:
-  // resolução cheia, mostrada no tamanho nativo.
   SDL_Texture* texture = UploadHudSprite(renderer_, large ? *art : art->Downscaled(4));
   if (texture != nullptr) hud_arts_[key] = texture;
   return texture;
@@ -545,8 +482,6 @@ const Image* BattleScene::ArtFor(const CardInfo& card) const {
   return it != arts_.end() ? &it->second : nullptr;
 }
 
-// Moldura da categoria (CardInfo::FrameSprite): Good, Evil, Neutral ou Field. Sem a neutra,
-// neutras usam a de campo.
 const Image& BattleScene::FrameFor(const CardInfo& card) const {
   switch (card.category) {
     case 'G':
@@ -560,12 +495,11 @@ const Image& BattleScene::FrameFor(const CardInfo& card) const {
   }
 }
 
+// Without a renderer or frame, the field front is the fallback.
 SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
   if (renderer_ == nullptr) return field_front_2d_;
   auto it = hud_faces_.find(card.code);
   if (it != hud_faces_.end()) return it->second;
-  // Composta na moldura da categoria reduzida 2x e reduzida mais 2x (400x557): o HUD e o
-  // tooltip mostram de 120 a 300 px de altura.
   const Image& frame = FrameFor(card);
   if (!frame.Valid()) return field_front_2d_;
   SDL_Texture* texture =
@@ -603,9 +537,6 @@ void BattleScene::OpponentDraw() {
   if (const CardInfo* info = cards::Find(cards_, *code)) OpponentHandAdd(info);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Fluxo da partida
-
 void BattleScene::Schedule(float delay, std::function<void()> fn) {
   steps_.emplace_back(delay, std::move(fn));
 }
@@ -624,9 +555,9 @@ void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::st
   reveal_.card = &card;
   reveal_.caption = std::move(caption);
   reveal_.detail = std::move(detail);
-  // Pose de saída na mão: translação, escala (coluna X) e giro em Z do leque.
   if (from_world != nullptr && ready_ && hidden_face_ != nullptr) {
     const math::Mat4& m = *from_world;
+    // Position, scale and Z roll extracted from the hand card matrix.
     reveal_.from_hand = true;
     reveal_.from_pos = {m.m[3][0], m.m[3][1], m.m[3][2]};
     reveal_.from_scale = std::sqrt(m.m[0][0] * m.m[0][0] + m.m[0][1] * m.m[0][1] +
@@ -638,7 +569,7 @@ void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::st
     reveal_.front3d = face.texture;
     reveal_.foil = face.foil;
   }
-  if (reveal_.front3d == nullptr) reveal_.face = HudFace(card);  // sem 3D: imagem 2D
+  if (reveal_.front3d == nullptr) reveal_.face = HudFace(card);
 }
 
 bool BattleScene::Busy() const {
@@ -648,20 +579,18 @@ bool BattleScene::Busy() const {
 }
 
 bool BattleScene::AttacksAllowed(Side side) const {
+  // Whoever starts cannot attack on the first turn.
   return !(starter_ == side && turns_played_[Index(side)] == 0);
 }
 
 void BattleScene::StartMatch() {
   started_ = true;
-  // Quem começa já foi sorteado na entrada (OnEnter), para a sua mão nem aparecer quando é o
-  // oponente: aqui o turno dele começa direto.
   SDL_Log("Sorteio: %s", starter_ == Side::kPlayer ? "voce comeca" : "o oponente comeca");
   if (starter_ == Side::kPlayer) {
     BeginPlayerTurn();
   } else {
     hand_.SetAway(true);
-    opponent_hand_view_.SetAway(false);  // a mão dele aparece no turno dele
-    // A câmera já está do lado dele desde a abertura (OnEnter): sem giro, o turno começa logo.
+    opponent_hand_view_.SetAway(false);
     const bool turned = orbit_ >= 1.0f;
     orbit_target_ = 1.0f;
     Schedule(turned ? 0.2f : kOrbitSeconds + 0.2f, [this] { RunOpponentTurn(); });
@@ -679,7 +608,7 @@ void BattleScene::BeginPlayerTurn() {
   hand_.SetAway(false);
   opponent_hand_view_.SetAway(true);
   orbit_target_ = 0.0f;
-  // Fase de compra: quem começou não compra no primeiro turno.
+  // Whoever starts does not draw on the first turn.
   if (!(starter_ == Side::kPlayer && turns_played_[0] == 0)) DrawCard();
   SDL_Log("Turno %d: sua vez", turn_);
 }
@@ -692,7 +621,6 @@ void BattleScene::EndTurn() {
   attack_from_ = -1;
   attack_drag_ = false;
   DiscardExtraCards();
-  // Virada de campo e turno do computador: a sua mão se recolhe e a dele aparece.
   hand_.SetAway(true);
   opponent_hand_view_.SetAway(false);
   orbit_target_ = 1.0f;
@@ -700,12 +628,12 @@ void BattleScene::EndTurn() {
 }
 
 void BattleScene::DiscardExtraCards() {
-  // Fase final: com mais de 6 cartas, descarta até 6 (aqui, as de menor ataque).
   while (hand_.Size() > static_cast<size_t>(kHandLimit)) {
     size_t worst = 0;
     int worst_value = 1 << 30;
     for (size_t i = 0; i < hand_.Size(); ++i) {
       const CardInfo* info = hand_.CardAt(i).info;
+      // Field cards count as 0: discarded first.
       const int value = info == nullptr ? 0 : (info->IsField() ? 0 : info->attack);
       if (value < worst_value) {
         worst_value = value;
@@ -721,17 +649,14 @@ void BattleScene::RunOpponentTurn() {
   if (hud_.Over()) return;
   turn_side_ = Side::kOpponent;
   opponent_board_.ResetAttacks();
-  if (!(starter_ == Side::kOpponent && turns_played_[1] == 0)) OpponentDraw();
+  if (!(starter_ == Side::kOpponent && turns_played_[1] == 0)) OpponentDraw();  // same rule
   SDL_Log("Turno %d: oponente (%zu na mao, %zu no monte)", turn_, opponent_hand_.size(),
           opponent_deck_.Size());
-  // Fase principal: trocas de posição, carta de campo e invocação, com pausas.
   Schedule(kOpponentPause, [this] {
     for (int slot : ai::ChoosePositionChanges(BuildOpponentView())) {
       opponent_board_.TogglePosition(slot);
     }
   });
-  // Carta de campo e invocação: a carta sai da mão dele, aparece no centro da tela por
-  // kRevealSeconds e só então vai para a arena (passo agendado logo em seguida).
   Schedule(kOpponentPause, [this] {
     const int index = ai::ChooseFieldCard(BuildOpponentView());
     if (index < 0) return;
@@ -765,7 +690,6 @@ void BattleScene::RunOpponentTurn() {
       OpponentSummon(card, defense, face.texture != nullptr ? &face : nullptr);
     });
   });
-  // Fase de batalha: um ataque por passo, reavaliando o campo a cada vez.
   Schedule(kOpponentPause + 0.3f, [this] { OpponentAttackStep(); });
 }
 
@@ -782,7 +706,6 @@ void BattleScene::OpponentAttackStep() {
 
 void BattleScene::FinishOpponentTurn() {
   ++turns_played_[1];
-  // Fase final do computador: mão com mais de 6 cartas descarta as de menor ataque.
   while (opponent_hand_.size() > static_cast<size_t>(kHandLimit)) {
     auto worst = std::min_element(opponent_hand_.begin(), opponent_hand_.end(),
                                   [](const CardInfo* a, const CardInfo* b) {
@@ -791,8 +714,8 @@ void BattleScene::FinishOpponentTurn() {
     OpponentHandRemove(static_cast<size_t>(worst - opponent_hand_.begin()));
   }
   ++turn_;
-  // A mão do oponente se recolhe primeiro; só depois a arena vira para o seu lado.
   opponent_hand_view_.SetAway(true);
+  // The opponent hand retracts before the camera orbits back.
   ScheduleNext(kHandHideSeconds, [this] {
     orbit_target_ = 0.0f;
     ScheduleNext(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
@@ -815,7 +738,7 @@ ai::View BattleScene::BuildOpponentView() const {
   view.field = field_;
   view.my_life = hud_.OpponentLife();
   view.their_life = hud_.PlayerLife();
-  view.can_summon = true;  // uma invocação por turno: ChooseSummon é chamado uma vez
+  view.can_summon = true;
   view.can_attack = AttacksAllowed(Side::kOpponent);
   view.free_slots = static_cast<int>(opponent_board_.Free().size());
   return view;
@@ -826,7 +749,6 @@ void BattleScene::OpponentSummon(const CardInfo* info, bool defense, const Face*
   std::vector<int> free = opponent_board_.Free();
   int slot;
   if (free.empty()) {
-    // Campo cheio: substitui a carta de menor ataque.
     slot = -1;
     int worst = 1 << 30;
     for (int s : opponent_board_.Occupied()) {
@@ -850,21 +772,16 @@ void BattleScene::OpponentSummon(const CardInfo* info, bool defense, const Face*
           defense ? "defesa" : "ataque");
 }
 
-// ---------------------------------------------------------------------------------------------
-// Ações do jogador
-
 bool BattleScene::CanAct() const {
   return ready_ && started_ && player_turn_ && !hud_.Over() && !hand_.Inspecting() && !Busy();
 }
 
 bool BattleScene::CanSummon() const {
   if (!CanAct() || hand_.Candidate() < 0) return false;
-  // Carta de campo não gasta a invocação normal do turno.
   return CandidateIsField() || !summoned_;
 }
 
 const char* BattleScene::HoverRole() const {
-  // Com a arena dourada (carta de campo ativa ou selecionada), o amarelo some nela: rosa.
   return field_.active || CandidateIsField() ? "board.slotHoverField" : "board.slotHover";
 }
 
@@ -876,9 +793,6 @@ bool BattleScene::CandidateIsField() const {
 }
 
 void BattleScene::PlayField(Side owner, const CardInfo& card) {
-  // A carta de campo não entra no campo: é consumida ao ser jogada e vai direto para o
-  // cemitério do dono (o HUD conta só o seu). O efeito (buff/nerf) fica ativo até outra
-  // carta de campo substituí-lo, e o painel do HUD mostra o efeito em vigor.
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
   field_ = rules::Field::From(card);
   field_owner_ = owner;
@@ -888,8 +802,8 @@ void BattleScene::PlayField(Side owner, const CardInfo& card) {
   info.buff = card.buff;
   info.nerf = card.nerf;
   info.image = HudFace(card);
-  info.art = HudArt(card);  // o painel mostra só a ilustração, se houver
-  info.art_large = HudArt(card, /*large=*/true);  // ampliação ao passar o mouse
+  info.art = HudArt(card);
+  info.art_large = HudArt(card, true);
   hud_.SetFieldCard(info);
   SDL_Log("%s ativou a carta de campo %s", owner == Side::kPlayer ? "Voce" : "Oponente",
           card.name.c_str());
@@ -903,9 +817,7 @@ void BattleScene::Summon(int slot) {
     PlayField(Side::kPlayer, *card.info);
     return;
   }
-  // Slot ocupado: a carta anterior é descartada para o cemitério (docs/campo.md).
   if (!board_.Empty(slot) && board_.Discard(slot)) hud_.SetGraveyard(hud_.Graveyard() + 1);
-  // Entra virada para cima, em modo de ataque (docs/batalha.md).
   if (!board_.Place(slot, card.front, card.foil, false, card.info, turn_)) return;
   summoned_ = true;
   board_.SetHighlight(false);
@@ -914,18 +826,15 @@ void BattleScene::Summon(int slot) {
   SDL_Log("Turno %d: carta invocada em %s", turn_, SlotName(slot, name));
 }
 
-// ---------------------------------------------------------------------------------------------
-// Combate
-
 void BattleScene::PerformAttack(Side attacker, int slot, int target_slot) {
   Board& mine = BoardOf(attacker);
   Board& theirs = BoardOf(Other(attacker));
   Board::Card* card = mine.At(slot);
   if (card == nullptr || card->attacked || card->defense) return;
   if (target_slot >= 0 && theirs.Empty(target_slot)) return;
-  if (target_slot < 0 && theirs.Count() > 0) return;  // direto só com o campo vazio
+  if (target_slot < 0 && theirs.Count() > 0) return;
   card->attacked = true;
-  // Investida até a carta alvo ou, no ataque direto, até o meio do lado do oponente.
+  // Direct attack aims at the center slot of row B.
   const math::Vec3 target = target_slot >= 0
                                 ? theirs.CardPosition(target_slot)
                                 : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
@@ -943,7 +852,6 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   const int attack = rules::EffectiveAttack(*card->info, field_);
   rules::Outcome outcome;
   char a_name[3], d_name[3];
-  // Golpe de espada no alvo (carta ou, no ataque direto, o meio do lado do oponente).
   const math::Vec3 hit = target_slot >= 0
                              ? theirs.CardPosition(target_slot)
                              : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
@@ -959,8 +867,6 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
     outcome = rules::Resolve(attack, target->defense,
                              rules::EffectiveAttack(*target->info, field_),
                              rules::EffectiveDefense(*target->info, field_));
-    // Carta em defesa: o escudo surge sobre ela e segura o golpe da espada (ou quebra, se ela
-    // não aguenta).
     if (target->defense) {
       shield_.Play(hit, mine.CardPosition(slot), sword_.HitDelay(), outcome.defender_destroyed);
     }
@@ -974,7 +880,6 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   if (outcome.defender_damage > 0) ApplyDamage(Other(attacker), outcome.defender_damage);
   if (outcome.attacker_damage > 0) ApplyDamage(attacker, outcome.attacker_damage);
   if (hud_.Over()) {
-    // Fim da batalha: nada mais acontece; o HUD mostra o resultado.
     steps_.clear();
     reveal_ = Reveal{};
     player_turn_ = false;
@@ -986,7 +891,6 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
 void BattleScene::Destroy(Side owner, int slot) {
   if (!BoardOf(owner).Discard(slot)) return;
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
-  // Carta abatida: a arena treme (as duas destruídas no mesmo golpe não somam).
   shake_left_ = kShakeSeconds;
 }
 
@@ -1004,11 +908,7 @@ math::Vec2 BattleScene::ScreenOf(const math::Vec3& world, int width, int height)
   return {(clip.x / w * 0.5f + 0.5f) * width, (1.0f - (clip.y / w * 0.5f + 0.5f)) * height};
 }
 
-// ---------------------------------------------------------------------------------------------
-// Cena
-
 void BattleScene::OnEnter(SceneContext& ctx) {
-  // Sem Preload antes (entrada direta na batalha), carrega tudo aqui mesmo.
   if (!preloaded_) Preload(ctx.Preload());
   renderer_ = ctx.renderer;
 
@@ -1030,18 +930,14 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   reveal_ = Reveal{};
   field_ = rules::Field{};
 
-  // HUD (docs/hud.md): vida cheia, sem carta de campo, cemitério vazio e monte com a mão
-  // inicial já comprada. Não depende do render 3D.
   hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
   hud_.ClearFieldCard();
   hud_.SetGraveyard(0);
-  // Fundo = cor da névoa: o que some na distância se funde com ele (assets/Fog.json, que
-  // por padrão aponta para os papéis background.fog e background.mist de colors.json).
   fog_color_ = config::Color("fog", "battle.fog.color", colors::GetF("background.fog"));
   mist_color_ = config::Color("fog", "battle.mist.color", colors::GetF("background.mist"));
   if (field_front_2d_ == nullptr) {
     field_front_2d_ = UploadHudSprite(ctx.renderer, hud_field_);
-    hud_field_ = Image{};
+    hud_field_ = Image{};  // free the image: already a texture
   }
 
   if (gpu_ == nullptr || card_model_ == nullptr) {
@@ -1054,14 +950,9 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_.SetAura(&card_aura_);
   hand_.SetBack(back_);
   hand_.SetNormalMaps(front_normal_, back_normal_);
-  // Mão inicial: as 5 cartas compradas do monte embaralhado no Preload (ver docs/batalha.md).
-  // Entram pela esquerda, uma a uma, depois de o fade in da entrada terminar.
   hand_.DelayDeal(0.8f);
   for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil, face.info);
   initial_hand_.clear();
-  // Sorteio de quem começa (PONTIFICE_STARTER força, para depuração). Feito já na entrada: se
-  // o oponente começa, a mão dele aparece no lugar da sua, que fica recolhida desde o início e
-  // só sobe no seu turno.
   starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kOpponent;
   if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
     if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
@@ -1069,14 +960,10 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   }
   if (starter_ == Side::kOpponent) {
     hand_.SetAwayNow(true);
-    // A arena emerge já virada para o oponente: a câmera começa do lado dele.
     orbit_ = orbit_target_ = 1.0f;
   } else {
     orbit_ = orbit_target_ = 0.0f;
   }
-  // Mão do oponente: mesmas cartas 3D, frente oculta, um pouco mais à vista (sem o mouse ela
-  // não sobe). Se ele começa, é ela que aparece na entrada, distribuída carta a carta como a
-  // sua (e a sua fica recolhida); senão começa recolhida e aparece no turno dele.
   opponent_hand_view_.SetModel(card_model_.get());
   opponent_hand_view_.SetBack(back_);
   opponent_hand_view_.SetNormalMaps(front_normal_, back_normal_);
@@ -1094,23 +981,18 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
   proj_ = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);
   hand_view_proj_ = proj_ * math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
-  // Vista do jogador: acima e à frente do seu lado da arena, olhando para o centro.
   math::Vec3 eye{0, 10.5f, 12.2f};
-  if (const char* env = SDL_getenv("PONTIFICE_ARENA_EYE")) {  // depuração: "x,y,z"
+  if (const char* env = SDL_getenv("PONTIFICE_ARENA_EYE")) {
     SDL_sscanf(env, "%f,%f,%f", &eye.x, &eye.y, &eye.z);
   }
   eye_final_ = eye;
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
 
-  // Clima medieval: a luz da arena vem só das duas tochas (luzes pontuais nas chamas, cor
-  // amarelo-branca de Torch::LightColor, com tremular); sem luz direcional, ambiente frio e
-  // fraco, névoa na base e vinheta. Valores em assets/Light.json (battle.arena, torch),
-  // Fog.json (battle.fog, battle.mist) e Shadow.json (battle).
   arena_atmosphere_.light_dir = config::Vec3("light", "battle.arena.lightDir", {-0.35f, 1.0f, 0.45f});
   arena_atmosphere_.light_intensity = config::Float("light", "battle.arena.lightIntensity", 0.0f);
   arena_atmosphere_.light_color = Torch::LightColor();
   arena_atmosphere_.ambient = config::Color("light", "battle.arena.ambient", {0.07f, 0.08f, 0.13f, 1.0f});
-  arena_atmosphere_.point_intensity = 0.0f;  // acendem quando o fogo surge nas tochas
+  arena_atmosphere_.point_intensity = 0.0f;
   arena_atmosphere_.point2_intensity = 0.0f;
   arena_atmosphere_.fog_color = fog_color_;
   arena_atmosphere_.fog_density = config::Float("fog", "battle.fog.density", 0.05f);
@@ -1131,8 +1013,6 @@ void BattleScene::OnEnter(SceneContext& ctx) {
       config::Float("shadow", "battle.near", 0.3f), config::Float("shadow", "battle.far", 60.0f));
   shadow_target_ = config::Vec3("shadow", "battle.target", {0.0f, 0.3f, 0.0f});
 
-  // Mão: mesma luz da tocha (principal e pontual, com o mesmo tremular), ambiente um
-  // pouco mais claro para as cartas ficarem legíveis. Sem névoa nem vinheta.
   hand_atmosphere_.light_dir = config::Vec3("light", "battle.hand.lightDir", {0.3f, 0.6f, 1.0f});
   hand_atmosphere_.light_intensity = config::Float("light", "battle.hand.lightIntensity", 0.5f);
   hand_atmosphere_.light_color = arena_atmosphere_.light_color;
@@ -1141,7 +1021,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.point_intensity = config::Float("light", "battle.hand.pointIntensity", 1.0f);
   hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
-  UpdateIntro(0.0f);  // primeiro quadro já com a arena afundada e a câmera longe
+  UpdateIntro(0.0f);
 }
 
 void BattleScene::UpdateIntro(float dt_seconds) {
@@ -1150,11 +1030,10 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   intro_ = SmoothStep(intro_time_ / kIntroSeconds);
   torch_intro_ = SmoothStep((intro_time_ - kTorchIntroStart) / kTorchIntroSeconds);
   ignite_ = SmoothStep((intro_time_ - kTorchIntroStart - kTorchIntroSeconds) / kIgniteSeconds);
-  // Depuração: PONTIFICE_ARENA_EYE fixa a câmera, então pula a abertura.
+  // Debug: PONTIFICE_ARENA_EYE skips the intro.
   if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = torch_intro_ = ignite_ = 1.0f;
   const float drop = kIntroDrop * (1.0f - intro_);
   arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(kArenaScale);
-  // Tochas emergem do chão depois da arena; o fogo acende depois, e a luz vem com ele.
   const float torch_drop = kTorchIntroDrop * (1.0f - torch_intro_);
   torch_world_[0] = math::Mat4::Translate({-kTorchX, kArenaBaseY - torch_drop, kTorchZ}) *
                     math::Mat4::RotateZ(kTorchTilt) * math::Mat4::Scale(kTorchScale);
@@ -1162,7 +1041,6 @@ void BattleScene::UpdateIntro(float dt_seconds) {
                     math::Mat4::RotateZ(-kTorchTilt) * math::Mat4::Scale(kTorchScale);
   arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
   arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
-  // Sombras: cada chama olha para o centro da arena com campo bem aberto.
   for (int k = 0; k < 2; ++k) {
     const math::Vec3 flame = k == 0 ? arena_atmosphere_.point_pos : arena_atmosphere_.point2_pos;
     torch_light_vp_[k] = shadow_proj_ * math::Mat4::LookAt(flame, shadow_target_, {0, 1, 0});
@@ -1170,8 +1048,7 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   arena_atmosphere_.point_intensity = torch_light_ * ignite_;
   arena_atmosphere_.point2_intensity = torch_light_ * ignite_;
   math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
-  // Oponente começa: a abertura já acontece do lado dele (mesmo giro da virada de campo).
-  if (orbit_ > 0.0f) {
+  if (orbit_ > 0.0f) {  // orbit 180° around Y to the opponent side
     const float angle = math::kPi * SmoothStep(orbit_);
     const float c = std::cos(angle), s = std::sin(angle);
     eye = math::Vec3{eye.x * c + eye.z * s, eye.y, -eye.x * s + eye.z * c};
@@ -1181,18 +1058,15 @@ void BattleScene::UpdateIntro(float dt_seconds) {
 }
 
 void BattleScene::UpdateCamera() {
-  // Virada de campo: a câmera gira em torno do eixo vertical pelo centro da arena.
   if (intro_ < 1.0f) return;
-  const float angle = math::kPi * SmoothStep(orbit_);
+  const float angle = math::kPi * SmoothStep(orbit_);  // 180° around Y to the opponent side
   const float c = std::cos(angle), s = std::sin(angle);
   const math::Vec3 e = eye_final_;
   math::Vec3 eye{e.x * c + e.z * s, e.y, -e.x * s + e.z * c};
   math::Vec3 target = kArenaTarget;
-  // Tremor (carta abatida): câmera e alvo sacodem juntos em três senos de frequências
-  // diferentes, forte no início e sumindo. Só a arena treme: mão e HUD ficam parados.
   if (shake_left_ > 0.0f) {
     const float k = shake_left_ / kShakeSeconds;
-    const float a = kShakeAmplitude * k * k;
+    const float a = kShakeAmplitude * k * k;  // shake decays quadratically
     const float t = shake_time_;
     const math::Vec3 offset{a * std::sin(t * 57.0f), a * 0.8f * std::sin(t * 43.0f + 1.3f),
                             a * 0.6f * std::sin(t * 67.0f + 2.1f)};
@@ -1205,31 +1079,28 @@ void BattleScene::UpdateCamera() {
 
 void BattleScene::Pause(SceneContext& ctx) {
   paused_ = true;
-  // Solta o que estava em andamento com o mouse (arrasto de ataque).
   attack_from_ = -1;
   attack_drag_ = false;
   press_ = {-1.0f, -1.0f};
-  if (ctx.music != nullptr) {
-    ctx.music->SetScene("menu");
-    ctx.music->SetCategory("ost");
+  if (ctx.soundtrack != nullptr) {
+    ctx.soundtrack->SetScene("menu");
+    ctx.soundtrack->SetCategory("ost");
   }
-  // Sim = abandonar: ação destrutiva, placa vermelha.
   abandon_dialog_.Open(i18n::Get("battle.abandon.question"), i18n::Get("battle.abandon.no"),
                        i18n::Get("battle.abandon.yes"), ctx.logical_width, ctx.logical_height,
-                       /*yes_danger=*/true);
+                       true);
 }
 
 void BattleScene::Resume(SceneContext& ctx) {
   paused_ = false;
   abandon_dialog_.Close();
-  if (ctx.music != nullptr) {
-    ctx.music->SetScene("battle");
-    ctx.music->SetCategory("battle", /*resume=*/true);  // continua a faixa de onde parou
+  if (ctx.soundtrack != nullptr) {
+    ctx.soundtrack->SetScene("battle");
+    ctx.soundtrack->SetCategory("battle", true);
   }
 }
 
 void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
-  // Pausado: só a janela de confirmação recebe eventos.
   if (paused_) {
     switch (abandon_dialog_.HandleEvent(event)) {
       case ConfirmDialog::Result::kNo:
@@ -1237,7 +1108,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
         break;
       case ConfirmDialog::Result::kYes:
         abandon_dialog_.Close();
-        ctx.next_scene = SceneId::kMenu;  // o menu já toca a trilha dele
+        ctx.next_scene = SceneId::kMenu;
         break;
       case ConfirmDialog::Result::kNone:
         break;
@@ -1247,34 +1118,33 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_ESCAPE:
-        if (hand_.Inspecting()) {  // primeiro sai da inspeção; só depois pausa
+        if (hand_.Inspecting()) {
           hand_.StopInspect();
           return;
         }
-        // Batalha encerrada (vitória/derrota): Esc volta direto ao menu. Em andamento: pausa
-        // e pergunta se abandona.
         if (hud_.Over()) {
           ctx.next_scene = SceneId::kMenu;
         } else {
           Pause(ctx);
         }
         return;
-      case SDLK_SPACE:  // vira a carta inspecionada
+      case SDLK_SPACE:
         hand_.Flip();
         return;
-      case SDLK_F:  // depuração: carta de campo de exemplo
+      // Debug keys: F field card, 1/2 damage, D draw, G graveyard.
+      case SDLK_F:
         ToggleSampleFieldCard();
         return;
-      case SDLK_1:  // depuração: dano no oponente
+      case SDLK_1:
         if (!hud_.Over()) hud_.SetLife(hud_.OpponentLife() - 700, hud_.PlayerLife());
         return;
-      case SDLK_2:  // depuração: dano em você
+      case SDLK_2:
         if (!hud_.Over()) hud_.SetLife(hud_.OpponentLife(), hud_.PlayerLife() - 700);
         return;
-      case SDLK_D:  // depuração: compra do monte
+      case SDLK_D:
         DrawCard();
         return;
-      case SDLK_G:  // depuração: carta para o cemitério
+      case SDLK_G:
         hud_.SetGraveyard(hud_.Graveyard() + 1);
         return;
       default:
@@ -1288,16 +1158,15 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       if (moved >= kAttackDragPx) attack_drag_ = true;
     }
   }
-  // Botão de som: sempre disponível; fica com os eventos de mouse sobre ele.
   if (sound_button_.HandleEvent(event)) {
-    if (ctx.music != nullptr) ctx.music->ToggleMuted();
+    if (ctx.soundtrack != nullptr) ctx.soundtrack->ToggleMuted();
     return;
   }
+  // Clicks on the buttons never reach the table.
   if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
       sound_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
-  // Botão de dicas: idem, logo acima do de som.
   if (hint_button_.HandleEvent(event)) {
     hints_enabled_ = !hints_enabled_;
     return;
@@ -1306,7 +1175,6 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       hint_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
-  // "Passar turno" (visível no seu turno) fica com os eventos de mouse sobre ele.
   if (CanAct()) {
     if (end_turn_->HandleEvent(event)) {
       end_turn_->OnClick(ctx);
@@ -1323,7 +1191,6 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       press_ = pos;
       attack_from_ = -1;
       attack_drag_ = false;
-      // Pressionar uma carta sua em ataque que ainda não atacou: começa um arrasto de ataque.
       if (CanAct() && AttacksAllowed(Side::kPlayer) && hand_.Hovered() < 0) {
         const int slot = board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
                                          ctx.logical_height);
@@ -1341,7 +1208,6 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     hand_.MouseUp(pos);
     const float moved = std::fabs(pos.x - press_.x) + std::fabs(pos.y - press_.y);
     if (attack_from_ >= 0 && attack_drag_) {
-      // Soltar sobre uma carta do oponente a ataca; sobre o lado vazio dele, ataque direto.
       if (CanAct()) {
         const int target = opponent_board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
                                                     ctx.logical_height);
@@ -1353,16 +1219,13 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       }
     } else if (!inspecting && press_.x >= 0 && moved < kClickSlop && hand_.Hovered() < 0 &&
                CanAct()) {
-      // Clique (sem arrasto) num slot do seu lado: com carta selecionada, invoca (num slot
-      // ocupado a carta anterior é descartada); sem seleção, numa carta sua, alterna ataque e
-      // defesa. Com o mouse sobre uma carta da mão o clique é dela, não do slot atrás.
       const int slot =
           board_.PickSlot(pos, arena_view_proj_, ctx.logical_width, ctx.logical_height);
       if (CanSummon()) {
         const bool field = CandidateIsField();
-        // Carta de campo: qualquer slot da arena serve (o slot de campo não está modelado).
         const int opponent_slot = opponent_board_.PickSlot(pos, arena_view_proj_,
                                                            ctx.logical_width, ctx.logical_height);
+        // Field card: either side of the arena works; the slot is ignored.
         if (slot >= 0 || (field && opponent_slot >= 0)) Summon(field ? 0 : slot);
       } else if (slot >= 0 && board_.TogglePosition(slot)) {
         char name[3];
@@ -1383,11 +1246,10 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 }
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
-  if (!ready_ || paused_) return;  // pausa: abertura, câmera, IA e animações congelam
-  hud_.Update(dt_seconds, mouse_.x, mouse_.y);  // ampliação da ilustração do painel de campo
+  if (!ready_ || paused_) return;
+  hud_.Update(dt_seconds, mouse_.x, mouse_.y);
   if (reveal_.card != nullptr) reveal_.time += dt_seconds;
   UpdateIntro(dt_seconds);
-  // Virada de campo.
   if (shake_left_ > 0.0f) {
     shake_left_ = std::max(0.0f, shake_left_ - dt_seconds);
     shake_time_ += dt_seconds;
@@ -1395,9 +1257,7 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
   if (orbit_ > orbit_target_) orbit_ = std::max(orbit_target_, orbit_ - dt_seconds / kOrbitSeconds);
   UpdateCamera();
-  // Partida começa quando as tochas já estão acesas.
   if (!started_ && intro_time_ >= kMatchStart) StartMatch();
-  // Passos agendados (turno do computador, impacto dos ataques): um por vez, com pausa.
   if (!steps_.empty()) {
     step_timer_ += dt_seconds;
     if (step_timer_ >= steps_.front().first) {
@@ -1411,11 +1271,9 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
 
   hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
+  // Mouse off screen: the opponent hand ignores it.
   opponent_hand_view_.Update(dt_seconds, math::Vec2{-1.0f, -1.0f}, hand_view_proj_,
                              ctx.logical_width, ctx.logical_height);
-  // Carta de campo ativa (de qualquer jogador): arena dourada e névoa na cor da categoria
-  // que ela favorece. Uma carta de campo selecionada na mão mostra a cor dela por cima (prévia
-  // de como fica ao ativar). Sem nenhuma das duas, volta ao normal com a última cor.
   const bool field_selected = CandidateIsField();
   if (field_selected || field_.active) {
     bool evil = field_.favored == 'E';
@@ -1427,11 +1285,7 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
   field_glow_ += ((field_selected || field_.active ? 1.0f : 0.0f) - field_glow_) *
                  std::min(1.0f, dt_seconds * kFieldGlowSpeed);
-  // Fundo do ambiente (cor de limpeza e névoa por distância) no tom escuro da categoria.
   arena_atmosphere_.fog_color = LerpColor(fog_color_, field_fog_color_, field_glow_);
-  // Destaques do campo: slots vazios em modo de invocação; moldura amarela no slot sob o
-  // mouse quando dá para invocar nele, trocar a posição da carta ou, num arrasto de ataque,
-  // no alvo do oponente.
   const bool summoning = CanSummon();
   board_.SetHighlight(summoning);
   int hover = -1;
@@ -1455,7 +1309,6 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   opponent_board_.Update(dt_seconds);
   sword_.Update(dt_seconds);
   shield_.Update(dt_seconds);
-  // Tooltip e ampliação: carta de qualquer lado sob o mouse (fora da mão e sem inspeção).
   tooltip_slot_ = -1;
   if (intro_ >= 1.0f && hand_.Hovered() < 0 && !hand_.Inspecting() && mouse_.x >= 0) {
     for (Side side : {Side::kPlayer, Side::kOpponent}) {
@@ -1474,7 +1327,6 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
       tooltip_slot_ >= 0 && tooltip_side_ == Side::kOpponent ? tooltip_slot_ : -1);
 }
 
-// Entrada e saída da revelação: alpha e escala no instante t (s).
 namespace {
 void RevealCurve(float t, float& alpha, float& scale) {
   const float in = SmoothStep(t / kRevealFadeIn);
@@ -1482,23 +1334,21 @@ void RevealCurve(float t, float& alpha, float& scale) {
   alpha = std::min(in, out);
   scale = (0.85f + 0.15f * in) * (0.92f + 0.08f * out);
 }
-}  // namespace
+}
 
 void BattleScene::RenderReveal3D(int width, int height) {
   if (reveal_.card == nullptr || reveal_.front3d == nullptr) return;
   const float travel = reveal_.from_hand ? kRevealTravel : 0.0f;
-  const float hold = reveal_.time - travel;  // tempo no centro (negativo durante o voo)
+  const float hold = reveal_.time - travel;
   float alpha = 0.0f, scale = 1.0f;
   RevealCurve(hold, alpha, scale);
   float veil_alpha = alpha;
-  if (reveal_.from_hand) {
-    // Saindo da mão: a carta já chega opaca e no tamanho final (sem a entrada em fade); só a
-    // saída no fim vale. O véu escurece durante o voo.
+  if (reveal_.from_hand) {  // coming from the hand, no zoom in
     RevealCurve(std::max(hold, kRevealFadeIn), alpha, scale);
     veil_alpha = std::min(SmoothStep(reveal_.time / travel), alpha);
   }
   const Hand::Layout& layout = hand_.GetLayout();
-  // Véu: quad escuro atrás da carta cobrindo a vista (escurece a mesa e a sua mão).
+  // Veil behind the card, covering the whole hand camera view.
   const float veil_z = layout.inspect_z - 1.0f;
   const float veil_h = 2.2f * (layout.camera_z - veil_z) * std::tan(layout.fov_y * 0.5f);
   const float aspect = static_cast<float>(width) / static_cast<float>(height);
@@ -1512,22 +1362,18 @@ void BattleScene::RenderReveal3D(int width, int height) {
   float center_scale = 1.0f;
   hand_.CenterPose(kRevealCardH * scale / static_cast<float>(height), center, center_scale);
   if (reveal_.from_hand && hold < 0.0f) {
-    // Voo: da pose na mão até o centro, crescendo e endireitando o leque; vira em Y no
-    // caminho, com a frente oculta até 90° e a carta real depois.
     const float u = SmoothStep(reveal_.time / travel);
     const math::Vec3 pos = reveal_.from_pos + (center - reveal_.from_pos) * u;
     const float s = math::Lerp(reveal_.from_scale, center_scale, u);
     const float roll = math::Lerp(reveal_.from_roll, 0.0f, u);
     const float flip = math::kPi * u;
-    const bool hidden = flip < math::kPi * 0.5f;
+    const bool hidden = flip < math::kPi * 0.5f;  // hidden front until half turn
     const math::Mat4 world =
         Hand::PoseMatrix(pos, s, hidden ? flip : flip - math::kPi, 0.0f, roll);
     hand_.DrawLoose(*gpu_, hand_view_proj_, world, hidden ? hidden_face_ : reveal_.front3d,
                     !hidden && reveal_.foil, 1.0f);
     return;
   }
-  // No centro: balança em Y (e um pouco em X), para o arco-íris do foil correr pela frente; o
-  // balanço entra suave depois do voo.
   const float t = std::max(hold, 0.0f);
   const float sway = reveal_.from_hand ? SmoothStep(t / 0.3f) : 1.0f;
   const float yaw = sway * 0.42f * std::sin(t * 3.1f);
@@ -1538,15 +1384,13 @@ void BattleScene::RenderReveal3D(int width, int height) {
 
 void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   if (reveal_.card == nullptr) return;
-  if (reveal_.front3d != nullptr) {
-    // Carta e véu já foram desenhados em 3D (RenderReveal3D): aqui só as legendas, que
-    // entram depois do voo da mão.
+  if (reveal_.front3d != nullptr) {  // card drawn in 3D: only caption and detail here
     float alpha = 0.0f, scale = 1.0f;
     const float hold = reveal_.time - (reveal_.from_hand ? kRevealTravel : 0.0f);
     RevealCurve(hold, alpha, scale);
     if (reveal_.from_hand) {
       float unused = 0.0f;
-      RevealCurve(std::max(hold, kRevealFadeIn), unused, scale);  // mesma escala da carta 3D
+      RevealCurve(std::max(hold, kRevealFadeIn), unused, scale);
     }
     const auto with_alpha = [alpha](SDL_Color c) {
       c.a = static_cast<Uint8>(c.a * alpha);
@@ -1564,8 +1408,6 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
     return;
   }
   if (reveal_.face == nullptr) return;
-  // Entrada: cresce de 85% e clareia; saída: encolhe um pouco e some, logo antes de a carta
-  // descer na arena.
   const float in = SmoothStep(reveal_.time / kRevealFadeIn);
   const float out =
       1.0f - SmoothStep((reveal_.time - (kRevealSeconds - kRevealFadeOut)) / kRevealFadeOut);
@@ -1579,7 +1421,6 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
-  // Véu leve: a arena continua visível atrás.
   const SDL_Color veil = with_alpha(colors::Get("background.overlay"));
   SDL_SetRenderDrawColor(r, veil.r, veil.g, veil.b, veil.a);
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
@@ -1590,8 +1431,6 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   const float cx = width / 2.0f;
   const float cy = height / 2.0f + ui::Grid(1);
   const SDL_FRect card{cx - w / 2.0f, cy - h / 2.0f, w, h};
-  // Carta foil (hierarquia 1): aura atrás, que pulsa e gira em arco-íris; um anel largo e
-  // suave por fora e um mais estreito, quase branco, junto à borda.
   if (reveal_.card->hierarchy == 1) {
     const float t = static_cast<float>(SDL_GetTicks()) / 1000.0f;
     const float pulse = 0.8f + 0.2f * std::sin(t * 2.6f);
@@ -1607,7 +1446,7 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   }
   SDL_SetTextureAlphaMod(reveal_.face, static_cast<Uint8>(alpha * 255.0f));
   SDL_RenderTexture(r, reveal_.face, nullptr, &card);
-  SDL_SetTextureAlphaMod(reveal_.face, 255);  // textura compartilhada com HUD e tooltip
+  SDL_SetTextureAlphaMod(reveal_.face, 255);
 
   text::DrawCentered(r, reveal_.caption.c_str(), cx, card.y - ui::Grid(3), kRevealCaptionScale,
                      with_alpha(colors::Get("panel.title")));
@@ -1627,8 +1466,6 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const int attack = rules::EffectiveAttack(info, field_);
   const int defense = rules::EffectiveDefense(info, field_);
 
-  // Linhas de texto: nome, ATK e DEF efetivos na fonte de título
-  // (Pirata One, grande); modo, categoria e hierarquia na de corpo (Newsreader, regular).
   struct Line {
     std::string text;
     float scale;
@@ -1665,7 +1502,6 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   }
   lines.back().gap_after = 0.0f;
 
-  // Tamanho: imagem à esquerda (kTipImageH de altura), coluna de texto à direita.
   float text_w = 0.0f;
   float text_h = 0.0f;
   for (const Line& line : lines) {
@@ -1675,7 +1511,6 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const float image_w = kTipImageH * kCardAspect;
   const float w = ui::SnapUp(3 * kTipPadding + image_w + std::max(text_w, kTipTextW * 0.6f));
   const float h = ui::SnapUp(2 * kTipPadding + std::max(kTipImageH, text_h));
-  // Perto do cursor, sem sair da tela.
   float x = mouse_.x + kTipOffset;
   float y = mouse_.y + kTipOffset;
   if (x + w > width) x = mouse_.x - kTipOffset - w;
@@ -1684,9 +1519,8 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   frame::Draw(r, panel, frame::Kind::kWindow);
   SDL_Color c;
 
-  // Imagem: frente composta da carta (mesma do HUD), em cache por código.
   const SDL_FRect image{x + kTipPadding, y + kTipPadding, image_w, kTipImageH};
-  SDL_Texture* face = const_cast<BattleScene*>(this)->HudFace(info);
+  SDL_Texture* face = const_cast<BattleScene*>(this)->HudFace(info);  // only fills the cache
   if (face != nullptr) {
     SDL_RenderTexture(r, face, nullptr, &image);
   } else {
@@ -1708,9 +1542,7 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
 
 std::string BattleScene::Hint(int width, int height) const {
   if (!started_ || hud_.Over() || paused_) return {};
-  // Carta da mão em inspeção: os controles dela.
   if (hand_.Inspecting()) return i18n::Get("battle.hint.inspect");
-  // Turno do computador; na revelação da carta dele a legenda já explica a jogada.
   if (!player_turn_) {
     return turn_side_ == Side::kOpponent && reveal_.card == nullptr
                ? i18n::Get("battle.hint.opponentTurn")
@@ -1718,8 +1550,6 @@ std::string BattleScene::Hint(int width, int height) const {
   }
   if (!CanAct()) return {};
 
-  // Arrasto de ataque: sobre uma carta do oponente, o resultado se soltar ali (as mesmas
-  // regras de ResolveAttack); campo dele vazio, o dano do ataque direto.
   if (attack_from_ >= 0 && attack_drag_) {
     const Board::Card* attacker = board_.At(attack_from_);
     if (attacker == nullptr || attacker->info == nullptr) return {};
@@ -1751,7 +1581,6 @@ std::string BattleScene::Hint(int width, int height) const {
                : i18n::Get("battle.hint.preview.even");
   }
 
-  // Carta da mão selecionada (erguida): onde jogá-la, ou por que não dá.
   if (hand_.Candidate() >= 0) {
     if (CandidateIsField()) {
       return i18n::Get(field_.active ? "battle.hint.replaceField" : "battle.hint.playField");
@@ -1765,10 +1594,8 @@ std::string BattleScene::Hint(int width, int height) const {
                                                      : "battle.hint.summon");
   }
 
-  // Mouse sobre uma carta da mão: os gestos.
   if (hand_.Hovered() >= 0) return i18n::Get("battle.hint.handCard");
 
-  // Mouse sobre uma carta sua no campo: o que ela pode fazer.
   if (tooltip_slot_ >= 0 && tooltip_side_ == Side::kPlayer) {
     if (const Board::Card* card = board_.At(tooltip_slot_)) {
       if (card->defense) return i18n::Get("battle.hint.cardDefense");
@@ -1777,7 +1604,6 @@ std::string BattleScene::Hint(int width, int height) const {
     }
   }
 
-  // Próxima jogada do turno: atacar, invocar, carta de campo; por fim, passar o turno.
   if (AttacksAllowed(Side::kPlayer)) {
     for (int slot : board_.Occupied()) {
       const Board::Card* card = board_.At(slot);
@@ -1814,8 +1640,6 @@ void BattleScene::Render(SceneContext& ctx) {
   const float cx = ctx.logical_width / 2.0f;
 
   if (ready_) {
-    // Passes de sombra (um por tocha): arena, corpos das tochas e cartas em campo são os
-    // ocultadores.
     for (int k = 0; k < 2; ++k) {
       if (!gpu_->BeginShadowPass(k, torch_light_vp_[k])) break;
       if (arena_model_ != nullptr) arena_model_->DrawDepth(*gpu_, arena_world_);
@@ -1841,22 +1665,18 @@ void BattleScene::Render(SceneContext& ctx) {
         torch_->DrawBody(*gpu_, world, arena_view_proj_);
       }
     }
-    // Cartas dos dois lados do campo e destaques dos slots.
     board_.Render(*gpu_, arena_view_proj_);
     opponent_board_.Render(*gpu_, arena_view_proj_);
     sword_.Render(*gpu_, arena_view_proj_);
     shield_.Render(*gpu_, arena_view_proj_);
-    // Névoa depois da arena (transparente): de baixo para cima.
     const SDL_FColor mist = LerpColor(mist_color_, field_mist_color_, field_glow_);
     for (const MistLayer& layer : mist_layers_) {
       gpu_->Draw(mist_quad_, nullptr, math::Mat4::Translate({0, layer.y, 0}), arena_view_proj_,
                  SDL_FColor{mist.r, mist.g, mist.b, layer.alpha}, Gpu::DrawMode::kMist);
     }
-    // Abertura: névoa densa acima da base, que se dissipa conforme a arena emerge.
-    if (intro_ < 1.0f) {
+    if (intro_ < 1.0f) {  // intro mist, fading as the arena rises
       const float remain = 1.0f - intro_;
       Atmosphere dense = arena_atmosphere_;
-      // Manto fechado no início, fiapos no fim (Fog.json, battle.introMist).
       dense.mist_density = config::Float("fog", "battle.introMist.density", 0.3f) * remain;
       dense.mist_fade_start = config::Float("fog", "battle.introMist.fadeStart", 10.0f);
       dense.mist_fade_end = config::Float("fog", "battle.introMist.fadeEnd", 30.0f);
@@ -1869,7 +1689,6 @@ void BattleScene::Render(SceneContext& ctx) {
                    Gpu::DrawMode::kMist);
       }
     }
-    // Chamas por cima da névoa (transparentes, escrevem profundidade).
     if (torch_ != nullptr) {
       gpu_->SetAtmosphere(arena_atmosphere_);
       for (const math::Mat4& world : torch_world_) {
@@ -1877,7 +1696,7 @@ void BattleScene::Render(SceneContext& ctx) {
                           ignite_);
       }
     }
-    gpu_->NewLayer();  // a mão fica sempre por cima da arena
+    gpu_->NewLayer();  // hand and reveal on their own layer, above the arena
     gpu_->SetAtmosphere(hand_atmosphere_);
     hand_.Render(*gpu_, hand_view_proj_);
     opponent_hand_view_.Render(*gpu_, hand_view_proj_);
@@ -1894,7 +1713,6 @@ void BattleScene::Render(SceneContext& ctx) {
                        2.0f * ui::kScale, fg);
   }
 
-  // Topo: situação do turno (número e de quem é a vez) e, abaixo, a dica do que fazer.
   if (started_ && !hud_.Over()) {
     const std::string status = i18n::Format(
         "battle.status",
@@ -1904,7 +1722,6 @@ void BattleScene::Render(SceneContext& ctx) {
     text::DrawCentered(r, status.c_str(), cx, kStatusY, kStatusScale,
                        colors::Get("board.status"), text::Face::kBody);
   }
-  // Arrasto de ataque: arco curvo com seta da carta atacante até o mouse.
   if (attack_from_ >= 0 && attack_drag_ && mouse_.x >= 0) {
     const math::Vec2 from =
         ScreenOf(board_.CardPosition(attack_from_), ctx.logical_width, ctx.logical_height);
@@ -1913,7 +1730,6 @@ void BattleScene::Render(SceneContext& ctx) {
                   colors::Get(HoverRole()),
                   static_cast<float>(SDL_GetTicks()) / 1000.0f);
   }
-  // Dica do que fazer agora, abaixo da situação do turno.
   const std::string hint =
       hints_enabled_ ? Hint(ctx.logical_width, ctx.logical_height) : std::string();
   if (!hint.empty()) {
@@ -1922,7 +1738,7 @@ void BattleScene::Render(SceneContext& ctx) {
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);
-  sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
+  sound_button_.SetActive(ctx.soundtrack == nullptr || !ctx.soundtrack->Muted());
   sound_button_.Render(r);
   hint_button_.SetActive(hints_enabled_);
   hint_button_.Render(r);
