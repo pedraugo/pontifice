@@ -320,12 +320,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   opponent_board_.SetSide(-1.0f);
   sword_.Init(*gpu_);
   shield_.Init(*gpu_);
-  for (int tier = 1; tier <= 5; ++tier) {
-    const std::string n = std::to_string(tier);
-    sfx_.Load("sword" + n, base + "audios/sfx/sword" + n + ".ogg");
-    sfx_.Load("shield" + n, base + "audios/sfx/shield" + n + ".ogg");
-  }
-  sfx_.Load("open", base + "audios/sfx/openBattle.ogg");
+  sfx_.Init(base);
   frames_[0] = Image::LoadFile(base + "sprites/cardFrontGood.webp").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/cardFrontEvil.webp").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/cardFrontNeutral.webp").Downscaled(2);
@@ -530,12 +525,18 @@ void BattleScene::DrawCard() {
   if (!code) return;
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
   const Face face = MakeCardFace(*code);
-  if (face.texture != nullptr) hand_.Add(face.texture, face.foil, face.info);
+  if (face.texture != nullptr) AddToHand(hand_, face.texture, face.foil, face.info);
 }
 
 void BattleScene::OpponentHandAdd(const CardInfo* info) {
   opponent_hand_.push_back(info);
-  if (hidden_face_ != nullptr) opponent_hand_view_.Add(hidden_face_, false, nullptr);
+  if (hidden_face_ == nullptr) return;
+  // Before ready_ the view is rebuilt in Init, so no deal sound yet.
+  if (ready_) {
+    AddToHand(opponent_hand_view_, hidden_face_, false, nullptr);
+  } else {
+    opponent_hand_view_.Add(hidden_face_, false, nullptr);
+  }
 }
 
 void BattleScene::OpponentHandRemove(size_t index, math::Mat4* world) {
@@ -566,6 +567,16 @@ void BattleScene::PlaySfxLater(float delay, std::string name) {
     return;
   }
   sfx_queue_.emplace_back(delay, std::move(name));
+}
+
+void BattleScene::Orbit(float target) {
+  if (orbit_target_ != target && orbit_ != target) sfx_.Play("turning");
+  orbit_target_ = target;
+}
+
+void BattleScene::AddToHand(Hand& hand, SDL_GPUTexture* front, bool foil, const CardInfo* info) {
+  PlaySfxLater(hand.DealDelay(), "comming");
+  hand.Add(front, foil, info);
 }
 
 float BattleScene::RevealDuration() const {
@@ -615,7 +626,7 @@ void BattleScene::StartMatch() {
     hand_.SetAway(true);
     opponent_hand_view_.SetAway(false);
     const bool turned = orbit_ >= 1.0f;
-    orbit_target_ = 1.0f;
+    Orbit(1.0f);
     Schedule(turned ? 0.2f : kOrbitSeconds + 0.2f, [this] { RunOpponentTurn(); });
   }
 }
@@ -630,7 +641,7 @@ void BattleScene::BeginPlayerTurn() {
   board_.ResetAttacks();
   hand_.SetAway(false);
   opponent_hand_view_.SetAway(true);
-  orbit_target_ = 0.0f;
+  Orbit(0.0f);
   // Whoever starts does not draw on the first turn.
   if (!(starter_ == Side::kPlayer && turns_played_[0] == 0)) DrawCard();
   LOG("Turn %d: your turn", turn_);
@@ -646,7 +657,7 @@ void BattleScene::EndTurn() {
   DiscardExtraCards();
   hand_.SetAway(true);
   opponent_hand_view_.SetAway(false);
-  orbit_target_ = 1.0f;
+  Orbit(1.0f);
   Schedule(kOrbitSeconds + 0.2f, [this] { RunOpponentTurn(); });
 }
 
@@ -676,8 +687,12 @@ void BattleScene::RunOpponentTurn() {
   LOG("Turn %d: opponent (%zu in hand, %zu in deck)", turn_, opponent_hand_.size(),
           opponent_deck_.Size());
   Schedule(kOpponentPause, [this] {
+    float delay = 0.0f;
     for (int slot : ai::ChoosePositionChanges(BuildOpponentView())) {
-      opponent_board_.TogglePosition(slot);
+      if (!opponent_board_.TogglePosition(slot)) continue;
+      PlaySfxLater(delay, opponent_board_.At(slot)->defense ? "attackToDefense"
+                                                             : "defenseToAttack");
+      delay += 0.25f;
     }
   });
   Schedule(kOpponentPause, [this] {
@@ -740,7 +755,7 @@ void BattleScene::FinishOpponentTurn() {
   opponent_hand_view_.SetAway(true);
   // The opponent hand retracts before the camera orbits back.
   ScheduleNext(kHandHideSeconds, [this] {
-    orbit_target_ = 0.0f;
+    Orbit(0.0f);
     ScheduleNext(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
   });
 }
@@ -790,6 +805,7 @@ void BattleScene::OpponentSummon(const CardInfo* info, bool defense, const Face*
   const Face face = ready_face != nullptr ? *ready_face : MakeCardFace(info->code);
   if (face.texture == nullptr) return;
   opponent_board_.Place(slot, face.texture, face.foil, defense, info, turn_);
+  sfx_.Play("putting");
   char name[3];
   LOG("Opponent summoned %s at %s (%s)", info->name.c_str(), SlotName(slot, name),
           defense ? "defense" : "attack");
@@ -842,6 +858,7 @@ void BattleScene::Summon(int slot) {
   }
   if (!board_.Empty(slot) && board_.Discard(slot)) hud_.SetGraveyard(hud_.Graveyard() + 1);
   if (!board_.Place(slot, card.front, card.foil, false, card.info, turn_)) return;
+  sfx_.Play("putting");
   summoned_ = true;
   board_.SetHighlight(false);
   board_.SetHoverSlot(-1);
@@ -977,7 +994,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_.SetBack(back_);
   hand_.SetNormalMaps(front_normal_, back_normal_);
   hand_.DelayDeal(0.8f);
-  for (const Face& face : initial_hand_) hand_.Add(face.texture, face.foil, face.info);
+  for (const Face& face : initial_hand_) AddToHand(hand_, face.texture, face.foil, face.info);
   initial_hand_.clear();
   starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kOpponent;
   if (const char* env = SDL_getenv("PONTIFICE_STARTER")) {
@@ -998,7 +1015,11 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   const bool opponent_first = starter_ == Side::kOpponent;
   if (opponent_first) opponent_hand_view_.DelayDeal(0.8f);
   for (size_t i = 0; i < opponent_hand_.size() && hidden_face_ != nullptr; ++i) {
-    opponent_hand_view_.Add(hidden_face_, false, nullptr);
+    if (opponent_first) {
+      AddToHand(opponent_hand_view_, hidden_face_, false, nullptr);
+    } else {
+      opponent_hand_view_.Add(hidden_face_, false, nullptr);
+    }
   }
   opponent_hand_view_.SetAwayNow(!opponent_first);
   hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
@@ -1048,7 +1069,6 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.camera_pos = {0, 0, 10};
   ready_ = true;
   sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
-  sfx_.Play("open");
   UpdateIntro(0.0f);
 }
 
@@ -1261,6 +1281,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       const int slot =
           board_.PickSlot(pos, arena_view_proj_, ctx.logical_width, ctx.logical_height);
       if (slot >= 0 && board_.TogglePosition(slot)) {
+        sfx_.Play(board_.At(slot)->defense ? "attackToDefense" : "defenseToAttack");
         char name[3];
         LOG("Turn %d: card at %s switched to %s", turn_, SlotName(slot, name),
                 board_.At(slot)->defense ? "defense" : "attack");
@@ -1282,6 +1303,11 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   sfx_.Update();
   if (!ready_ || paused_) return;
   sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
+  // OnEnter runs behind the loading screen; the arena only rises once Update starts.
+  if (!open_played_) {
+    open_played_ = true;
+    sfx_.Play("open");
+  }
   for (auto it = sfx_queue_.begin(); it != sfx_queue_.end();) {
     it->first -= dt_seconds;
     if (it->first > 0.0f) {

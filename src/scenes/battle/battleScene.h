@@ -157,6 +157,9 @@ class BattleScene : public Scene {
   Sfx sfx_;
   std::vector<std::pair<float, std::string>> sfx_queue_;  // (seconds left, effect)
   void PlaySfxLater(float delay, std::string name);
+  void AddToHand(Hand& hand, SDL_GPUTexture* front, bool foil, const CardInfo* info);
+  // Turns the camera to the other side, with the arena sound if it actually moves.
+  void Orbit(float target);
   Hud hud_;
   SDL_Renderer* renderer_ = nullptr;
   SDL_Texture* field_front_2d_ = nullptr;
@@ -175,6 +178,7 @@ class BattleScene : public Scene {
   void Resume(SceneContext& ctx);
 
   bool started_ = false;  // coin toss done, first turn started
+  bool open_played_ = false;
   Side starter_ = Side::kPlayer;
   Side turn_side_ = Side::kPlayer;
   bool player_turn_ = false;

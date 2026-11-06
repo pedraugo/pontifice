@@ -31,8 +31,14 @@ Music::~Music() { Shutdown(); }
 
 bool Music::Init(const std::string& base_path) {
   base_ = base_path;
-  json::Value root;
-  if (!json::LoadFile(base_ + "assets/music.json", root)) return false;
+  json::Value file;
+  if (!json::LoadFile(base_ + "assets/audio.json", file)) return false;
+  const json::Value* music = file.Find("music");
+  if (music == nullptr || !music->IsObject()) {
+    LOG("audio.json has no \"music\" section; continuing without music");
+    return false;
+  }
+  const json::Value& root = *music;
   // "volume": a number, or a per-scene object like {"menu": 0.15, "battle": 0.25}.
   if (const json::Value* volume = root.Find("volume")) {
     if (volume->IsNumber()) {
@@ -87,7 +93,7 @@ bool Music::Init(const std::string& base_path) {
   }
   rng_.seed(static_cast<unsigned>(std::random_device{}() ^ SDL_GetTicksNS()));
   if (categories_.empty()) {
-    LOG("music.json has no tracks; continuing without music");
+    LOG("audio.json has no music tracks; continuing without music");
     return false;
   }
   active_ = 0;
@@ -103,7 +109,7 @@ bool Music::Init(const std::string& base_path) {
   // tracks_.size() means nothing played yet; OpenNextTrack then starts at track 0.
   current_ = tracks_.size();
   if (!OpenNextTrack()) {
-    LOG("No track from music.json could be opened; continuing without music");
+    LOG("No music track from audio.json could be opened; continuing without music");
     Shutdown();
     return false;
   }

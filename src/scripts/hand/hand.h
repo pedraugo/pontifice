@@ -93,6 +93,8 @@ class Hand {
     away_t_ = away ? 1.0f : 0.0f;
   }
   void DelayDeal(float seconds) { pending_delay_ = std::max(pending_delay_, seconds); }
+  // Seconds until the next Add starts its deal animation.
+  float DealDelay() const { return pending_delay_; }
   void Clear() { cards_.clear(); }
   size_t Size() const { return cards_.size(); }
 

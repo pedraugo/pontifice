@@ -16,7 +16,10 @@ class Sfx {
   Sfx(const Sfx&) = delete;
   Sfx& operator=(const Sfx&) = delete;
 
-  bool Load(const std::string& name, const std::string& path);
+  // Loads every clip of the "sfx" section of assets/audio.json ("volume" and "clips").
+  bool Init(const std::string& base_path);
+  // `gain` is the clip's own level, applied on every Play.
+  bool Load(const std::string& name, const std::string& path, float gain = 1.0f);
   bool Play(const std::string& name, float gain = 1.0f);
   // Call once per frame to release finished streams.
   void Update();
@@ -28,8 +31,16 @@ class Sfx {
   bool Muted() const { return muted_; }
 
  private:
-  std::unordered_map<std::string, audios::Clip> clips_;
-  std::vector<SDL_AudioStream*> playing_;
+  struct Entry {
+    audios::Clip clip;
+    float gain = 1.0f;
+  };
+  struct Playing {
+    SDL_AudioStream* stream = nullptr;
+    float gain = 1.0f;
+  };
+  std::unordered_map<std::string, Entry> clips_;
+  std::vector<Playing> playing_;
   float volume_ = 1.0f;
   bool muted_ = false;
 };

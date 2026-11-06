@@ -172,7 +172,7 @@ int main(int /*argc*/, char** /*argv*/) {
   // Bloco próprio: as cenas (e seus recursos de GPU) precisam ser destruídas antes de
   // Shutdown(), que destrói o renderer, o device e encerra o SDL.
   {
-  // Trilha sonora (assets/music.json) toca em loop durante todo o jogo, em qualquer cena.
+  // Trilha sonora (assets/audio.json, seção "music") toca em loop durante todo o jogo, em qualquer cena.
   Music music;
   music.Init(base);
   ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
