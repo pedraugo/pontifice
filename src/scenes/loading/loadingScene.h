@@ -18,6 +18,7 @@ class LoadingScene : public Scene {
   void HandleEvent(SceneContext&, const SDL_Event&) override {}
   void Update(SceneContext& ctx, float dt_seconds) override;
   void Render(SceneContext& ctx) override;
+  void RenderHud(SceneContext& ctx) override;
 
  private:
   void StartPreload(const SceneContext& ctx);

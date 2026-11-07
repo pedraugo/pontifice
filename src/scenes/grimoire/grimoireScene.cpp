@@ -53,7 +53,7 @@ struct Measures {
   float hover_grow = ui::Number("grimoire.hoverGrow", 0.06f);
   float strip_height = ui::Cells("grimoire.stripHeight", 2.5f);
   float strip_inset = ui::Cells("grimoire.stripInset", 0.5f);
-  float count_width = ui::Cells("grimoire.countWidth", 3.0f);
+  float count_width = ui::Cells("grimoire.countWidth", 4.0f);
   float slide_seconds = layout::Number("grimoire.slideSeconds", 0.8f);
   float slide_shrink = layout::Number("grimoire.slideShrink", 0.25f);  // size lost while leaving
   // Hovered grid card a bit closer to the camera.
@@ -779,12 +779,15 @@ void GrimoireScene::RenderCardOverlay(SDL_Renderer* r, const SceneContext& ctx) 
 
 void GrimoireScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const Measures& m = M();
   const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
-  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+}
 
+void GrimoireScene::RenderHud(SceneContext& ctx) {
+  SDL_Renderer* r = ctx.renderer;
+  const Measures& m = M();
+  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
   const float cx = ctx.logical_width / 2.0f;
   text::DrawCentered(r, i18n::Get("grimoire.title").c_str(), cx, m.title_y, m.title_style,
                      colors::Get("silverLight"));

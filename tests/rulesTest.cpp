@@ -1,8 +1,8 @@
-// Testes das regras de combate (scripts/rules) e da IA (scripts/ai), sem SDL.
-#include <cstdio>
+// Combat rules and opponent AI tests: damage, field cards, choices and levels.
 #include <vector>
 
 #include "scripts/ai/ai.h"
+#include "scripts/log/log.h"
 #include "scripts/rules/rules.h"
 
 namespace {
@@ -11,7 +11,7 @@ int failures = 0;
 
 void Check(bool ok, const char* what) {
   if (!ok) {
-    std::fprintf(stderr, "FAILED: %s\n", what);
+    LOG("FAILED: %s", what);
     ++failures;
   }
 }
@@ -26,33 +26,32 @@ CardInfo Make(const char* code, char category, int attack, int defense) {
   return c;
 }
 
-}  // namespace
+}
 
 int main() {
-  // Dano contra carta em modo de ataque.
   rules::Outcome o = rules::Resolve(1000, false, 700, 900);
   Check(o.defender_destroyed && !o.attacker_destroyed && o.defender_damage == 300 &&
             o.attacker_damage == 0,
-        "ataque maior destrói defensor e dá a diferença");
+        "stronger attack destroys the defender and deals the difference");
   o = rules::Resolve(500, false, 700, 900);
   Check(o.attacker_destroyed && !o.defender_destroyed && o.attacker_damage == 200,
-        "ataque menor destrói atacante e dá a diferença");
+        "weaker attack destroys the attacker and deals the difference");
   o = rules::Resolve(700, false, 700, 900);
   Check(o.attacker_destroyed && o.defender_destroyed && o.attacker_damage == 0 &&
             o.defender_damage == 0,
-        "empate destrói as duas sem dano");
-  // Contra defesa.
+        "tie destroys both without damage");
   o = rules::Resolve(1000, true, 700, 900);
-  Check(o.defender_destroyed && o.defender_damage == 0, "ataque maior que defesa destrói sem dano");
+  Check(o.defender_destroyed && o.defender_damage == 0,
+        "attack above defense destroys without damage");
   o = rules::Resolve(500, true, 700, 900);
   Check(!o.defender_destroyed && !o.attacker_destroyed && o.attacker_damage == 400,
-        "ataque menor que defesa: atacante perde a diferença");
+        "attack below defense: the attacker loses the difference");
   o = rules::Resolve(900, true, 700, 900);
-  Check(!o.defender_destroyed && o.attacker_damage == 0, "igual à defesa: nada acontece");
+  Check(!o.defender_destroyed && o.attacker_damage == 0,
+        "attack equal to defense: nothing happens");
   o = rules::ResolveDirect(1200);
-  Check(o.defender_damage == 1200 && !o.defender_destroyed, "ataque direto desconta tudo");
+  Check(o.defender_damage == 1200 && !o.defender_destroyed, "direct attack deals all of it");
 
-  // Carta de campo: buff/nerf, neutras intactas.
   CardInfo field = Make("FE01", 'F', 0, 0);
   field.favored = "evil";
   field.buff = 300;
@@ -62,15 +61,13 @@ int main() {
   const CardInfo evil = Make("E401", 'E', 450, 200);
   const CardInfo neutral = Make("N401", 'N', 500, 500);
   Check(rules::EffectiveAttack(evil, f) == 750 && rules::EffectiveDefense(evil, f) == 500,
-        "favorecida ganha buff");
+        "favored category gains the buff");
   Check(rules::EffectiveAttack(good, f) == 200 && rules::EffectiveDefense(good, f) == 200,
-        "prejudicada perde nerf");
-  Check(rules::EffectiveAttack(neutral, f) == 500, "neutra não muda");
+        "other category loses the nerf");
+  Check(rules::EffectiveAttack(neutral, f) == 500, "neutral card does not change");
   Check(rules::EffectiveAttack(Make("E410", 'E', 250, 50), rules::Field{true, 'G', 300, 300}) == 0,
-        "nunca fica negativo");
+        "never goes negative");
 
-  // IA: invoca a mais forte em ataque quando bate o campo; em defesa a de maior defesa quando
-  // não bate.
   const CardInfo strong = Make("G201", 'G', 1800, 1900);
   const CardInfo weak = Make("N409", 'N', 100, 100);
   const CardInfo wall = Make("G305", 'G', 500, 700);
@@ -79,46 +76,42 @@ int main() {
   v.free_slots = 10;
   v.theirs.push_back(ai::FieldCard{0, &good, false, true, false});
   std::optional<ai::Summon> s = ai::ChooseSummon(v);
-  Check(s && s->hand_index == 1 && !s->defense, "invoca a mais forte em ataque");
+  Check(s && s->hand_index == 1 && !s->defense, "summons the strongest in attack mode");
   v.hand = {&weak, &wall};
   s = ai::ChooseSummon(v);
-  Check(s && s->hand_index == 1 && s->defense, "sem bater o campo, a de maior defesa em defesa");
-  // Com uma carta fraca do jogador em campo (além da forte), entra em ataque para destruí-la.
+  Check(s && s->hand_index == 1 && s->defense,
+        "unable to beat the field: highest defense in defense mode");
   v.theirs.push_back(ai::FieldCard{1, &weak, false, true, false});
   v.hand = {&weak, &wall, &good};
   s = ai::ChooseSummon(v);
   Check(s && (s->hand_index == 1 || s->hand_index == 2) && !s->defense,
-        "bate a carta mais fraca: entra em ataque (ATK 500)");
+        "beats the weaker card: summons in attack mode (ATK 500)");
   v.theirs.pop_back();
   v.can_summon = false;
-  Check(!ai::ChooseSummon(v), "sem invocação disponível não invoca");
+  Check(!ai::ChooseSummon(v), "no summon left: does not summon");
 
-  // IA: ataque direto com campo vazio; não ataca quem é mais forte; respeita can_attack.
   ai::View a;
   a.mine.push_back(ai::FieldCard{7, &strong, false, true, false});
   std::optional<ai::Attack> at = ai::ChooseAttack(a);
-  Check(at && at->slot == 7 && at->target_slot == -1, "campo vazio: ataque direto");
+  Check(at && at->slot == 7 && at->target_slot == -1, "empty field: direct attack");
   a.theirs.push_back(ai::FieldCard{2, &good, false, true, false});
   at = ai::ChooseAttack(a);
-  Check(at && at->target_slot == 2, "ataca carta mais fraca em modo de ataque");
+  Check(at && at->target_slot == 2, "attacks a weaker card in attack mode");
   a.mine[0].info = &weak;
-  Check(!ai::ChooseAttack(a), "não ataca carta mais forte");
+  Check(!ai::ChooseAttack(a), "does not attack a stronger card");
   a.mine[0].info = &strong;
   a.can_attack = false;
-  Check(!ai::ChooseAttack(a), "primeiro turno de quem começou não ataca");
+  Check(!ai::ChooseAttack(a), "no attack on the first turn of who started");
 
-  // IA: slot preferido é a linha de trás, centro.
-  Check(ai::ChooseSlot({0, 1, 2, 5, 6, 7, 9}, 5) == 7, "slot B3 preferido");
-  // IA: carta de campo que favorece sua categoria dominante.
+  Check(ai::ChooseSlot({0, 1, 2, 5, 6, 7, 9}, 5) == 7, "prefers slot B3, back row center");
   ai::View fc;
   fc.hand = {&field, &evil};
   fc.mine.push_back(ai::FieldCard{5, &evil, false, true, false});
-  Check(ai::ChooseFieldCard(fc) == 0, "joga carta de campo que favorece malignas");
+  Check(ai::ChooseFieldCard(fc) == 0, "plays the field card that favors evil cards");
   fc.mine[0].info = &good;
   fc.hand = {&field, &good};
-  Check(ai::ChooseFieldCard(fc) == -1, "não joga campo que prejudica suas cartas");
+  Check(ai::ChooseFieldCard(fc) == -1, "skips a field card that hurts its own cards");
 
-  // Níveis: peso do monte do oponente por hierarquia.
   auto card_h = [](int h, int odds) {
     CardInfo c = Make("X", 'G', 0, 0);
     c.hierarchy = h;
@@ -128,22 +121,23 @@ int main() {
   Check(ai::DeckWeight(card_h(1, 1), ai::Difficulty::kEasy) == 0 &&
             ai::DeckWeight(card_h(2, 8), ai::Difficulty::kEasy) == 0 &&
             ai::DeckWeight(card_h(4, 71), ai::Difficulty::kEasy) == 71,
-        "fácil: sem hierarquia 1 e 2, comuns normais");
+        "easy: no hierarchy 1 or 2, common cards unchanged");
   for (int h = 1; h <= 4; ++h) {
-    Check(ai::DeckWeight(card_h(h, 10), ai::Difficulty::kMedium) == 10, "médio: odds originais");
+    Check(ai::DeckWeight(card_h(h, 10), ai::Difficulty::kMedium) == 10, "medium: original odds");
   }
   Check(ai::DeckWeight(card_h(2, 8), ai::Difficulty::kHard) > 8 &&
             ai::DeckWeight(card_h(4, 71), ai::Difficulty::kHard) < 71,
-        "difícil: fortes reforçadas, fracas reduzidas");
+        "hard: strong cards boosted, weak ones reduced");
   Check(ai::DeckWeight(card_h(4, 71), ai::Difficulty::kImpossible) == 0 &&
             ai::DeckWeight(card_h(1, 1), ai::Difficulty::kImpossible) >
                 ai::DeckWeight(card_h(3, 15), ai::Difficulty::kImpossible),
-        "impossível: sem hierarquia 4, 1 e 2 dominam");
+        "impossible: no hierarchy 4, hierarchy 1 and 2 dominate");
   Check(ai::DeckWeight(field, ai::Difficulty::kEasy) == field.odds &&
             ai::DeckWeight(field, ai::Difficulty::kImpossible) == field.odds,
-        "carta de campo igual em todos os níveis");
-  Check(ai::NextDifficulty(ai::Difficulty::kImpossible) == ai::Difficulty::kEasy, "ciclo do nível");
+        "field card weight is the same at every level");
+  Check(ai::NextDifficulty(ai::Difficulty::kImpossible) == ai::Difficulty::kEasy,
+        "level cycles back to easy");
 
-  if (failures == 0) std::printf("rulesTest: ok\n");
+  if (failures == 0) LOG("rulesTest: ok");
   return failures == 0 ? 0 : 1;
 }

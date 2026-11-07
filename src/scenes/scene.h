@@ -54,5 +54,7 @@ class Scene {
   virtual void OnExit(SceneContext&) {}
   virtual void HandleEvent(SceneContext& ctx, const SDL_Event& event) = 0;
   virtual void Update(SceneContext&, float) {}
+  // Layers, back to front: Render (game), the vignette, RenderHud (interface).
   virtual void Render(SceneContext& ctx) = 0;
+  virtual void RenderHud(SceneContext&) {}
 };

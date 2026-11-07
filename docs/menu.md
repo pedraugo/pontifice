@@ -119,7 +119,7 @@ Arquivo `pontifice.json` na pasta do usuário logado (`SDL_GetUserFolder(SDL_FOL
 
 - `ui.json` `menu`: `titleCenterY`, `footerBottom`, `nameWidth`, `nameHeight`, `namePadding`, `nameGap` (campo até os botões) e `nameMaxLength`.
 - `layout.json` `menu`: `fadeOut` e `loadingFadeIn`.
-- `button.json`: itens de texto em `buttonText.regular`/`buttonText.danger` (linhas de 4 células, 2 de vão, bloco centrado em y); Menu e Salvar em `button.regular`.
+- `button.json`: itens de texto em `buttonText.regular`/`buttonText.danger` (linhas de 4 células, 1 de vão, o mesmo da cena de idioma, bloco centrado em y); Menu e Salvar em `button.regular`.
 
 ## Implementação
 

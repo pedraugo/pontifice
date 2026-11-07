@@ -98,5 +98,8 @@ void LanguageScene::Render(SceneContext& ctx) {
   const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
-  for (auto& button : buttons_) button->Render(r);
+}
+
+void LanguageScene::RenderHud(SceneContext& ctx) {
+  for (auto& button : buttons_) button->Render(ctx.renderer);
 }

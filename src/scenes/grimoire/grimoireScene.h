@@ -31,6 +31,7 @@ class GrimoireScene : public Scene {
   void HandleEvent(SceneContext& ctx, const SDL_Event& event) override;
   void Update(SceneContext& ctx, float dt_seconds) override;
   void Render(SceneContext& ctx) override;
+  void RenderHud(SceneContext& ctx) override;
 
  private:
   static constexpr int kCategories = 4;  // G, E, N, F

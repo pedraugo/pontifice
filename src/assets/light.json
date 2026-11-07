@@ -8,8 +8,7 @@
     "arena": {
       "lightDir": [-0.35, 1.0, 0.45],
       "lightIntensity": 0.0,
-      "ambient": [0.07, 0.08, 0.13],
-      "vignette": 0.55
+      "ambient": [0.07, 0.08, 0.13]
     },
     "hand": {
       "lightDir": [0.3, 0.6, 1.0],

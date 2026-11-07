@@ -7,6 +7,7 @@
     "grid": 16,
     "textScale": 1.5
   },
+  "vignette": {"strength": 0.55, "inner": 0.3, "outer": 0.8, "squash": 0.85},
   "language": {},
   "menu": {
     "titleCenterY": 12,
@@ -33,7 +34,7 @@
     "rows": 2,
     "stripHeight": 2.5,
     "stripInset": 0.5,
-    "countWidth": 3
+    "countWidth": 4
   },
   "battle": {
     "statusY": 2,

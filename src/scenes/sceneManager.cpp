@@ -8,6 +8,7 @@
 #include "scenes/loading/loadingScene.h"
 #include "scenes/menu/menuScene.h"
 #include "scripts/audios/music.h"
+#include "scripts/vignette/vignette.h"
 
 SceneManager::SceneManager(SceneContext ctx) : ctx_(std::move(ctx)) {}
 
@@ -46,6 +47,8 @@ void SceneManager::Update(float dt_seconds) {
 
 void SceneManager::Render() {
   if (current_) current_->Render(ctx_);
+  vignette::Draw(ctx_.renderer, ctx_.logical_width, ctx_.logical_height);
+  if (current_) current_->RenderHud(ctx_);
   float alpha = 0.0f;
   if (fade_out_total_ > 0.0f) {
     alpha = 1.0f - SDL_max(fade_out_left_, 0.0f) / fade_out_total_;

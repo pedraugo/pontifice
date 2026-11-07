@@ -271,8 +271,11 @@ void MenuScene::Render(SceneContext& ctx) {
   const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
-  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+}
 
+void MenuScene::RenderHud(SceneContext& ctx) {
+  SDL_Renderer* r = ctx.renderer;
+  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
   const float center_x = ctx.logical_width / 2.0f;
   static const text::Style title = text::Styles({"display"});
   static const text::Style footer = text::Styles({"regular"});

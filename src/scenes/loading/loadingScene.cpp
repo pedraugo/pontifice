@@ -181,7 +181,10 @@ void LoadingScene::Render(SceneContext& ctx) {
     gpu_->EndFrame();
     SDL_RenderTexture(r, gpu_->Target(), nullptr, nullptr);
   }
+}
 
+void LoadingScene::RenderHud(SceneContext& ctx) {
+  SDL_Renderer* r = ctx.renderer;
   const int dots = static_cast<int>(time_ * S().dots_per_second) % 4;
   const std::string loading = i18n::Get("loading.label");
   const std::string label = loading + std::string(static_cast<size_t>(dots), '.');

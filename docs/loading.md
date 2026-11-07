@@ -33,7 +33,7 @@ Se a carga demorar mais que o mínimo, a tocha fica queimando esperando. Os véu
 ## Elementos
 
 - **Tocha** (`models/torch.glb`, gerada por `tools/makeTorch.py`): corpo iluminado e chama procedural no shader, que tremula em tamanho e encara a câmera. Câmera fixa (fov 35°, a 11,4 unidades) olhando para a origem; a tocha fica em y = −2,8 (canto inferior, ocupando ~20% da altura da tela) e seu x é calculado para ficar **centralizada com o texto** `Carregando...` (centro do texto convertido para o plano z = 0).
-- **Luz**: só a chama (luz pontual, cor de `light.json` `torch.color`, intensidade `torch.loading.intensity`), **cintilando** (soma de senos fora de fase, ±20%); sem luz direcional, ambiente mínimo (`loading.ambient`), sem névoa, vinheta ou sombra.
+- **Luz**: só a chama (luz pontual, cor de `light.json` `torch.color`, intensidade `torch.loading.intensity`), **cintilando** (soma de senos fora de fase, ±20%); sem luz direcional, ambiente mínimo (`loading.ambient`), sem névoa nem sombra. A vinheta de tela cheia (docs/detalhesTecnicos.md, "Camadas") fica por cima da tocha e por baixo do texto.
 - **Texto**: `Carregando` com pontos que avançam, no canto inferior direito, cor `slate`.
 - **Fundo**: `stoneDarker` (`#091119`, a mesma cor do menu e da cena de idioma).
 

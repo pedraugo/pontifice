@@ -4,7 +4,7 @@ A escolha de idioma é a **primeira cena** do jogo: abre assim que o executável
 
 ## Layout
 
-Fundo liso quase preto (`stoneDarker`, `#091119`), sem ícone ou logotipo. Um item por idioma: apenas texto clicável com a bandeira à esquerda do nome escrito no próprio idioma, sem placa nem fundo de botão. Os itens formam uma coluna alinhada à esquerda (largura do item mais largo), centrada na tela; linhas de 4 células com meia célula entre elas (`button.json` `buttonText.flag.rowGap`).
+Fundo liso quase preto (`stoneDarker`, `#091119`), sem ícone ou logotipo. Um item por idioma: apenas texto clicável com a bandeira à esquerda do nome escrito no próprio idioma, sem placa nem fundo de botão. Os itens formam uma coluna alinhada à esquerda (largura do item mais largo), centrada na tela; linhas de 4 células com 1 célula entre elas (`button.json` `buttonText.flag.rowGap`), o mesmo vão do menu.
 
 ```
 +------------------------------------------------------------+

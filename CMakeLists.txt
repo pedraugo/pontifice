@@ -176,6 +176,7 @@ add_executable(pontifice
   src/scripts/button/buttonIcon.cpp
   src/scripts/input/textInput.cpp
   src/scripts/save/save.cpp
+  src/scripts/vignette/vignette.cpp
   src/scripts/dialog/confirmDialog.cpp
   src/scripts/board/board.cpp
   src/scripts/sword/sword.cpp
@@ -237,12 +238,15 @@ endif()
 
 # Tests (ctest): game components without a window.
 enable_testing()
-add_executable(deckTest tests/deckTest.cpp src/scripts/deck/deck.cpp)
+add_executable(deckTest tests/deckTest.cpp src/scripts/deck/deck.cpp src/scripts/log/log.cpp)
 target_include_directories(deckTest PRIVATE src)
+target_link_libraries(deckTest PRIVATE SDL3::SDL3)
 pontifice_compile_options(deckTest)
 add_test(NAME deckTest COMMAND deckTest)
-add_executable(rulesTest tests/rulesTest.cpp src/scripts/rules/rules.cpp src/scripts/ai/ai.cpp)
+add_executable(rulesTest tests/rulesTest.cpp src/scripts/rules/rules.cpp src/scripts/ai/ai.cpp
+               src/scripts/log/log.cpp)
 target_include_directories(rulesTest PRIVATE src)
+target_link_libraries(rulesTest PRIVATE SDL3::SDL3)
 pontifice_compile_options(rulesTest)
 add_test(NAME rulesTest COMMAND rulesTest)
 add_executable(saveTest tests/saveTest.cpp src/scripts/save/save.cpp src/scripts/cards/cards.cpp

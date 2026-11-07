@@ -1,11 +1,11 @@
 // Save tests: starter deck, odds-weighted reward, JSON round trip and deck editing.
-#include <cstdio>
 #include <map>
 #include <random>
 #include <string>
 #include <vector>
 
 #include "scripts/cards/cards.h"
+#include "scripts/log/log.h"
 #include "scripts/rules/rules.h"
 #include "scripts/save/save.h"
 
@@ -15,7 +15,7 @@ int failures = 0;
 
 void Check(bool ok, const char* what) {
   if (!ok) {
-    std::fprintf(stderr, "FAILED: %s\n", what);
+    LOG("FAILED: %s", what);
     ++failures;
   }
 }
@@ -155,9 +155,9 @@ int main() {
   TestJson();
   TestSetInDeck();
   if (failures > 0) {
-    std::fprintf(stderr, "%d failure(s)\n", failures);
+    LOG("saveTest: %d failure(s)", failures);
     return 1;
   }
-  std::printf("saveTest: ok\n");
+  LOG("saveTest: ok");
   return 0;
 }

@@ -21,6 +21,7 @@
 #include "scripts/audios/music.h"
 #include "scripts/text/text.h"
 #include "scripts/ui/ui.h"
+#include "scripts/vignette/vignette.h"
 #include "scripts/log/log.h"
 
 namespace {
@@ -105,6 +106,37 @@ bool Init(App& app) {
 
   LOG("Renderer: %s", SDL_GetRendererName(app.renderer));
   return true;
+}
+
+// Runs `draw` in output pixels, outside the 1920x1080 logical presentation.
+template <typename Draw>
+void InOutputPixels(SDL_Renderer* r, Draw draw) {
+  int w = 0, h = 0;
+  SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_DISABLED;
+  SDL_GetRenderLogicalPresentation(r, &w, &h, &mode);
+  SDL_SetRenderLogicalPresentation(r, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+  draw();
+  SDL_SetRenderLogicalPresentation(r, w, h, mode);
+}
+
+// Black bars around the 16:9 area on screens of another aspect; scenes clear them to their color.
+void DrawLetterbox(SDL_Renderer* r) {
+  SDL_FRect view{};
+  int w = 0, h = 0;
+  if (!SDL_GetRenderLogicalPresentationRect(r, &view) || !SDL_GetRenderOutputSize(r, &w, &h)) {
+    return;
+  }
+  const float fw = static_cast<float>(w), fh = static_cast<float>(h);
+  if (view.x <= 0.5f && view.y <= 0.5f && view.w >= fw - 0.5f && view.h >= fh - 0.5f) return;
+  InOutputPixels(r, [&] {
+    const SDL_FRect bars[4] = {{0, 0, fw, view.y},
+                               {0, view.y + view.h, fw, fh - view.y - view.h},
+                               {0, view.y, view.x, view.h},
+                               {view.x + view.w, view.y, fw - view.x - view.w, view.h}};
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+    SDL_RenderFillRects(r, bars, 4);
+  });
 }
 
 void Shutdown(App& app) {
@@ -360,12 +392,15 @@ int main(int /*argc*/, char** /*argv*/) {
 
     scenes.Update(dt);
     scenes.Render();
+    DrawLetterbox(app.renderer);
 
     ++frame;
     const double elapsed = static_cast<double>(now - start) / 1e9;
     const bool shot_now = shot_time >= 0.0 ? elapsed >= shot_time : frame == shot_frame;
     if (env_shot != nullptr && shot_now) {
-      SDL_Surface* shot = SDL_RenderReadPixels(app.renderer, nullptr);
+      // Whole output, letterbox bars included, as the player sees it.
+      SDL_Surface* shot = nullptr;
+      InOutputPixels(app.renderer, [&] { shot = SDL_RenderReadPixels(app.renderer, nullptr); });
       if (shot != nullptr) {
         SDL_SaveBMP(shot, env_shot);
         SDL_DestroySurface(shot);
@@ -381,7 +416,8 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   }  // scenes destroyed here
 
-  text::Shutdown();  // font texture before the renderer goes away
+  text::Shutdown();  // font and vignette textures before the renderer goes away
+  vignette::Shutdown();
   Shutdown(app);
   return 0;
 }

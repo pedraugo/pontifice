@@ -1156,7 +1156,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
       S().arena_top_y + config::Float("fog", "battle.fog.clearYOffset", -0.2f);
   arena_atmosphere_.fog_height_strength = config::Float("fog", "battle.fog.heightStrength", 0.9f);
   arena_atmosphere_.camera_pos = eye;
-  arena_atmosphere_.vignette = config::Float("light", "battle.arena.vignette", 0.55f);
+  arena_atmosphere_.vignette = 0.0f;  // the scene manager draws a full-screen vignette
   arena_atmosphere_.shadow_strength = config::Float("shadow", "battle.strength", 0.85f);
   arena_atmosphere_.shadow_bias = config::Float("shadow", "bias", 0.0015f);
   arena_atmosphere_.mist_fade_start = config::Float("fog", "battle.mist.fadeStart", 8.0f);
@@ -1937,7 +1937,11 @@ void BattleScene::Render(SceneContext& ctx) {
     text::DrawCentered(r, i18n::Get("battle.noRender").c_str(), cx, ctx.logical_height * 0.5f,
                        L().status_style, fg);
   }
+}
 
+void BattleScene::RenderHud(SceneContext& ctx) {
+  SDL_Renderer* r = ctx.renderer;
+  const float cx = ctx.logical_width / 2.0f;
   if (started_ && !hud_.Over()) {
     const std::string status = i18n::Format(
         "battle.status.turn",

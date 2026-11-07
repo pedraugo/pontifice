@@ -15,6 +15,7 @@ class LanguageScene : public Scene {
   void HandleEvent(SceneContext& ctx, const SDL_Event& event) override;
   void Update(SceneContext& ctx, float dt_seconds) override;
   void Render(SceneContext& ctx) override;
+  void RenderHud(SceneContext& ctx) override;
 
  private:
   void AddLanguage(const std::string& code, const std::string& name, flag::Country country);
