@@ -5,7 +5,7 @@ A batalha é disputada em turnos entre dois jogadores, cada um com seu monte de 
 ## Preparação
 
 - Cada jogador começa com **5000 pontos de vida**.
-- Você usa como monte o **deck do seu save** (as 40 cartas escolhidas no grimório, docs/grimorio.md). O oponente usa um monte de 40 cartas montado conforme o nível. Os dois são embaralhados antes da batalha.
+- Você usa como monte o **deck do seu save** (as 40 cartas escolhidas no grimório, docs/grimorio.md). O oponente usa um monte do mesmo tamanho que espelha as hierarquias do seu deck, mais fraco ou mais forte conforme o nível (docs/detalhesTecnicos.md, "Níveis"). Os dois são embaralhados antes da batalha.
 - Cada jogador compra **5 cartas** para a mão inicial.
 - Decide-se por sorteio quem joga primeiro.
 - Esses números (vida, monte, mão inicial e o limite de 6 da Fase Final) ficam em `assets/rules.json`.

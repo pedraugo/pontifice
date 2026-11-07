@@ -434,12 +434,14 @@ void BattleScene::Preload(const PreloadInfo& info) {
     if (std::strcmp(env, "impossible") == 0) level = 3;
   }
   difficulty_ = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
-  opponent_deck_ = deck::Deck(cards::BuildDeck(cards_, rules::Get().deck_size, rng_,
-                                               [this](const CardInfo& card) {
-                                                 return ai::DeckWeight(card, difficulty_);
-                                               }));
+  const cards::Tiers player_tiers = cards::CountTiers(cards_, deck_.Cards());
+  const cards::Tiers opponent_tiers = ai::OpponentTiers(player_tiers, difficulty_);
+  opponent_deck_ = deck::Deck(cards::BuildDeck(cards_, opponent_tiers, rng_));
   opponent_deck_.Shuffle();
-  LOG("Opponent level: %s", ai::DifficultyKey(difficulty_));
+  const cards::Tiers built = cards::CountTiers(cards_, opponent_deck_.Cards());
+  LOG("Opponent level %s; hierarchy 1-4 and field: player %d/%d/%d/%d/%d, opponent %d/%d/%d/%d/%d",
+      ai::DifficultyKey(difficulty_), player_tiers[1], player_tiers[2], player_tiers[3],
+      player_tiers[4], player_tiers[0], built[1], built[2], built[3], built[4], built[0]);
   // Debug: PONTIFICE_HAND=N301,E101 forces the starting hand.
   std::vector<std::string> forced;
   if (const char* env = SDL_getenv("PONTIFICE_HAND")) {

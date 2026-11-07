@@ -62,7 +62,7 @@ O menu tem três páginas, todas na mesma cena, com o título `Pontifice` no top
 ```
 
 - **Batalha**: o menu escurece (fade out de 0,5 s) e abre a tela de loading (docs/loading.md), que carrega a batalha com o seu deck do save. Só funciona com o deck completo (40 cartas, `deckSize`); fora disso o item aparece como `Batalha (deck 38/40)`, com 75% de opacidade, e não faz nada. O deck é montado no grimório.
-- **Nível**: escolhe a força do oponente (Vs PC) para a próxima batalha e fica salvo no save; o save novo começa em Médio (`defaultDifficulty`). Cada clique passa ao próximo: Fácil, Médio, Difícil, Impossível. Detalhes em docs/detalhesTecnicos.md ("Níveis").
+- **Nível**: escolhe a força do oponente (Vs PC) para a próxima batalha, relativa ao seu deck: o monte dele espelha as hierarquias das suas cartas, uma mais fraca no Fácil, iguais no Médio, metade uma mais forte no Difícil e todas uma mais forte no Impossível. Fica salvo no save; o save novo começa em Médio (`defaultDifficulty`). Cada clique passa ao próximo: Fácil, Médio, Difícil, Impossível. Detalhes em docs/detalhesTecnicos.md ("Níveis").
 - **Grimório**: fade out e tela de loading, que abre o grimório (docs/grimorio.md), onde você vê as cartas liberadas e monta o deck.
 - **Sair**: encerra o jogo.
 - `Esc` volta à página principal.

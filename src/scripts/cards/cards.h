@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <functional>
 #include <random>
 #include <string>
@@ -38,6 +39,14 @@ const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code);
 using Weight = std::function<int(const CardInfo&)>;
 std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size, std::mt19937& rng,
                                    const Weight& weight = Weight());
+
+// Card count per hierarchy: index 0 = field cards, 1 (rarest) to 4.
+using Tiers = std::array<int, 5>;
+// Unknown codes are skipped.
+Tiers CountTiers(const std::vector<CardInfo>& all, const std::vector<std::string>& codes);
+// tiers[h] cards of each hierarchy by odds; copies a hierarchy lacks go to the next weaker one.
+std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, const Tiers& tiers,
+                                   std::mt19937& rng);
 
 // One card with chance proportional to its odds; nullptr when every odds is 0.
 const CardInfo* PickByOdds(const std::vector<CardInfo>& all, std::mt19937& rng);

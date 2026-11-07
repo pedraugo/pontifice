@@ -112,29 +112,20 @@ int main() {
   fc.hand = {&field, &good};
   Check(ai::ChooseFieldCard(fc) == -1, "skips a field card that hurts its own cards");
 
-  auto card_h = [](int h, int odds) {
-    CardInfo c = Make("X", 'G', 0, 0);
-    c.hierarchy = h;
-    c.odds = odds;
-    return c;
-  };
-  Check(ai::DeckWeight(card_h(1, 1), ai::Difficulty::kEasy) == 0 &&
-            ai::DeckWeight(card_h(2, 8), ai::Difficulty::kEasy) == 0 &&
-            ai::DeckWeight(card_h(4, 71), ai::Difficulty::kEasy) == 71,
-        "easy: no hierarchy 1 or 2, common cards unchanged");
-  for (int h = 1; h <= 4; ++h) {
-    Check(ai::DeckWeight(card_h(h, 10), ai::Difficulty::kMedium) == 10, "medium: original odds");
-  }
-  Check(ai::DeckWeight(card_h(2, 8), ai::Difficulty::kHard) > 8 &&
-            ai::DeckWeight(card_h(4, 71), ai::Difficulty::kHard) < 71,
-        "hard: strong cards boosted, weak ones reduced");
-  Check(ai::DeckWeight(card_h(4, 71), ai::Difficulty::kImpossible) == 0 &&
-            ai::DeckWeight(card_h(1, 1), ai::Difficulty::kImpossible) >
-                ai::DeckWeight(card_h(3, 15), ai::Difficulty::kImpossible),
-        "impossible: no hierarchy 4, hierarchy 1 and 2 dominate");
-  Check(ai::DeckWeight(field, ai::Difficulty::kEasy) == field.odds &&
-            ai::DeckWeight(field, ai::Difficulty::kImpossible) == field.odds,
-        "field card weight is the same at every level");
+  // Starter deck: 26 of hierarchy 4, 10 of hierarchy 3 and 4 field cards.
+  const cards::Tiers starter{4, 0, 0, 10, 26};
+  Check(ai::OpponentTiers(starter, ai::Difficulty::kEasy) == cards::Tiers{4, 0, 0, 0, 36},
+        "easy: every card one hierarchy weaker");
+  Check(ai::OpponentTiers(starter, ai::Difficulty::kMedium) == starter,
+        "medium: same hierarchies as the player");
+  Check(ai::OpponentTiers(starter, ai::Difficulty::kHard) == cards::Tiers{4, 0, 5, 18, 13},
+        "hard: half of each hierarchy one stronger");
+  Check(ai::OpponentTiers(starter, ai::Difficulty::kImpossible) == cards::Tiers{4, 0, 10, 26, 0},
+        "impossible: every card one hierarchy stronger");
+  const cards::Tiers edges{2, 6, 0, 0, 3};
+  Check(ai::OpponentTiers(edges, ai::Difficulty::kImpossible) == cards::Tiers{2, 6, 0, 3, 0} &&
+            ai::OpponentTiers(edges, ai::Difficulty::kEasy) == cards::Tiers{2, 0, 6, 0, 3},
+        "hierarchy 1 has nothing stronger and hierarchy 4 nothing weaker");
   Check(ai::NextDifficulty(ai::Difficulty::kImpossible) == ai::Difficulty::kEasy,
         "level cycles back to easy");
 

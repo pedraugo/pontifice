@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace ai {
 
@@ -33,18 +34,19 @@ Difficulty NextDifficulty(Difficulty d) {
   return Difficulty::kMedium;
 }
 
-int DeckWeight(const CardInfo& card, Difficulty d) {
-  if (card.IsField()) return card.odds;
-  // Draw multiplier in percent per difficulty row; columns are hierarchy 1 (rarest) to 4.
-  static constexpr int kPercent[4][4] = {
-      {0, 0, 40, 100},  // easy: almost only hierarchy 4
-      {100, 100, 100, 100},  // medium: same as the player
-      {600, 1500, 400, 30},  // hard: 2 and 3 dominate
-      {100000, 100000, 2000, 0},  // impossible: every 1 and 2, then 3
-  };
-  const int h = card.hierarchy < 1 ? 1 : (card.hierarchy > 4 ? 4 : card.hierarchy);
-  const long weight = static_cast<long>(card.odds) * kPercent[static_cast<int>(d)][h - 1] / 100;
-  return weight > 0 ? static_cast<int>(weight) : (kPercent[static_cast<int>(d)][h - 1] > 0 ? 1 : 0);
+cards::Tiers OpponentTiers(const cards::Tiers& player, Difficulty d) {
+  // Percent of each hierarchy moved one step: negative to weaker, positive to stronger.
+  static constexpr int kShift[4] = {-100, 0, 50, 100};
+  const int shift = kShift[static_cast<int>(d)];
+  cards::Tiers out{};
+  out[0] = player[0];
+  for (int h = 1; h <= 4; ++h) {
+    const int target = std::clamp(shift > 0 ? h - 1 : h + 1, 1, 4);
+    const int moved = player[h] * std::abs(shift) / 100;
+    out[h] += player[h] - moved;
+    out[target] += moved;
+  }
+  return out;
 }
 
 namespace {

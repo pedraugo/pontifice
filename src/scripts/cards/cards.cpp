@@ -134,6 +134,36 @@ std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
   return deck;
 }
 
+Tiers CountTiers(const std::vector<CardInfo>& all, const std::vector<std::string>& codes) {
+  Tiers tiers{};
+  for (const std::string& code : codes) {
+    const CardInfo* card = Find(all, code);
+    if (card == nullptr) continue;
+    ++tiers[card->IsField() ? 0 : std::clamp(card->hierarchy, 1, 4)];
+  }
+  return tiers;
+}
+
+std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, const Tiers& tiers,
+                                   std::mt19937& rng) {
+  std::vector<std::string> deck;
+  int missing = 0;
+  // Strongest first so a full hierarchy hands its missing copies down; field cards last.
+  for (const int h : {1, 2, 3, 4, 0}) {
+    const int wanted = tiers[h] + missing;
+    const std::vector<std::string> part =
+        BuildDeck(all, wanted, rng, [h](const CardInfo& card) {
+          const bool match = h == 0 ? card.IsField()
+                                    : !card.IsField() && std::clamp(card.hierarchy, 1, 4) == h;
+          return match ? card.odds : 0;
+        });
+    missing = wanted - static_cast<int>(part.size());
+    deck.insert(deck.end(), part.begin(), part.end());
+  }
+  deck::Shuffle(deck, rng);
+  return deck;
+}
+
 const CardInfo* PickByOdds(const std::vector<CardInfo>& all, std::mt19937& rng) {
   long total = 0;
   for (const CardInfo& card : all) total += std::max(card.odds, 0);

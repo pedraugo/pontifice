@@ -9,12 +9,12 @@
 
 namespace ai {
 
-// Only changes the opponent deck weights (DeckWeight); decisions are the same at every level.
+// Only changes the opponent deck (OpponentTiers); decisions are the same at every level.
 enum class Difficulty { kEasy, kMedium, kHard, kImpossible };
 const char* DifficultyKey(Difficulty d);
 Difficulty NextDifficulty(Difficulty d);
-// Draw weight of `card` in the opponent deck; 0 means it never enters.
-int DeckWeight(const CardInfo& card, Difficulty d);
+// Player's hierarchies shifted: easy one weaker, hard half one stronger, impossible all stronger.
+cards::Tiers OpponentTiers(const cards::Tiers& player, Difficulty d);
 
 struct FieldCard {
   int slot = -1;

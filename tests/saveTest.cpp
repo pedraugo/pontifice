@@ -1,4 +1,4 @@
-// Save tests: starter deck, odds-weighted reward, JSON round trip and deck editing.
+// Save tests: starter deck, tiered opponent deck, odds-weighted reward, JSON and deck editing.
 #include <map>
 #include <random>
 #include <string>
@@ -84,6 +84,24 @@ void TestStarterDeck() {
   }
 }
 
+void TestTieredDeck() {
+  const std::vector<CardInfo> all = SampleCards();
+  const cards::Tiers tiers{4, 0, 10, 26, 0};
+  for (unsigned seed = 1; seed <= 20; ++seed) {
+    std::mt19937 rng(seed);
+    const std::vector<std::string> deck = cards::BuildDeck(all, tiers, rng);
+    Check(cards::CountTiers(all, deck) == tiers, "tiered deck has the asked hierarchies");
+  }
+  std::mt19937 rng(3);
+  // Hierarchy 1 holds only 6 copies (1 each); the other 4 go to hierarchy 2.
+  const std::vector<std::string> overflow =
+      cards::BuildDeck(all, cards::Tiers{0, 10, 0, 0, 0}, rng);
+  Check(cards::CountTiers(all, overflow) == cards::Tiers{0, 6, 4, 0, 0},
+        "missing copies of a hierarchy go to the next weaker one");
+  Check(cards::CountTiers(all, {"G401", "FE01", "unknown", "G101"}) == cards::Tiers{1, 1, 0, 0, 1},
+        "count skips unknown codes");
+}
+
 void TestPickByOdds() {
   const std::vector<CardInfo> all = {Card("A", 'G', 4, 1), Card("B", 'G', 4, 3),
                                      Card("Z", 'G', 4, 0)};
@@ -151,6 +169,7 @@ void TestSetInDeck() {
 
 int main() {
   TestStarterDeck();
+  TestTieredDeck();
   TestPickByOdds();
   TestJson();
   TestSetInDeck();

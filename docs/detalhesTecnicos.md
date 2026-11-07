@@ -85,7 +85,7 @@ src/
     rules/
       rules.*         regras sem SDL: ajustes da partida (rules::Get, de assets/rules.json), carta de campo ativa, ataque/defesa efetivos, cálculo de dano
     ai/
-      ai.*            oponente (Vs PC): níveis (peso do monte por hierarquia) e decisões por heurística
+      ai.*            oponente (Vs PC): níveis (monte espelhando as hierarquias do seu deck) e decisões por heurística
     hud/
       hud.*           HUD da batalha (docs/hud.md): carta de campo ativa, pontos de vida, monte/cemitério e janela de resultado com as estatísticas da partida (MatchStats)
     json/
@@ -100,7 +100,7 @@ src/
     deck/
       deck.*          monte de cartas: embaralhar (Fisher-Yates, semente opcional), comprar do topo; sem SDL
     cards/
-      cards.*         dados das cartas (assets/Cards*.json), monte do oponente por peso, deck inicial do save (StarterDeck) e recompensa por `odds` (PickByOdds)
+      cards.*         dados das cartas (assets/Cards*.json), monte por hierarquia (CountTiers, BuildDeck), deck inicial do save (StarterDeck) e recompensa por `odds` (PickByOdds)
     cardface/
       cardFace.*      frente da carta: moldura da categoria + nome, ATK/DEF e descrição desenhados (CPU)
     audios/
@@ -163,7 +163,7 @@ cmake/
   embed.cmake         converte arquivo texto em array de bytes C
 tests/                testes automatizados (ctest --test-dir build)
   deckTest.cpp       monte: embaralhar preserva cartas, é determinístico por semente, compra tira do topo
-  rulesTest.cpp      regras de dano, carta de campo, decisões da IA e pesos dos níveis
+  rulesTest.cpp      regras de dano, carta de campo, decisões da IA e hierarquias por nível
 ```
 
 ## Dados das cartas
@@ -244,7 +244,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Carga**: as 65 ilustrações são decodificadas e ajustadas em paralelo (até 8 threads) no `Preload`, e `image.cpp`, `text.cpp` e `cardFace.cpp` são compilados com `-O2` mesmo em Debug (stb_image, stb_truetype e composição das frentes); o log mostra o tempo (`Ilustracoes de cartas: 65 (… ms)`).
 
-**Início**: você usa o deck do save e o computador monta um monte de 40 conforme o nível (ver abaixo); cada lado compra 5. O contador do monte no HUD mostra restantes/total do seu monte. Na vitória, `BattleScene::GrantReward` sorteia uma carta por `odds` (`cards::PickByOdds`), acrescenta ao histórico `unlocked` (`save::Data::UnlockCard`), grava e passa a frente composta ao HUD (`Hud::SetReward`). Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|opponent` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
+**Início**: você usa o deck do save e o computador monta um monte com as hierarquias do seu deck, deslocadas pelo nível (ver abaixo); cada lado compra 5. O contador do monte no HUD mostra restantes/total do seu monte. Na vitória, `BattleScene::GrantReward` sorteia uma carta por `odds` (`cards::PickByOdds`), acrescenta ao histórico `unlocked` (`save::Data::UnlockCard`), grava e passa a frente composta ao HUD (`Hud::SetReward`). Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|opponent` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
 
 **Seu turno** (botão **Passar turno** no centro superior da tela, logo abaixo da dica, visível sempre que você pode agir):
 
@@ -277,14 +277,16 @@ A linha de situação sai em branco opaco (`white`, linha de 24 px) e a dica, me
 
 **Revelação da carta do oponente**: toda carta que o computador joga (invocação ou carta de campo) sai da mão dele e aparece **grande no centro da tela por 2 s** (`StartReveal`/`RenderReveal`, `battle.reveal.seconds` do `layout.json`) antes de ir à arena: véu escuro sobre a mesa e a carta **em 3D** na camada da mão, com a mesma luz, foil e aura das cartas da sua mão, balançando de leve (560 px de altura; entra crescendo de 85% em 0,2 s, sai em 0,25 s); sem o render 3D cai na frente composta em 2D, a legenda acima ("O oponente invoca" ou "O oponente ativa a carta de campo") e, na invocação, a posição abaixo ("Em ataque" ou "Em defesa"). A colocação na arena é agendada com `ScheduleNext` (frente da fila), então acontece logo depois da revelação e antes dos passos seguintes. A pausa (Esc) congela a revelação junto com o resto.
 
-**Níveis** (`ai::Difficulty`, escolhidos no menu, `PONTIFICE_DIFFICULTY=easy|medium|hard|impossible` força): mudam só o **monte do computador**, por peso de sorteio por hierarquia (`ai::DeckWeight`; os limites de 2 cópias e 1 de hierarquia 1 continuam):
+**Níveis** (`ai::Difficulty`, escolhidos no menu, `PONTIFICE_DIFFICULTY=easy|medium|hard|impossible` força): mudam só o **monte do computador**, que é **dinâmico**: espelha as hierarquias do **seu deck** (`save.deck`) e o nível desloca cada uma. `cards::CountTiers` conta seu deck por hierarquia (campo, 1 a 4), `ai::OpponentTiers` aplica o nível e `cards::BuildDeck(all, tiers, rng)` sorteia por `odds` dentro de cada hierarquia, com os limites de 2 cópias e 1 de hierarquia 1. As cartas de campo ficam na mesma quantidade das suas.
 
-| Nível | Hierarquia 1 | 2 | 3 | 4 | Efeito |
-|---|---|---|---|---|---|
-| Fácil | 0 | 0 | 40% | 100% | cartas inferiores às suas |
-| Médio | 100% | 100% | 100% | 100% | igual ao seu monte |
-| Difícil | 6x | 15x | 4x | 30% | na maioria das vezes mais fortes |
-| Impossível | todas | todas | completa | 0 | nitidamente mais fortes |
+| Nível | Deslocamento | Seu deck inicial (26 h4, 10 h3, 4 campo) vira |
+|---|---|---|
+| Fácil | todas as cartas uma hierarquia mais fraca (4 continua 4) | 36 h4 |
+| Médio | as mesmas hierarquias | 26 h4, 10 h3 |
+| Difícil | metade de cada hierarquia uma mais forte (arredonda para baixo) | 13 h4, 18 h3, 5 h2 |
+| Impossível | todas as cartas uma hierarquia mais forte (1 continua 1) | 26 h3, 10 h2 |
+
+Conforme você troca cartas no grimório por outras mais fortes, o oponente acompanha. Quando uma hierarquia não tem cópias livres para a cota (ex.: no Impossível, mais de 6 cartas de hierarquia 1), as que faltam passam para a próxima mais fraca; por isso, com um deck já no topo, o Impossível fica igual ao Médio. O log da batalha mostra as duas composições (`Opponent level ...; hierarchy 1-4 and field: player ..., opponent ...`).
 
 A tomada de decisão da IA é a mesma em todos os níveis.
 
