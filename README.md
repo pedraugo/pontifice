@@ -29,7 +29,7 @@ sudo apt install build-essential cmake ninja-build git \
 
 **Windows**
 
-Instale Visual Studio 2022 (workload "Desktop development with C++"), CMake e Ninja. Rode os comandos no "Developer PowerShell for VS".
+Instale Visual Studio 2022 (workload "Desktop development with C++"), CMake e Ninja. O `build_win.ps1` carrega o ambiente do Visual Studio sozinho, então qualquer PowerShell serve.
 
 ### 2. Clonar
 
@@ -40,27 +40,35 @@ cd PONTIFICE
 
 ### 3. Compilar
 
+Um script por sistema:
+
 ```bash
-./build.sh            # Debug (padrão)
-./build.sh Release    # otimizado
+./build_mac.sh            # macOS, Debug (padrão)
+./build_mac.sh release    # macOS, otimizado
+./build_lin.sh            # Linux
+.\build_win.ps1           # Windows (PowerShell)
 ```
 
-O script roda `cmake -S . -B build -G Ninja` e depois `cmake --build build`. Na primeira vez o CMake baixa o SDL3 (tag `release-3.4.18`) para `build/_deps/` e compila como biblioteca estática. Leva alguns minutos. Nas próximas builds só o código do jogo é recompilado.
+Com `package` no fim (`./build_mac.sh release package`) também gera o `.zip` em `build/<preset>/package/`. O script roda `cmake --preset <sistema>-<config>` e depois `cmake --build --preset <sistema>-<config>`. Na primeira vez o CMake baixa o SDL3 (tag `release-3.4.18`) para `build/_deps/` e compila como biblioteca estática. Leva alguns minutos. Nas próximas builds só o código do jogo é recompilado.
 
-Só a primeira build precisa de internet. Depois disso `./build.sh` e `./run.sh` funcionam offline: as dependências em `build/_deps/` não são atualizadas na reconfiguração (`FETCHCONTENT_UPDATES_DISCONNECTED`). Para baixar versões novas, apague `build/`.
+Só a primeira build precisa de internet. Depois disso os scripts de build e o `run.cmd` funcionam offline: as dependências em `build/_deps/` não são atualizadas na reconfiguração (`FETCHCONTENT_UPDATES_DISCONNECTED`). Para baixar versões novas, apague `build/`.
 
-O binário fica em `build/pontifice`, com `assets/` e `sprites/` copiados para o lado dele.
+O binário fica em `build/<preset>/pontifice` (por exemplo `build/macos-debug/pontifice`), com `assets/` e `sprites/` copiados para o lado dele.
 
 ### 4. Executar
 
+O `run.cmd` é o mesmo nos três sistemas: detecta o sistema, chama o build certo e abre o jogo.
+
 ```bash
-./run.sh              # compila e abre o jogo
-./build/pontifice     # só abre, sem recompilar
+./run.cmd                         # macOS e Linux: compila e abre o jogo (Debug)
+./run.cmd release                 # otimizado
+.\run                             # Windows (cmd ou PowerShell)
+./build/macos-debug/pontifice     # só abre, sem recompilar
 ```
 
 O jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol ou português) e segue para o menu (`docs/menu.md`). `Esc` sai. "Jogar" abre a batalha com a mão de cartas em 3D.
 
-**Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
+**Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build_lin.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
 
 ### 5. Usar um SDL3 já instalado (opcional)
 
@@ -110,7 +118,7 @@ sudo mv /Library/Developer/CommandLineTools/usr/include/c++ \
 
 **Build antiga quebrada**
 
-Apague `build/` e rode `./build.sh` de novo.
+Apague `build/` e rode o script de build do sistema de novo.
 
 ## Documentação
 

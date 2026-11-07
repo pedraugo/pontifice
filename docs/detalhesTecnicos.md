@@ -3,7 +3,7 @@
 ## Stack
 
 - **Linguagem**: C++20.
-- **Build**: CMake + Ninja. Scripts `build.sh` (compila) e `run.sh` (executa). Passo a passo no README.
+- **Build**: CMake + Ninja. Scripts `build_mac.sh`, `build_lin.sh` e `build_win.ps1` (compilam, um por sistema) e `run.cmd` (compila e executa nos três). Passo a passo no README.
 - **Formatação**: clang-format, estilo Google, indentação 2 espaços, limite de 100 colunas (`.clang-format`).
 - **Bibliotecas**: SDL3 (`release-3.4.18`), cgltf (`v1.15`, leitura de glTF/GLB), stb_image (PNG/JPEG), stb_truetype (fonte TTF/OTF) e stb_vorbis (decodificação de Ogg Vorbis). Todas baixadas via `FetchContent`; cgltf e stb são header-only.
 - **Áudio**: `SDL_AudioStream` com callback; a trilha da seção `"music"` de `assets/audio.json` é decodificada sob demanda na thread de áudio e toca em loop. As faixas ficam em **categorias**: `"menu"` (menu e loading: HowlsOfTheNight, RuinsOfYore, DecayTemples, ForgottenDungeons) e `"battle"` (batalha: FastBattle, ShoutSword, StartedFight, GloryAndVictory). Na troca de cena o `SceneManager` chama `Music::SetCategory` e `Music::SetScene`: a faixa atual sai em **fade out** de 1,5 s e a nova categoria entra em **fade in** de 2 s; o menu toca as faixas **em sequência** e a batalha **em ordem aleatória** (`"random": true` na categoria em audio.json: cada faixa sorteada ao entrar na batalha e a cada troca, sem repetir a que acabou de tocar; a retomada depois da pausa continua a mesma faixa); o volume é **por categoria** (`"volume"`: menu 0,10; batalha 0,20; loading usa o do menu) e caminha em rampa de 1 s. Cada faixa de `"sources"` tem um **ganho de normalização** em audio.json (`{"name", "file", "gain"}`, medido com `PONTIFICE_AUDIO_ANALYZE=1`, que decodifica cada faixa e sugere o ganho para RMS de referência −20 dBFS), então o volume por cena significa o mesmo em todas. O **botão de som** (`ButtonIcon`, menu e batalha) chama `Music::ToggleMuted`: volume a zero e de volta em rampa. Tudo na thread de áudio. Cada faixa tem fade in e fade out de 2 s e há 3 s de silêncio entre faixas. Os **efeitos** (`Sfx`) vêm do array `"sfx"` do mesmo arquivo: `{"name", "file", "gain", "volume"}` por clipe (cartas 0,3 (chegada 0,45); espada e escudo 0,45; giro da arena 0,5; abertura 1,0).
@@ -18,7 +18,10 @@
 
 ```
 CMakeLists.txt        alvo pontifice, FetchContent do SDL3
-build.sh / run.sh     compilar / compilar e executar
+build_mac.sh          compilar no macOS
+build_lin.sh          compilar no Linux
+build_win.ps1         compilar no Windows
+run.cmd               compilar e executar em qualquer sistema
 src/
   main.cpp            janela, renderer, loop principal
   scenes/             uma pasta por cena

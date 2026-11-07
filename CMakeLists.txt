@@ -1,18 +1,61 @@
-cmake_minimum_required(VERSION 3.24)
-project(pontifice LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.25)
+
+# Oldest macOS the release build runs on; set before project() so dependencies inherit it.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+
+project(pontifice VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Dependências já baixadas em build/_deps não são atualizadas na reconfiguração, então o
-# jogo configura e compila sem internet. Para atualizar, apague build/.
+# SPIR-V shaders feed the Vulkan backend (Windows, Linux); macOS embeds the Metal shader instead.
+if(APPLE)
+  set(_spirv_default OFF)
+else()
+  set(_spirv_default ON)
+endif()
+option(PONTIFICE_SPIRV "Compile the GLSL shaders to SPIR-V for Vulkan" ${_spirv_default})
+
+# MSVC refuses /O2 next to /RTC1, and some files below are optimized even in Debug.
+if(MSVC)
+  foreach(_lang C CXX)
+    string(REPLACE "/RTC1" "" CMAKE_${_lang}_FLAGS_DEBUG "${CMAKE_${_lang}_FLAGS_DEBUG}")
+  endforeach()
+endif()
+
+# macOS: some Command Line Tools ship a stale, incomplete libc++ that hides the SDK one.
+if(APPLE)
+  set(_stale_libcxx "/Library/Developer/CommandLineTools/usr/include/c++/v1")
+  if(EXISTS "${_stale_libcxx}" AND NOT EXISTS "${_stale_libcxx}/cstdio")
+    execute_process(COMMAND xcrun --show-sdk-path
+                    OUTPUT_VARIABLE _sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Incomplete libc++ in ${_stale_libcxx}; using ${_sdk_path}/usr/include/c++/v1")
+    string(APPEND CMAKE_CXX_FLAGS " -nostdinc++ -isystem ${_sdk_path}/usr/include/c++/v1")
+  endif()
+endif()
+
+# Downloaded dependencies stay as they are on reconfigure, so builds work offline.
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "" FORCE)
 
-# SDL3: usa a versão instalada no sistema se existir; senão baixa e compila.
+# Reuse dependency sources another build directory under build/ already downloaded.
+file(GLOB _shared_sources LIST_DIRECTORIES true
+     "${CMAKE_SOURCE_DIR}/build/_deps/*-src" "${CMAKE_SOURCE_DIR}/build/*/_deps/*-src")
+foreach(_dir IN LISTS _shared_sources)
+  cmake_path(IS_PREFIX CMAKE_BINARY_DIR "${_dir}" _own)
+  get_filename_component(_name "${_dir}" NAME)
+  string(REGEX REPLACE "-src$" "" _name "${_name}")
+  string(TOUPPER "${_name}" _name)
+  if(NOT _own AND NOT DEFINED FETCHCONTENT_SOURCE_DIR_${_name} AND EXISTS "${_dir}/.git")
+    set(FETCHCONTENT_SOURCE_DIR_${_name} "${_dir}")
+  endif()
+endforeach()
+
+include(FetchContent)
+
+# SDL3: the system package when installed, otherwise downloaded and linked statically.
 find_package(SDL3 CONFIG QUIET)
 if(NOT SDL3_FOUND)
-  include(FetchContent)
   set(SDL_SHARED OFF CACHE BOOL "" FORCE)
   set(SDL_STATIC ON CACHE BOOL "" FORCE)
   set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
@@ -25,15 +68,12 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-# Bibliotecas header-only: cgltf (glTF) e stb (stb_image PNG/JPEG, stb_truetype fonte,
-# stb_vorbis trilha sonora em Ogg Vorbis).
-# libwebp (decodificação dos sprites em WebP) é compilada junto, só a biblioteca, sem ferramentas.
-include(FetchContent)
+# Header-only cgltf and stb (images, font, Ogg Vorbis); libwebp built as a library only.
 FetchContent_Declare(cgltf
   GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
   GIT_TAG v1.15
   GIT_SHALLOW TRUE
-  SOURCE_SUBDIR cmake-none)   # sem add_subdirectory, só o header
+  SOURCE_SUBDIR cmake-none)
 FetchContent_Declare(stb
   GIT_REPOSITORY https://github.com/nothings/stb.git
   GIT_TAG d14d46f6b44456eb88beac58cba833a4135d4c89
@@ -50,7 +90,9 @@ FetchContent_Declare(libwebp
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(libwebp)
 
-# Shader Metal embutido no binário como array de bytes.
+find_package(Threads REQUIRED)
+
+# Metal shader embedded in the binary as a byte array.
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 set(METAL_INC ${GENERATED_DIR}/scripts/gpu/card_metal.inc)
 add_custom_command(
@@ -59,27 +101,64 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -DIN=${CMAKE_SOURCE_DIR}/src/shaders/card.metal -DOUT=${METAL_INC}
           -P ${CMAKE_SOURCE_DIR}/cmake/embed.cmake
   DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/card.metal ${CMAKE_SOURCE_DIR}/cmake/embed.cmake
-  COMMENT "Embutindo card.metal")
+  COMMENT "Embedding card.metal")
 
-# SPIR-V (Vulkan): compilado só se glslc estiver instalado. No Metal não é necessário.
-find_program(GLSLC glslc)
+# SPIR-V: glslc or glslangValidator when installed, otherwise glslang built from source.
+set(SPIRV_DIR ${GENERATED_DIR}/shaders)
 set(SPIRV_OUTPUTS)
-if(GLSLC)
+if(PONTIFICE_SPIRV)
+  find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/bin" "$ENV{VULKAN_SDK}/Bin")
+  find_program(GLSLANG NAMES glslangValidator glslang HINTS "$ENV{VULKAN_SDK}/bin"
+               "$ENV{VULKAN_SDK}/Bin")
+  if(GLSLC)
+    set(_spirv_tool ${GLSLC})
+    set(_spirv_depends)
+  elseif(GLSLANG)
+    set(_spirv_tool ${GLSLANG})
+    set(_spirv_depends)
+  else()
+    message(STATUS "glslc not found: building glslang to compile the SPIR-V shaders")
+    foreach(_opt ENABLE_OPT ENABLE_HLSL ENABLE_SPVREMAPPER ENABLE_CTEST GLSLANG_TESTS
+                 GLSLANG_ENABLE_INSTALL BUILD_EXTERNAL)
+      set(${_opt} OFF CACHE BOOL "" FORCE)
+    endforeach()
+    set(ENABLE_GLSLANG_BINARIES ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(glslang
+      GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
+      GIT_TAG 16.0.0
+      GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(glslang)
+    set(_spirv_tool $<TARGET_FILE:glslang-standalone>)
+    set(_spirv_depends glslang-standalone)
+  endif()
   foreach(shader card.vert card.frag cardShadow.frag)
     string(REGEX REPLACE ".*\\." "" stage ${shader})
-    set(spv ${CMAKE_BINARY_DIR}/shaders/${shader}.spv)
+    set(spv ${SPIRV_DIR}/${shader}.spv)
+    set(_src ${CMAKE_SOURCE_DIR}/src/shaders/${shader}.glsl)
+    if(GLSLC)
+      set(_args -fshader-stage=${stage} ${_src} -o ${spv})
+    else()
+      set(_args -V -S ${stage} -o ${spv} ${_src})
+    endif()
     add_custom_command(
       OUTPUT ${spv}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shaders
-      COMMAND ${GLSLC} -fshader-stage=${stage}
-              ${CMAKE_SOURCE_DIR}/src/shaders/${shader}.glsl -o ${spv}
-      DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/${shader}.glsl
-      COMMENT "Compilando ${shader}.glsl para SPIR-V")
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${SPIRV_DIR}
+      COMMAND ${_spirv_tool} ${_args}
+      DEPENDS ${_src} ${_spirv_depends}
+      COMMENT "Compiling ${shader}.glsl to SPIR-V")
     list(APPEND SPIRV_OUTPUTS ${spv})
   endforeach()
-else()
-  message(STATUS "glslc nao encontrado: shaders SPIR-V (Vulkan) nao serao compilados")
 endif()
+
+# Warnings and source encoding per compiler; MSVC reads the UTF-8 sources as UTF-8.
+function(pontifice_compile_options target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W3 /utf-8)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra)
+  endif()
+endfunction()
 
 add_executable(pontifice
   src/main.cpp
@@ -127,76 +206,88 @@ add_executable(pontifice
   ${METAL_INC}
   ${SPIRV_OUTPUTS}
 )
-# Windows: ícone do executável como recurso (src/icons/icon.ico, gerado por tools/makeIcons.py).
-if(WIN32)
-  enable_language(RC)
-  target_sources(pontifice PRIVATE src/icons/pontifice.rc)
-endif()
 target_include_directories(pontifice PRIVATE src ${GENERATED_DIR})
 target_include_directories(pontifice SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${stb_SOURCE_DIR}
                            ${libwebp_SOURCE_DIR}/src)
-target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp)
-# Decodificação de imagens (libwebp/stb_image), rasterização da fonte (stb_truetype) e composição das
-# frentes das cartas rodam na carga da batalha sobre imagens grandes: sem otimização (Debug)
-# a carga leva vários segundos. A trilha e os clipes (stb_vorbis) decodificam na thread de áudio ou na carga. Esses
-# arquivos são compilados otimizados em qualquer build.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  set_source_files_properties(src/scripts/image/image.cpp src/scripts/text/text.cpp
-                              src/scripts/cardface/cardFace.cpp src/scripts/audios/music.cpp
-                              src/scripts/audios/clip.cpp
-                              PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
-elseif(MSVC)
-  set_source_files_properties(src/scripts/image/image.cpp src/scripts/text/text.cpp
-                              src/scripts/cardface/cardFace.cpp src/scripts/audios/music.cpp
-                              src/scripts/audios/clip.cpp
-                              PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
-endif()
-target_compile_options(pontifice PRIVATE -Wall -Wextra)
+target_link_libraries(pontifice PRIVATE SDL3::SDL3 webp Threads::Threads)
+pontifice_compile_options(pontifice)
 
-# Testes (ctest --test-dir build): componentes sem SDL, como o monte de cartas.
+# Windows: executable icon resource, and no console window outside Debug.
+if(WIN32)
+  enable_language(RC)
+  target_sources(pontifice PRIVATE src/icons/pontifice.rc)
+  set_target_properties(pontifice PROPERTIES
+    WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
+    VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:pontifice>)
+  set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT pontifice)
+endif()
+
+# Image, font, card face and audio decoding stay optimized in Debug, or loading takes seconds.
+set(_hot_sources src/scripts/image/image.cpp src/scripts/text/text.cpp
+    src/scripts/cardface/cardFace.cpp src/scripts/audios/music.cpp src/scripts/audios/clip.cpp)
+if(MSVC)
+  set_source_files_properties(${_hot_sources} PROPERTIES
+                              COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2;/Ob2>")
+else()
+  set_source_files_properties(${_hot_sources} PROPERTIES
+                              COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
+endif()
+
+# Tests (ctest): components without SDL.
 enable_testing()
 add_executable(deckTest tests/deckTest.cpp src/scripts/deck/deck.cpp)
 target_include_directories(deckTest PRIVATE src)
-target_compile_options(deckTest PRIVATE -Wall -Wextra)
+pontifice_compile_options(deckTest)
 add_test(NAME deckTest COMMAND deckTest)
 add_executable(rulesTest tests/rulesTest.cpp src/scripts/rules/rules.cpp src/scripts/ai/ai.cpp)
 target_include_directories(rulesTest PRIVATE src)
-target_compile_options(rulesTest PRIVATE -Wall -Wextra)
+pontifice_compile_options(rulesTest)
 add_test(NAME rulesTest COMMAND rulesTest)
 
-# macOS: alguns Command Line Tools deixam um diretório libc++ antigo e incompleto em
-# /Library/Developer/CommandLineTools/usr/include/c++/v1, que esconde o libc++ do SDK.
-# Se for o caso, aponta o compilador direto para o libc++ do SDK.
-if(APPLE)
-  set(_stale_libcxx "/Library/Developer/CommandLineTools/usr/include/c++/v1")
-  if(EXISTS "${_stale_libcxx}" AND NOT EXISTS "${_stale_libcxx}/cstdio")
-    execute_process(COMMAND xcrun --show-sdk-path
-                    OUTPUT_VARIABLE _sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "libc++ incompleto em ${_stale_libcxx}; usando ${_sdk_path}/usr/include/c++/v1")
-    foreach(_target pontifice deckTest rulesTest)
-      target_compile_options(${_target} PRIVATE
-        $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>
-        $<$<COMPILE_LANGUAGE:CXX>:-isystem${_sdk_path}/usr/include/c++/v1>)
-    endforeach()
-  endif()
+# Game data next to the binary on every build; icons/ only needs icon.png at runtime.
+set(_data_dirs assets fonts sprites models audios)
+set(_copy_commands)
+foreach(_dir IN LISTS _data_dirs)
+  list(APPEND _copy_commands COMMAND ${CMAKE_COMMAND} -E copy_directory
+       ${CMAKE_SOURCE_DIR}/src/${_dir} $<TARGET_FILE_DIR:pontifice>/${_dir})
+endforeach()
+if(PONTIFICE_SPIRV)
+  list(APPEND _copy_commands COMMAND ${CMAKE_COMMAND} -E copy_directory
+       ${SPIRV_DIR} $<TARGET_FILE_DIR:pontifice>/shaders)
 endif()
-
-# Copia assets, fontes, sprites, modelos, sons e o ícone da janela para junto do binário em toda
-# build, mesmo sem mudança no código (POST_BUILD só rodaria quando o executável fosse religado).
-# De src/icons só vai o icon.png: icon.ico e pontifice.rc entram no executável do Windows.
 add_custom_target(copy_assets ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:pontifice>/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/fonts $<TARGET_FILE_DIR:pontifice>/fonts
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/sprites $<TARGET_FILE_DIR:pontifice>/sprites
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/models $<TARGET_FILE_DIR:pontifice>/models
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_SOURCE_DIR}/src/audios $<TARGET_FILE_DIR:pontifice>/audios
+  ${_copy_commands}
   COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:pontifice>/icons
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_SOURCE_DIR}/src/icons/icon.png $<TARGET_FILE_DIR:pontifice>/icons/
-  COMMENT "Copiando assets, fonts, sprites, models, audios e icon.png")
+  COMMENT "Copying game data next to the binary")
 add_dependencies(copy_assets pontifice)
+
+# Distributable folder (cmake --install, cpack): binary and data side by side, game files only.
+install(TARGETS pontifice RUNTIME DESTINATION . COMPONENT game)
+foreach(_dir IN LISTS _data_dirs)
+  install(DIRECTORY src/${_dir} DESTINATION . COMPONENT game)
+endforeach()
+install(FILES src/icons/icon.png DESTINATION icons COMPONENT game)
+if(PONTIFICE_SPIRV)
+  install(FILES ${SPIRV_OUTPUTS} DESTINATION shaders COMPONENT game)
+endif()
+
+if(APPLE)
+  set(_os macos)
+elseif(WIN32)
+  set(_os windows)
+else()
+  set(_os linux)
+endif()
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _arch)
+set(CPACK_PACKAGE_NAME "PONTIFICE")
+set(CPACK_PACKAGE_VENDOR "PONTIFICE")
+set(CPACK_PACKAGE_FILE_NAME "pontifice-${PROJECT_VERSION}-${_os}-${_arch}")
+set(CPACK_GENERATOR ZIP)
+set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+set(CPACK_COMPONENTS_ALL game)
+set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY ON)
+set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
+include(CPack)

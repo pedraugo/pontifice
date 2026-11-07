@@ -1,0 +1,77 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "macos",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"},
+      "architecture": {"value": "x64", "strategy": "external"},
+      "toolset": {"value": "host=x64", "strategy": "external"},
+      "cacheVariables": {"CMAKE_C_COMPILER": "cl", "CMAKE_CXX_COMPILER": "cl"}
+    },
+    {"name": "macos-debug", "displayName": "macOS Debug", "inherits": "macos",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}},
+    {"name": "macos-release", "displayName": "macOS Release", "inherits": "macos",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}},
+    {"name": "linux-debug", "displayName": "Linux Debug", "inherits": "linux",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}},
+    {"name": "linux-release", "displayName": "Linux Release", "inherits": "linux",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}},
+    {"name": "windows-debug", "displayName": "Windows Debug (MSVC)", "inherits": "windows",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}},
+    {"name": "windows-release", "displayName": "Windows Release (MSVC)", "inherits": "windows",
+     "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}}
+  ],
+  "buildPresets": [
+    {"name": "macos-debug", "configurePreset": "macos-debug"},
+    {"name": "macos-release", "configurePreset": "macos-release"},
+    {"name": "linux-debug", "configurePreset": "linux-debug"},
+    {"name": "linux-release", "configurePreset": "linux-release"},
+    {"name": "windows-debug", "configurePreset": "windows-debug"},
+    {"name": "windows-release", "configurePreset": "windows-release"}
+  ],
+  "testPresets": [
+    {"name": "macos-debug", "configurePreset": "macos-debug", "output": {"outputOnFailure": true}},
+    {"name": "macos-release", "configurePreset": "macos-release", "output": {"outputOnFailure": true}},
+    {"name": "linux-debug", "configurePreset": "linux-debug", "output": {"outputOnFailure": true}},
+    {"name": "linux-release", "configurePreset": "linux-release", "output": {"outputOnFailure": true}},
+    {"name": "windows-debug", "configurePreset": "windows-debug", "output": {"outputOnFailure": true}},
+    {"name": "windows-release", "configurePreset": "windows-release", "output": {"outputOnFailure": true}}
+  ],
+  "packagePresets": [
+    {"name": "macos-release", "configurePreset": "macos-release"},
+    {"name": "linux-release", "configurePreset": "linux-release"},
+    {"name": "windows-release", "configurePreset": "windows-release"}
+  ],
+  "workflowPresets": [
+    {"name": "macos-release", "steps": [
+      {"type": "configure", "name": "macos-release"}, {"type": "build", "name": "macos-release"},
+      {"type": "test", "name": "macos-release"}, {"type": "package", "name": "macos-release"}]},
+    {"name": "linux-release", "steps": [
+      {"type": "configure", "name": "linux-release"}, {"type": "build", "name": "linux-release"},
+      {"type": "test", "name": "linux-release"}, {"type": "package", "name": "linux-release"}]},
+    {"name": "windows-release", "steps": [
+      {"type": "configure", "name": "windows-release"}, {"type": "build", "name": "windows-release"},
+      {"type": "test", "name": "windows-release"}, {"type": "package", "name": "windows-release"}]}
+  ]
+}
