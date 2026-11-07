@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <map>
 
 #include "scripts/deck/deck.h"
@@ -130,6 +131,38 @@ std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
     }
   }
   deck::Shuffle(deck, rng);
+  return deck;
+}
+
+const CardInfo* PickByOdds(const std::vector<CardInfo>& all, std::mt19937& rng) {
+  long total = 0;
+  for (const CardInfo& card : all) total += std::max(card.odds, 0);
+  if (total <= 0) return nullptr;
+  long roll = std::uniform_int_distribution<long>(1, total)(rng);
+  for (const CardInfo& card : all) {
+    roll -= std::max(card.odds, 0);
+    if (roll <= 0) return &card;
+  }
+  return nullptr;
+}
+
+std::vector<std::string> StarterDeck(const std::vector<CardInfo>& all, std::mt19937& rng) {
+  const rules::Settings& settings = rules::Get();
+  auto hierarchy = [](int level) {
+    return [level](const CardInfo& card) {
+      return !card.IsField() && card.hierarchy == level ? 1 : 0;
+    };
+  };
+  std::vector<std::string> deck = BuildDeck(all, settings.starter_hierarchy4, rng, hierarchy(4));
+  for (std::string& code : BuildDeck(all, settings.starter_hierarchy3, rng, hierarchy(3))) {
+    deck.push_back(std::move(code));
+  }
+  const int fields = settings.deck_size - static_cast<int>(deck.size());
+  for (std::string& code : BuildDeck(all, std::max(0, fields), rng, [](const CardInfo& card) {
+         return card.IsField() ? 1 : 0;
+       })) {
+    deck.push_back(std::move(code));
+  }
   return deck;
 }
 

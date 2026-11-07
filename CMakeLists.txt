@@ -174,6 +174,8 @@ add_executable(pontifice
   src/scripts/button/button.cpp
   src/scripts/button/buttonText.cpp
   src/scripts/button/buttonIcon.cpp
+  src/scripts/input/textInput.cpp
+  src/scripts/save/save.cpp
   src/scripts/dialog/confirmDialog.cpp
   src/scripts/board/board.cpp
   src/scripts/sword/sword.cpp
@@ -233,7 +235,7 @@ else()
                               COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>")
 endif()
 
-# Tests (ctest): components without SDL.
+# Tests (ctest): game components without a window.
 enable_testing()
 add_executable(deckTest tests/deckTest.cpp src/scripts/deck/deck.cpp)
 target_include_directories(deckTest PRIVATE src)
@@ -243,6 +245,13 @@ add_executable(rulesTest tests/rulesTest.cpp src/scripts/rules/rules.cpp src/scr
 target_include_directories(rulesTest PRIVATE src)
 pontifice_compile_options(rulesTest)
 add_test(NAME rulesTest COMMAND rulesTest)
+add_executable(saveTest tests/saveTest.cpp src/scripts/save/save.cpp src/scripts/cards/cards.cpp
+               src/scripts/rules/rules.cpp src/scripts/deck/deck.cpp src/scripts/i18n/i18n.cpp
+               src/scripts/json/json.cpp src/scripts/log/log.cpp)
+target_include_directories(saveTest PRIVATE src)
+target_link_libraries(saveTest PRIVATE SDL3::SDL3)
+pontifice_compile_options(saveTest)
+add_test(NAME saveTest COMMAND saveTest)
 
 # Game data next to the binary on every build; icons/ only needs icon.png at runtime.
 set(_data_dirs assets fonts sprites models audios)

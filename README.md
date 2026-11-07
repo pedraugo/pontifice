@@ -66,7 +66,7 @@ O `run.cmd` é o mesmo nos três sistemas: detecta o sistema, chama o build cert
 ./build/macos-debug/pontifice     # só abre, sem recompilar
 ```
 
-O jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol ou português) e segue para o menu (`docs/menu.md`). `Esc` sai. "Jogar" abre a batalha com a mão de cartas em 3D.
+Na primeira vez o jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol ou português) e segue para o menu (`docs/menu.md`). "Jogar" pede seu nome e cria o save em `{home}/pontifice.json`, com o deck inicial; depois disso o jogo abre direto no menu. `Esc` sai.
 
 **Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build_lin.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
 
@@ -128,5 +128,5 @@ Apague `build/` e rode o script de build do sistema de novo.
 - [Batalha](docs/batalha.md): fases do turno, invocação, posições, ataque e cálculo de dano.
 - [HUD](docs/hud.md): carta de campo ativa e pontos de vida na tela.
 - [Idioma](docs/idioma.md): primeira cena, escolha entre inglês, espanhol e português; textos em `assets/translate.json`.
-- [Menu](docs/menu.md): botões Jogar, Nível e Sair.
+- [Menu](docs/menu.md): páginas principal, novo save e save (Batalha, Nível, Grimório, Sair); save em `{home}/pontifice.json`.
 - [Detalhes técnicos](docs/detalhesTecnicos.md): stack, estrutura do projeto, formato das cartas e renderização 3D.

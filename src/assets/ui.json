@@ -8,7 +8,15 @@
     "textScale": 1.5
   },
   "language": {},
-  "menu": {"titleCenterY": 12, "footerBottom": 3},
+  "menu": {
+    "titleCenterY": 12,
+    "footerBottom": 3,
+    "nameWidth": 30,
+    "nameHeight": 4,
+    "namePadding": 1,
+    "nameGap": 2,
+    "nameMaxLength": 16
+  },
   "loading": {"textMargin": 90},
   "grimoire": {
     "titleCenterY": 4,
@@ -22,7 +30,10 @@
     "exitMargin": 1,
     "hoverGrow": 0.06,
     "columns": 4,
-    "rows": 2
+    "rows": 2,
+    "stripHeight": 2.5,
+    "stripInset": 0.5,
+    "countWidth": 3
   },
   "battle": {
     "statusY": 2,
@@ -72,7 +83,7 @@
       "zoom": {"gap": 1, "widthPx": 668, "heightPx": 448}
     },
     "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3},
-    "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9},
+    "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9, "cardGap": 2},
     "popup": {"offsetX": 4, "shadowOffsetPx": 3}
   },
   "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5}

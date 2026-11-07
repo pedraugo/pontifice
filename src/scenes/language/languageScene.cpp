@@ -6,6 +6,7 @@
 #include "scripts/colors/colors.h"
 #include "scripts/flag/flag.h"
 #include "scripts/i18n/i18n.h"
+#include "scripts/save/save.h"
 #include "scripts/ui/ui.h"
 
 LanguageScene::LanguageScene() {
@@ -20,6 +21,10 @@ void LanguageScene::AddLanguage(const std::string& code, const std::string& name
                                 flag::Country country) {
   auto button = std::make_unique<ButtonText>(name, [code](SceneContext& ctx) {
     i18n::SetLanguage(code);
+    if (ctx.save && ctx.save->language != code) {
+      ctx.save->language = code;
+      save::Write(*ctx.save);
+    }
     ctx.next_scene = SceneId::kMenu;
   });
   button->SetFlag(country);

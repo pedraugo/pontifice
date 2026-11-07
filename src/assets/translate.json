@@ -105,6 +105,26 @@
       "en": "Created by pedraugo",
       "es": "Creado por pedraugo"
     },
+    "battle": {
+      "pt": "Batalha",
+      "en": "Battle",
+      "es": "Batalla"
+    },
+    "battleIncomplete": {
+      "pt": "Batalha (deck {0}/{1})",
+      "en": "Battle (deck {0}/{1})",
+      "es": "Batalla (mazo {0}/{1})"
+    },
+    "namePlaceholder": {
+      "pt": "Seu nome",
+      "en": "Your name",
+      "es": "Tu nombre"
+    },
+    "save": {
+      "pt": "Salvar",
+      "en": "Save",
+      "es": "Guardar"
+    },
     "difficulty": {
       "easy": {
         "pt": "Fácil",
@@ -143,6 +163,16 @@
       "pt": "Nenhuma categoria selecionada",
       "en": "No category selected",
       "es": "Ninguna categoría seleccionada"
+    },
+    "unlocked": {
+      "pt": "Total: {0}",
+      "en": "Total: {0}",
+      "es": "Total: {0}"
+    },
+    "deck": {
+      "pt": "Deck: {0}/{1}",
+      "en": "Deck: {0}/{1}",
+      "es": "Mazo: {0}/{1}"
     }
   },
   "battle": {
@@ -390,10 +420,17 @@
       "en": "DEFEAT",
       "es": "DERROTA"
     },
-    "escMenu": {
-      "pt": "Esc volta ao menu",
-      "en": "Esc returns to the menu",
-      "es": "Esc vuelve al menú"
+    "reward": {
+      "new": {
+        "pt": "Nova carta",
+        "en": "New card",
+        "es": "Nueva carta"
+      },
+      "repeated": {
+        "pt": "Carta repetida",
+        "en": "Repeated card",
+        "es": "Carta repetida"
+      }
     },
     "stats": {
       "time": {

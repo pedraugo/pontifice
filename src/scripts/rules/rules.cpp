@@ -21,6 +21,9 @@ void Set(const Settings& settings) {
   g_settings.max_copies = std::max(1, settings.max_copies);
   g_settings.max_copies_rarest = std::max(0, settings.max_copies_rarest);
   g_settings.default_difficulty = std::clamp(settings.default_difficulty, 0, 3);
+  g_settings.starter_hierarchy4 = std::clamp(settings.starter_hierarchy4, 0, g_settings.deck_size);
+  g_settings.starter_hierarchy3 = std::clamp(settings.starter_hierarchy3, 0,
+                                             g_settings.deck_size - g_settings.starter_hierarchy4);
 }
 
 Field Field::From(const CardInfo& card) {

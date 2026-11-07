@@ -5,10 +5,11 @@ A batalha é disputada em turnos entre dois jogadores, cada um com seu monte de 
 ## Preparação
 
 - Cada jogador começa com **5000 pontos de vida**.
-- Cada jogador usa um **monte (deck) de 40 cartas**, embaralhado antes da batalha.
+- Você usa como monte o **deck do seu save** (as 40 cartas escolhidas no grimório, docs/grimorio.md). O oponente usa um monte de 40 cartas montado conforme o nível. Os dois são embaralhados antes da batalha.
 - Cada jogador compra **5 cartas** para a mão inicial.
 - Decide-se por sorteio quem joga primeiro.
 - Esses números (vida, monte, mão inicial e o limite de 6 da Fase Final) ficam em `assets/rules.json`.
+- **Recompensa**: ao vencer, você libera uma carta, nova ou repetida, que entra no histórico `unlocked` do save (com a data); para usá-la, coloque no deck pelo grimório. Cada carta tem chance proporcional ao seu `odds` (`assets/cards*.json`): com soma total de odds S, uma carta de odds 5 sai com chance 5/S. A tela de vitória mostra a carta ao lado da janela de resultado, com `Nova carta` ou `Carta repetida` acima dela. Derrota ou abandono não dão carta.
 - Cada jogador tem **10 slots de carta** (grade 5x2), **1 slot de campo** e o monte no seu lado do campo. Veja a seção [Campo](campo.md).
 
 ## Estrutura do turno

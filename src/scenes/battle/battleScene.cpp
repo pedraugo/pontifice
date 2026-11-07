@@ -18,6 +18,7 @@
 #include "scripts/audios/music.h"
 #include "scripts/text/text.h"
 #include "scripts/layout/layout.h"
+#include "scripts/save/save.h"
 #include "scripts/ui/ui.h"
 #include "scripts/log/log.h"
 
@@ -412,7 +413,18 @@ void BattleScene::Preload(const PreloadInfo& info) {
   } else {
     rng_.seed(std::random_device{}());
   }
-  deck_ = deck::Deck(cards::BuildDeck(cards_, rules::Get().deck_size, rng_));
+  // The player's deck is the save's deck; without a save (debug scenes) a random one.
+  std::vector<std::string> owned;
+  for (const std::string& code : info.save ? info.save->deck : std::vector<std::string>{}) {
+    if (cards::Find(cards_, code) != nullptr) {
+      owned.push_back(code);
+    } else {
+      LOG("Saved card %s is unknown; left out of the deck", code.c_str());
+    }
+  }
+  deck_ = deck::Deck(owned.empty() ? cards::BuildDeck(cards_, rules::Get().deck_size, rng_)
+                                   : std::move(owned));
+  deck_total_ = static_cast<int>(deck_.Size());
   deck_.Shuffle();
   int level = info.difficulty;
   if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
@@ -572,11 +584,23 @@ SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
   return texture;
 }
 
+void BattleScene::GrantReward(SceneContext& ctx) {
+  if (!ctx.save) return;
+  const CardInfo* card = cards::PickByOdds(cards_, rng_);
+  if (card == nullptr) return;
+  const bool repeated = ctx.save->Available(card->code) > 0;
+  ctx.save->UnlockCard(card->code);
+  save::Write(*ctx.save);
+  hud_.SetReward(i18n::Get(repeated ? "hud.reward.repeated" : "hud.reward.new"), HudFace(*card));
+  LOG("Reward: %s (%s), %s", card->name.c_str(), card->code.c_str(),
+      repeated ? "repeated" : "new");
+}
+
 void BattleScene::DrawCard() {
   const std::optional<std::string> code = deck_.Draw();
   if (!code) return;
   const int remaining = static_cast<int>(deck_.Size());
-  hud_.SetDeck(rules::Get().deck_size - remaining, remaining);
+  hud_.SetDeck(deck_total_ - remaining, remaining);
   const Face face = MakeCardFace(*code);
   if (face.texture != nullptr) AddToHand(hand_, face.texture, face.foil, face.info);
 }
@@ -1027,6 +1051,8 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   end_turn_ = std::make_unique<Button>(i18n::Get("battle.endTurn"),
                                        [this](SceneContext&) { EndTurn(); });
   end_turn_->SetSize(Button::Size::kLarge);
+  result_menu_ = std::make_unique<Button>(
+      i18n::Get("general.menu"), [](SceneContext& c) { c.next_scene = SceneId::kMenu; });
   const float end_turn_w = end_turn_->PreferredWidth();
   end_turn_->SetRect(SDL_FRect{(ctx.logical_width - end_turn_w) / 2.0f,
                                ui::Cells("battle.endTurnTop", 6.0f), end_turn_w,
@@ -1100,7 +1126,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   }
   opponent_hand_view_.SetAwayNow(!opponent_first);
   const int remaining = static_cast<int>(deck_.Size());
-  hud_.SetDeck(rules::Get().deck_size - remaining, remaining);
+  hud_.SetDeck(deck_total_ - remaining, remaining);
   arena_world_ = math::Mat4::Scale(S().arena_scale);
 
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
@@ -1311,6 +1337,10 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       hint_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
+  if (hud_.Over() && result_menu_->HandleEvent(event)) {
+    result_menu_->OnClick(ctx);
+    return;
+  }
   if (exit_button_.HandleEvent(event)) {
     if (hand_.Inspecting()) hand_.StopInspect();
     if (hud_.Over()) {
@@ -1417,9 +1447,18 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
     sfx_.Play(it->second);
     it = sfx_queue_.erase(it);
   }
+  if (hud_.Over() && !reward_done_) {
+    reward_done_ = true;
+    if (hud_.PlayerLife() > 0 && hud_.OpponentLife() <= 0) GrantReward(ctx);
+  }
+  if (hud_.Over()) {
+    const SDL_FRect area = hud_.ResultButtonArea(ctx.logical_width, ctx.logical_height);
+    const float w = result_menu_->PreferredWidth();
+    result_menu_->SetRect(SDL_FRect{area.x + (area.w - w) / 2.0f, area.y, w, area.h});
+  }
   if (started_ && !hud_.Over()) stats_.seconds += dt_seconds;
   stats_.rounds = turn_;
-  stats_.drawn[0] = rules::Get().deck_size - static_cast<int>(deck_.Size());
+  stats_.drawn[0] = deck_total_ - static_cast<int>(deck_.Size());
   stats_.drawn[1] = rules::Get().deck_size - static_cast<int>(opponent_deck_.Size());
   stats_.graveyard[0] = hud_.Graveyard();
   hud_.SetStats(stats_);
@@ -1923,6 +1962,7 @@ void BattleScene::Render(SceneContext& ctx) {
                        opacity::Apply(colors::Get("silver"), "boardHint"));
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
+  if (hud_.Over()) result_menu_->Render(r);
   if (CanAct()) end_turn_->Render(r);
   sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);

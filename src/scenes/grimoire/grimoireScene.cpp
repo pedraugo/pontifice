@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <map>
 #include <thread>
 
 #include "scripts/cardface/cardFace.h"
@@ -13,6 +14,8 @@
 #include "scripts/frame/frame.h"
 #include "scripts/i18n/i18n.h"
 #include "scripts/log/log.h"
+#include "scripts/rules/rules.h"
+#include "scripts/save/save.h"
 #include "scripts/text/text.h"
 #include "scripts/layout/layout.h"
 #include "scripts/ui/ui.h"
@@ -20,6 +23,8 @@
 namespace {
 
 constexpr float kCardAspect = static_cast<float>(cardface::kWidth) / cardface::kHeight;
+// Card codes never start with '?'.
+constexpr const char* kHiddenFace = "?";
 
 bool Inside(const SDL_FRect& rect, float x, float y) {
   return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
@@ -46,6 +51,9 @@ struct Measures {
   float margin = ui::Cells("grimoire.margin", 4.0f);
   float exit_margin = ui::Cells("grimoire.exitMargin", 1.0f);
   float hover_grow = ui::Number("grimoire.hoverGrow", 0.06f);
+  float strip_height = ui::Cells("grimoire.stripHeight", 2.5f);
+  float strip_inset = ui::Cells("grimoire.stripInset", 0.5f);
+  float count_width = ui::Cells("grimoire.countWidth", 3.0f);
   float slide_seconds = layout::Number("grimoire.slideSeconds", 0.8f);
   float slide_shrink = layout::Number("grimoire.slideShrink", 0.25f);  // size lost while leaving
   // Hovered grid card a bit closer to the camera.
@@ -56,6 +64,8 @@ struct Measures {
   float menu_fade_in = layout::Number("grimoire.menuFadeIn", 0.4f);
   text::Style title_style = text::Styles({"title"});
   text::Style page_style = text::Styles({"xsmall", "body"});
+  text::Style strip_style = text::Styles({"small"});
+  text::Style deck_style = text::Styles({"large"});
 };
 
 const Measures& M() {
@@ -109,6 +119,7 @@ GrimoireScene::GrimoireScene() {
                                              Refilter();
                                            });
     filters_[i]->SetFocused(true);
+    filters_[i]->SetSize(Button::Size::kSmall);
   }
   back_ = std::make_unique<Button>(i18n::Get("general.back"),
                                    [this](SceneContext&) { ChangePage(-1); });
@@ -143,6 +154,10 @@ void GrimoireScene::Preload(const PreloadInfo& info) {
   preloaded_ = true;
   const std::string base = BasePath();
   cards_ = cards::LoadAll(base);
+  unlocked_.clear();
+  if (info.save) {
+    for (const save::Unlock& unlock : info.save->unlocked) unlocked_.insert(unlock.code);
+  }
   if (info.gpu_device != nullptr) {
     gpu_ = std::make_unique<Gpu>();
     if (!gpu_->InitDevice(info.gpu_device, info.logical_width, info.logical_height,
@@ -198,6 +213,7 @@ void GrimoireScene::Preload(const PreloadInfo& info) {
     pool.emplace_back([&] {
       for (size_t i = next++; i < cards_.size(); i = next++) {
         const CardInfo& card = cards_[i];
+        if (!Unlocked(card)) continue;
         const Image& frame = frame_for(card);
         if (!frame.Valid()) continue;
         Image art;
@@ -210,6 +226,9 @@ void GrimoireScene::Preload(const PreloadInfo& info) {
   for (size_t i = 0; i < cards_.size(); ++i) {
     if (results[i].Valid()) faces_[cards_[i].code] = std::move(results[i]);
   }
+  Image hidden = cardface::ComposeHidden(
+      Image::LoadFile(base + "sprites/cardFrontOpponent.webp").Downscaled(2));
+  if (hidden.Valid()) faces_[kHiddenFace] = hidden.Downscaled(2);
   LOG("Grimoire: %zu card front(s) composed (%.0f ms, %u threads)", faces_.size(),
       static_cast<double>(SDL_GetTicksNS() - started) / 1e6, workers);
 }
@@ -246,12 +265,18 @@ void GrimoireScene::OnExit(SceneContext&) {
   EndInspect();
 }
 
+const std::string& GrimoireScene::FaceKey(const CardInfo& card) const {
+  static const std::string hidden = kHiddenFace;
+  return Unlocked(card) ? card.code : hidden;
+}
+
 SDL_GPUTexture* GrimoireScene::GpuFaceFor(const CardInfo& card) {
-  if (const auto it = gpu_faces_.find(card.code); it != gpu_faces_.end()) return it->second;
-  const auto face = faces_.find(card.code);
+  const std::string& key = FaceKey(card);
+  if (const auto it = gpu_faces_.find(key); it != gpu_faces_.end()) return it->second;
+  const auto face = faces_.find(key);
   if (face == faces_.end()) return nullptr;
   SDL_GPUTexture* texture = gpu_->CreateTexture(face->second);
-  if (texture != nullptr) gpu_faces_[card.code] = texture;
+  if (texture != nullptr) gpu_faces_[key] = texture;
   return texture;
 }
 
@@ -275,6 +300,7 @@ void GrimoireScene::OpenInspect(int index, const SceneContext& ctx) {
   const int first = page_ * PerPage();
   if (first + index >= static_cast<int>(visible_.size())) return;
   const CardInfo* card = visible_[static_cast<size_t>(first + index)];
+  if (!Unlocked(*card)) return;
   const auto face = faces_.find(card->code);
   if (face == faces_.end()) return;
   inspect_front_ = gpu_->CreateTexture(face->second);
@@ -357,6 +383,7 @@ void GrimoireScene::Refilter() {
   page_ = std::clamp(page_, 0, std::max(0, PageCount() - 1));
   hovered_ = -1;
   lift_card_ = -1;
+  editing_ = nullptr;
 }
 
 int GrimoireScene::PageCount() const {
@@ -373,14 +400,16 @@ void GrimoireScene::ChangePage(int delta) {
   page_ = target;
   hovered_ = -1;
   lift_card_ = -1;
+  editing_ = nullptr;
 }
 
 SDL_Texture* GrimoireScene::FaceFor(SDL_Renderer* r, const CardInfo& card) {
-  if (const auto it = textures_.find(card.code); it != textures_.end()) return it->second;
-  const auto face = faces_.find(card.code);
+  const std::string& key = FaceKey(card);
+  if (const auto it = textures_.find(key); it != textures_.end()) return it->second;
+  const auto face = faces_.find(key);
   if (face == faces_.end()) return nullptr;
   SDL_Texture* texture = Upload(r, face->second);
-  if (texture != nullptr) textures_[card.code] = texture;
+  if (texture != nullptr) textures_[key] = texture;
   return texture;
 }
 
@@ -389,6 +418,33 @@ SDL_FRect GrimoireScene::CardRect(int index) const {
   const int row = index / Columns();
   return SDL_FRect{grid_.x + col * (card_w_ + gap_), grid_.y + row * (card_h_ + gap_), card_w_,
                    card_h_};
+}
+
+SDL_FRect GrimoireScene::StripRect(const SDL_FRect& card) const {
+  const float inset = M().strip_inset;
+  const float h = M().strip_height;
+  return SDL_FRect{card.x + inset, card.y + card.h - inset - h, card.w - 2 * inset, h};
+}
+
+SDL_FRect GrimoireScene::CountRect(const SDL_FRect& strip) const {
+  const float w = M().count_width;
+  return SDL_FRect{strip.x + strip.w - w, strip.y, w, strip.h};
+}
+
+int GrimoireScene::SlotAt(float x, float y) const {
+  const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - page_ * PerPage());
+  for (int i = 0; i < count; ++i) {
+    if (Inside(CardRect(i), x, y)) return i;
+  }
+  return -1;
+}
+
+// Copies of the selected card in the deck; save::Data clamps to the available copies and deckSize.
+void GrimoireScene::SetCopies(SceneContext& ctx, int copies) {
+  if (editing_ == nullptr || !ctx.save) return;
+  const int before = ctx.save->InDeck(editing_->code);
+  ctx.save->SetInDeck(editing_->code, copies);
+  if (ctx.save->InDeck(editing_->code) != before) save::Write(*ctx.save);
 }
 
 // Slot rectangle shifted by the page slide, with the whole grid scaled about its center.
@@ -440,6 +496,38 @@ void GrimoireScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     }
     return;
   }
+  if (event.type == SDL_EVENT_KEY_DOWN && editing_ != nullptr && ctx.save) {
+    const SDL_Keycode key = event.key.key;
+    const int copies = ctx.save->InDeck(editing_->code);
+    int digit = -1;
+    if (key >= SDLK_0 && key <= SDLK_9) digit = static_cast<int>(key - SDLK_0);
+    if (key >= SDLK_KP_1 && key <= SDLK_KP_9) digit = static_cast<int>(key - SDLK_KP_1) + 1;
+    if (key == SDLK_KP_0) digit = 0;
+    if (digit >= 0) {
+      SetCopies(ctx, typed_ ? copies * 10 + digit : digit);
+      typed_ = true;
+      return;
+    }
+    switch (key) {
+      case SDLK_BACKSPACE:
+        SetCopies(ctx, copies / 10);
+        typed_ = true;
+        return;
+      case SDLK_UP:
+        SetCopies(ctx, copies + 1);
+        return;
+      case SDLK_DOWN:
+        SetCopies(ctx, copies - 1);
+        return;
+      case SDLK_RETURN:
+      case SDLK_KP_ENTER:
+      case SDLK_ESCAPE:
+        editing_ = nullptr;
+        return;
+      default:
+        break;
+    }
+  }
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_ESCAPE:
@@ -465,6 +553,15 @@ void GrimoireScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
         hovered_ = i;
       }
     }
+  }
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT &&
+      slide_from_ < 0) {
+    const int slot = SlotAt(event.button.x, event.button.y);
+    const CardInfo* card =
+        slot >= 0 ? visible_[static_cast<size_t>(page_ * PerPage() + slot)] : nullptr;
+    const CardInfo* next = card != nullptr && Unlocked(*card) && ctx.save ? card : nullptr;
+    if (next != editing_) typed_ = false;
+    editing_ = next;
   }
   if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT &&
       event.button.clicks >= 2 && slide_from_ < 0) {
@@ -542,7 +639,7 @@ void GrimoireScene::RenderPage3D(int page, float offset_x, float alpha, float sc
     if (face == nullptr) continue;
     hand_.DrawLoose(*gpu_, hand_view_proj_, PoseForRect(PageCardRect(i, offset_x, scale), width,
                                                        height, z),
-                    face, card.hierarchy == 1, alpha);
+                    face, card.hierarchy == 1 && Unlocked(card), alpha);
   }
   if (with_hover && lift_card_ >= 0 && lift_card_ < count) {
     const CardInfo& card = *visible_[static_cast<size_t>(first + lift_card_)];
@@ -552,7 +649,7 @@ void GrimoireScene::RenderPage3D(int page, float offset_x, float alpha, float sc
         *gpu_, hand_view_proj_,
         PoseForRect(Grown(PageCardRect(lift_card_, offset_x, scale), M().hover_grow * hover_t_),
                     width, height, z + M().hover_lift * hover_t_, tilt_y_, tilt_x_),
-        face, card.hierarchy == 1, alpha);
+        face, card.hierarchy == 1 && Unlocked(card), alpha);
   }
 }
 
@@ -632,6 +729,54 @@ void GrimoireScene::RenderPage(SDL_Renderer* r, int page, float offset_x, float 
   }
 }
 
+// Deck total in the bottom left corner.
+void GrimoireScene::RenderDeckBuilder(SDL_Renderer* r, const SceneContext& ctx) const {
+  if (!ctx.save) return;
+  const Measures& m = M();
+  const save::Data& data = *ctx.save;
+  const int deck_size = rules::Get().deck_size;
+  const int in_deck = static_cast<int>(data.deck.size());
+  const std::string total =
+      i18n::Format("grimoire.deck", {std::to_string(in_deck), std::to_string(deck_size)});
+  const SDL_FRect& exit = exit_->Rect();
+  text::Draw(r, total.c_str(), m.exit_margin,
+             exit.y + (exit.h - text::LineHeight(m.deck_style)) / 2.0f, m.deck_style,
+             colors::Get(in_deck == deck_size ? "green" : "silver"));
+}
+
+// Strips over the 3D pass, on the bottom of each unlocked card; the raised card's grows with it.
+void GrimoireScene::RenderCardOverlay(SDL_Renderer* r, const SceneContext& ctx) const {
+  if (!ctx.save || slide_from_ >= 0 || inspect_ != nullptr) return;
+  const Measures& m = M();
+  const save::Data& data = *ctx.save;
+  const std::map<std::string, int> available = data.Available();
+  const int first = page_ * PerPage();
+  const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - first);
+  for (int i = 0; i < count; ++i) {
+    const CardInfo& card = *visible_[static_cast<size_t>(first + i)];
+    if (!Unlocked(card)) continue;
+    const bool selected = &card == editing_;
+    const SDL_FRect rect =
+        i == lift_card_ ? Grown(CardRect(i), m.hover_grow * hover_t_) : CardRect(i);
+    const SDL_FRect strip = StripRect(rect);
+    frame::Draw(r, strip, frame::Kind::kWindow);
+    const auto copies_unlocked = available.find(card.code);
+    const int unlocked_count = copies_unlocked != available.end() ? copies_unlocked->second : 0;
+    const std::string unlocked =
+        i18n::Format("grimoire.unlocked", {std::to_string(unlocked_count)});
+    text::Draw(r, unlocked.c_str(), strip.x + m.strip_inset,
+               strip.y + (strip.h - text::LineHeight(m.strip_style)) / 2.0f, m.strip_style,
+               colors::Get("steelLight"));
+    const SDL_FRect field = CountRect(strip);
+    frame::Draw(r, field, frame::Kind::kWindow,
+                selected ? frame::State::kHighlight : frame::State::kNormal);
+    const int copies = data.InDeck(card.code);
+    text::DrawCentered(r, std::to_string(copies).c_str(), field.x + field.w / 2.0f,
+                       field.y + field.h / 2.0f, m.strip_style,
+                       colors::Get(copies > 0 ? "silverLight" : "steelLight"));
+  }
+}
+
 void GrimoireScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
   const Measures& m = M();
@@ -663,6 +808,8 @@ void GrimoireScene::Render(SceneContext& ctx) {
   back_->Render(r);
   forward_->Render(r);
   exit_->Render(r);
+  RenderDeckBuilder(r, ctx);
   // Pages last: the 3D target (cards, veil, inspected card) is composited over the chrome.
   RenderPages(r, ctx);
+  RenderCardOverlay(r, ctx);
 }

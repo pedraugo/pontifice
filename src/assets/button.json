@@ -10,7 +10,7 @@
   "buttonText": {
     "regular": {"rowHeight": 4, "rowGap": 2, "label": "regular"},
     "danger": {"rowHeight": 4, "rowGap": 2, "label": "regular"},
-    "flag": {"rowHeight": 4, "rowGap": 2, "flagHeight": 2.5, "gap": 1, "label": "regular"}
+    "flag": {"rowHeight": 4, "rowGap": 0.5, "flagHeight": 2.5, "gap": 1, "label": "regular"}
   },
   "buttonIcon": {
     "small": {"size": 2, "margin": 1, "padding": 0.12},

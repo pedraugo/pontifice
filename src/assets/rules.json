@@ -5,5 +5,7 @@
   "handLimit": 6,
   "maxCopies": 2,
   "maxCopiesRarest": 1,
-  "defaultDifficulty": 1
+  "defaultDifficulty": 1,
+  "starterHierarchy4": 26,
+  "starterHierarchy3": 10
 }

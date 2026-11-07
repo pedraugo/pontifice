@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scripts/button/button.h"
 #include "scripts/cardface/cardFace.h"
 #include "scripts/colors/colors.h"
 #include "scripts/opacity/opacity.h"
@@ -29,6 +30,8 @@ struct Layout {
   float result_w = ui::Cells("hud.result.width", 44.0f);
   float result_padding = ui::Cells("hud.result.padding", 2.0f);
   float result_title_gap = ui::Cells("hud.result.titleGap", 1.0f);
+  float result_card_gap = ui::Cells("hud.result.cardGap", 2.0f);
+  float result_button_h = button::Cells("button.regular.height", 3.5f);
   float result_row_gap = ui::Cells("hud.result.rowGap", 0.5f);
   float result_column_w = ui::Cells("hud.result.columnWidth", 9.0f);
   float line_gap = ui::Cells("hud.life.lineGap", 0.75f);
@@ -139,8 +142,8 @@ void Hud::ClearFieldCard() {
 }
 
 void Hud::SetDeck(int used, int remaining) {
-  deck_used_ = std::clamp(used, 0, rules::Get().deck_size);
-  deck_remaining_ = std::clamp(remaining, 0, rules::Get().deck_size);
+  deck_used_ = std::max(used, 0);
+  deck_remaining_ = std::max(remaining, 0);
 }
 
 void Hud::SetGraveyard(int count) { graveyard_ = std::max(count, 0); }
@@ -330,11 +333,11 @@ void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
 void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
   const std::string deck_title = i18n::Get("hud.deck");
   const std::string deck_value =
-      std::to_string(deck_remaining_) + "/" + std::to_string(rules::Get().deck_size);
+      std::to_string(deck_remaining_) + "/" + std::to_string(deck_used_ + deck_remaining_);
   const std::string grave_title = i18n::Get("hud.graveyard");
   const std::string grave_value = std::to_string(graveyard_);
   // Width measured with the widest values so the panel does not resize on every draw.
-  const std::string deck_size = std::to_string(rules::Get().deck_size);
+  const std::string deck_size = std::to_string(deck_used_ + deck_remaining_);
   const std::string widest_deck = deck_size + "/" + deck_size;
   const std::string widest_grave = graveyard_ > 99 ? grave_value : std::string("99");
   const float deck_title_w = text::Width(deck_title.c_str(), L().line_style);
@@ -361,6 +364,29 @@ void Hud::RenderPilesPanel(SDL_Renderer* r, int width, int height) const {
 
 // Window with the result title, time and rounds, then one row per stat: label on the left,
 // your number and the opponent's in two right-aligned columns.
+// Stat rows listed in RenderResult.
+constexpr int kResultRows = 8;
+
+// Title, time + rounds line, column header, stat rows, Menu button; after a win the window and
+// the card won (label above it) are centered together.
+SDL_FRect Hud::ResultPanel(int width, int height) const {
+  const Layout& l = L();
+  const float row_h = l.line_h + l.result_row_gap;
+  const float h = 2 * l.result_padding + text::LineHeight(l.result_style) + l.result_title_gap +
+                  row_h * (2 + kResultRows) + l.result_title_gap + l.result_button_h;
+  const float card_w =
+      reward_card_ != nullptr ? (h - l.line_h - l.result_title_gap) * kCardAspect : 0.0f;
+  const float group_w = l.result_w + (card_w > 0.0f ? l.result_card_gap + card_w : 0.0f);
+  return SDL_FRect{(width - group_w) / 2.0f, (height - h) / 2.0f, l.result_w, h};
+}
+
+SDL_FRect Hud::ResultButtonArea(int width, int height) const {
+  const SDL_FRect panel = ResultPanel(width, height);
+  const float pad = L().result_padding;
+  return SDL_FRect{panel.x + pad, panel.y + panel.h - pad - L().result_button_h,
+                   panel.w - 2 * pad, L().result_button_h};
+}
+
 void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   FillRect(r, SDL_FRect{0, 0, static_cast<float>(width), static_cast<float>(height)},
            opacity::Apply(colors::Get("stoneBlack"), "overlay"));
@@ -388,10 +414,9 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
   }
   const float title_h = text::LineHeight(l.result_style);
   const float row_h = l.line_h + l.result_row_gap;
-  // Title, time + rounds line, column header, rows, Esc hint.
-  const float h = 2 * l.result_padding + title_h + l.result_title_gap + row_h * 2 +
-                  row_h * static_cast<float>(rows.size()) + l.result_title_gap + l.line_h;
-  const SDL_FRect panel{(width - l.result_w) / 2.0f, (height - h) / 2.0f, l.result_w, h};
+  const SDL_FRect panel = ResultPanel(width, height);
+  const float card_h = panel.h - l.line_h - l.result_title_gap;
+  const float card_w = card_h * kCardAspect;
   frame::Draw(r, panel, frame::Kind::kWindow);
 
   const float cx = panel.x + panel.w / 2.0f;
@@ -422,7 +447,11 @@ void Hud::RenderResult(SDL_Renderer* r, int width, int height) const {
     DrawRight(r, row.opponent.c_str(), right, y, l.line_style, value);
     y += row_h;
   }
-  y += l.result_title_gap;
-  text::DrawCentered(r, i18n::Get("hud.escMenu").c_str(), cx, y + l.line_h / 2.0f, l.body_style,
-                     colors::Get("silver"));
+  if (reward_card_ == nullptr) return;
+  const float card_x = panel.x + panel.w + l.result_card_gap;
+  text::DrawCentered(r, reward_label_.c_str(), card_x + card_w / 2.0f, panel.y + l.line_h / 2.0f,
+                     l.line_style, colors::Get("silverLight"));
+  const SDL_FRect card{card_x, panel.y + l.line_h + l.result_title_gap, card_w, card_h};
+  SDL_SetTextureAlphaMod(reward_card_, 255);
+  SDL_RenderTexture(r, reward_card_, nullptr, &card);
 }

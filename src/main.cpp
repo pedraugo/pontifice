@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,6 +15,7 @@
 #include "scripts/opacity/opacity.h"
 #include "scripts/config/config.h"
 #include "scripts/rules/rules.h"
+#include "scripts/save/save.h"
 #include "scripts/image/image.h"
 #include "scripts/i18n/i18n.h"
 #include "scripts/audios/music.h"
@@ -154,6 +156,10 @@ int main(int /*argc*/, char** /*argv*/) {
         config::Int("rules", "maxCopiesRarest", settings.max_copies_rarest);
     settings.default_difficulty =
         config::Int("rules", "defaultDifficulty", settings.default_difficulty);
+    settings.starter_hierarchy4 =
+        config::Int("rules", "starterHierarchy4", settings.starter_hierarchy4);
+    settings.starter_hierarchy3 =
+        config::Int("rules", "starterHierarchy3", settings.starter_hierarchy3);
     rules::Set(settings);
   }
   {
@@ -164,7 +170,14 @@ int main(int /*argc*/, char** /*argv*/) {
   }
   // Debug: PONTIFICE_LANG=en|es|pt sets the language and skips the language scene.
   const char* env_lang = std::getenv("PONTIFICE_LANG");
-  if (env_lang != nullptr) i18n::SetLanguage(env_lang);
+  // A save brings back the player's language, so the language scene is skipped too.
+  std::optional<save::Data> saved = save::Load();
+  const bool has_save = saved.has_value();
+  if (env_lang != nullptr) {
+    i18n::SetLanguage(env_lang);
+  } else if (has_save && !saved->language.empty()) {
+    i18n::SetLanguage(saved->language);
+  }
 
   // Window and renderer after the settings: the resolution comes from assets/ui.json.
   App app;
@@ -181,6 +194,8 @@ int main(int /*argc*/, char** /*argv*/) {
   ctx.gpu_device = SDL_GetGPURendererDevice(app.renderer);  // null on the fallback renderer
   ctx.logical_width = ui::Width();
   ctx.logical_height = ui::Height();
+  if (saved) ctx.difficulty = saved->difficulty;
+  ctx.save = std::move(saved);
 
   // Own block: scenes and their GPU resources die before Shutdown destroys the renderer.
   {
@@ -254,8 +269,8 @@ int main(int /*argc*/, char** /*argv*/) {
   const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
   const int shot_frame = env_shot_frame != nullptr ? std::atoi(env_shot_frame) : 60;
   const double shot_time = env_shot_time != nullptr ? std::atof(env_shot_time) : -1.0;
-  // First scene: language choice, or the menu when PONTIFICE_LANG is set.
-  SceneId first = env_lang != nullptr ? SceneId::kMenu : SceneId::kLanguage;
+  // First scene: language choice, or the menu when PONTIFICE_LANG is set or a save exists.
+  SceneId first = env_lang != nullptr || has_save ? SceneId::kMenu : SceneId::kLanguage;
   if (env_scene != nullptr && std::strcmp(env_scene, "language") == 0) first = SceneId::kLanguage;
   if (env_scene != nullptr && std::strcmp(env_scene, "menu") == 0) first = SceneId::kMenu;
   if (env_scene != nullptr && std::strcmp(env_scene, "battle") == 0) first = SceneId::kBattle;

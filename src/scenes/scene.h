@@ -6,10 +6,13 @@
 #include <optional>
 
 #include "scripts/rules/rules.h"
+#include "scripts/save/save.h"
 
 class Music;
 
 enum class SceneId { kLanguage, kMenu, kLoading, kBattle, kGrimoire };
+// kMain: Play and Exit; kNewSave: name form; kSave: Battle, Level, Grimoire and Exit.
+enum class MenuPage { kMain, kNewSave, kSave };
 
 class Scene;
 
@@ -18,6 +21,7 @@ struct PreloadInfo {
   int logical_width = 0;
   int logical_height = 0;
   int difficulty = rules::Get().default_difficulty;
+  std::optional<save::Data> save;  // copy for the Preload thread
 };
 
 struct SceneContext {
@@ -28,8 +32,10 @@ struct SceneContext {
   int logical_height = 0;
 
   int difficulty = rules::Get().default_difficulty;
+  std::optional<save::Data> save;
+  MenuPage menu_page = MenuPage::kMain;  // page the menu reopens on
   PreloadInfo Preload() const {
-    return {gpu_device, logical_width, logical_height, difficulty};
+    return {gpu_device, logical_width, logical_height, difficulty, save};
   }
   bool quit = false;
   std::optional<SceneId> next_scene;

@@ -48,7 +48,11 @@ src/
       text.*          texto com as fontes do jogo via stb_truetype (text::Face: kTitle = fonts/pirataOne.ttf, kBody = fonts/newsreader.ttf): atlas 16/32/64 px por fonte, ASCII e Latin-1; sem a de corpo, usa a de título; sem a de título, cai na de depuração do SDL
     button/
       button.*        botão com placa, rótulo e ação (Passar turno, diálogos); categorias normal e perigo; base dos outros dois (hover, foco, clique)
-      buttonText.*    botão só de texto, sem placa (menu: Jogar, Nível, Sair); com bandeira (SetFlag) é o item da cena de idioma
+      buttonText.*    botão só de texto, sem placa (menu: Jogar, Batalha, Nível, Grimório, Sair); com bandeira (SetFlag) é o item da cena de idioma
+    input/
+      textInput.*     campo de texto de uma linha (nome do novo save): SDL_EVENT_TEXT_INPUT com filtro de caracteres, Backspace, caret no fim
+    save/
+      save.*          save do jogador em {home}/pontifice.json: nome, idioma, histórico unlocked (código + data), deck de até 40 e Available; gravação atômica (tmp + rename)
       buttonIcon.*    botão quadrado com placa e ícone em primitivas: alto-falante (liga/desliga a música), "?" (liga/desliga a dica do topo, na batalha) e porta com seta (sair da batalha, placa de perigo: abre o diálogo de abandono, como Esc)
     draw/
       draw.*          primitivas 2D com espessura via SDL_RenderGeometry: Line, Arc, FillPolygon (ícones de ButtonIcon, nó das quinas do Frame)
@@ -94,7 +98,7 @@ src/
     deck/
       deck.*          monte de cartas: embaralhar (Fisher-Yates, semente opcional), comprar do topo; sem SDL
     cards/
-      cards.*         dados das cartas (assets/Cards*.json) e montagem do monte por peso `odds`
+      cards.*         dados das cartas (assets/Cards*.json), monte do oponente por peso, deck inicial do save (StarterDeck) e recompensa por `odds` (PickByOdds)
     cardface/
       cardFace.*      frente da carta: moldura da categoria + nome, ATK/DEF e descrição desenhados (CPU)
     audios/
@@ -221,7 +225,7 @@ Para regenerar depois de mudar a ilustração ou o modelo bruto: `python3 tools/
 As cartas na mão são **elementos 3D**, dispostos como um **dock**. Implementado em `src/scripts/hand/Hand.*`.
 
 - Arena e tocha têm **normal map** gerado de suas texturas (`tools/normalMap.py`, embutido no GLB como `normalTexture`; a arena com força menor). Cada carta é uma instância de `models/card.glb`, com **normal map** na frente (`cardFrontNormalMap.webp`, 1600x2230 com cantos transparentes: ao carregar, a transparência vira normal plana e o mapa é reduzido para 800x1115, a resolução da frente composta) e no verso (`cardBackNormalMap.webp`): relevo da moldura e dos entalhes, reagindo às luzes e ao hover/inspeção. A frente é uma textura **composta por carta** (`cardface`: moldura da categoria com os textos por cima, ver "Frente da carta"); o verso recebe `cardBack.webp`; a borda usa a cor metálica do próprio modelo.
-- **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o monte de 40 é montado por peso `odds` (no máximo 2 cópias por carta, 1 das de hierarquia 1) e **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
+- **Monte real**: no `Preload` da batalha as cartas de `assets/Cards*.json` são carregadas, o seu monte é o `deck` do save (`PreloadInfo::save`; códigos desconhecidos ficam de fora com aviso no log; sem save, um monte de 40 sorteado por peso `odds`) e é **embaralhado** (`deck::Deck`); as 5 da mão inicial são compradas e compostas ali, antes de qualquer animação. A tecla D compra a próxima do monte.
 - As cartas ficam na parte inferior da tela, em arco: cada uma desce com o quadrado da distância ao centro e gira levemente em Z. O espaçamento diminui quando a mão passa da largura máxima.
 - **Hover**: a carta sob o cursor sobe, aproxima-se da câmera e aumenta de escala. As vizinhas se afastam com força decrescente (1, 1/2, 1/3...). Tudo animado com interpolação exponencial, independente do frame rate.
 - **Entrada**: cada carta adicionada à mão (`Hand::Add`) desliza de fora da tela, pela esquerda, até o seu lugar, a velocidade constante (13 unidades/s, suavizado nas pontas), então quem vai mais longe demora mais e não ultrapassa a anterior; cartas adicionadas em sequência entram uma a uma, com 0,12 s entre elas. `Hand::DelayDeal` adia a próxima entrada (a batalha espera o fade in).
@@ -238,7 +242,7 @@ Implementada em `BattleScene` com `scripts/board/Board.*` (um `Board` por lado),
 
 **Carga**: as 65 ilustrações são decodificadas e ajustadas em paralelo (até 8 threads) no `Preload`, e `image.cpp`, `text.cpp` e `cardFace.cpp` são compilados com `-O2` mesmo em Debug (stb_image, stb_truetype e composição das frentes); o log mostra o tempo (`Ilustracoes de cartas: 65 (… ms)`).
 
-**Início**: cada lado monta um monte de 40 (o do computador conforme o nível, ver abaixo) e compra 5. Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|opponent` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
+**Início**: você usa o deck do save e o computador monta um monte de 40 conforme o nível (ver abaixo); cada lado compra 5. O contador do monte no HUD mostra restantes/total do seu monte. Na vitória, `BattleScene::GrantReward` sorteia uma carta por `odds` (`cards::PickByOdds`), acrescenta ao histórico `unlocked` (`save::Data::UnlockCard`), grava e passa a frente composta ao HUD (`Hud::SetReward`). Um sorteio na entrada da batalha decide quem começa (`PONTIFICE_STARTER=player|opponent` força); se é o oponente, a mão dele (oculta) é distribuída na entrada no lugar da sua, que fica recolhida desde o início, e a câmera da abertura já parte do lado dele (`orbit_ = 1` na entrada; `UpdateIntro` aplica o mesmo giro da virada), então o turno dele começa sem girar a arena. Quando as tochas acendem (3,2 s) o primeiro turno começa. Quem começa não compra nem ataca no primeiro turno.
 
 **Seu turno** (botão **Passar turno** no centro superior da tela, logo abaixo da dica, visível sempre que você pode agir):
 
@@ -302,7 +306,7 @@ O jogo é organizado em cenas. Só uma cena fica ativa por vez, e o loop princip
 - `Scene`: interface com `Preload` (carga pesada, inclusive envio à GPU, chamada pela tela de loading em outra thread), `OnEnter`, `OnExit`, `HandleEvent`, `Update` e `Render`.
 - `SceneContext`: estado compartilhado. A cena pede troca escrevendo em `next_scene` e pede saída com `quit`. `loading_target` diz à tela de loading qual cena preparar; `preloaded` entrega uma instância já carregada (o `SceneManager` a usa no lugar de criar outra); `fade_out_seconds` escurece a cena atual até o preto antes da troca (sem eventos nesse tempo) e `fade_in_seconds` faz a nova cena entrar do preto.
 - `SceneManager`: guarda a cena ativa e aplica as trocas pedidas depois de cada evento ou atualização. Desenha o véu do fade in por cima da cena nova. `Create` é a fábrica de cenas.
-- Ordem: `MenuScene` (inicial), `LoadingScene` e `BattleScene`. O botão Jogar abre a tela de loading, que carrega a batalha enquanto a tocha cintila e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu. O item Grimório usa a mesma tela de loading com `loading_target = kGrimoire` para compor as frentes das cartas (`GrimoireScene`, docs/grimorio.md); Sair ou `Esc` voltam ao menu.
+- Ordem: `LanguageScene` (inicial sem save), `MenuScene` (inicial com save; páginas em docs/menu.md), `LoadingScene` e `BattleScene`. O botão Batalha abre a tela de loading, que carrega a batalha enquanto a tocha cintila e então troca com fade in (docs/loading.md). `Esc` na batalha volta direto ao menu. O item Grimório usa a mesma tela de loading com `loading_target = kGrimoire` para compor as frentes das cartas (`GrimoireScene`, docs/grimorio.md); Sair ou `Esc` voltam ao menu.
 
 ## Abertura da batalha
 
@@ -363,7 +367,7 @@ Iluminação, névoa/nuvens, sombras, medidas dos botões, medidas da interface 
 | `ui.json` | `ui` | Só a interface 2D parada, por cena: `screen` (resolução lógica `width`/`height`, janela de depuração `windowedWidth`/`windowedHeight`, `grid` em px, `textScale`), `language` (vazia: a lista de idiomas só centraliza e usa as medidas de `button.json`), `menu` (título, rodapé), `loading` (margem do rótulo), `grimoire` (título, filtros, grade com `columns`/`rows`, `hoverGrow`, navegação), `battle` (status, dica, Passar turno, tooltip `tip`, tamanho da revelação 2D e do brilho `reveal`, limites do mouse `input`, desenho da seta `attack.arrow`), `hud` (painéis `life`, `field` com zoom, `piles`, `result`, posição dos números de dano `popup`) e `dialog`. Medidas em células da grade (`ui::Cells`); chaves terminadas em `Px` em px lógicos (`ui::Number`) |
 | `layout.json` | `layout` | Objetos 3D, movimento, transições e tempos, por cena (`layout::Number`, `layout::Vec3`, `layout::Node`): `menu` (fades para o loading), `loading` (câmera, tocha e ondas de `torch.flicker`, pontos por segundo, tempo mínimo, fades), `grimoire` (`hoverLift`, deslize de página, fades), `battle` (tempos e balanço da revelação `reveal`, `arena`, `torch`, câmera `camera` com órbita e tremor, abertura `intro`, ritmo do oponente `opponent`, `handHideSeconds`, impacto `attack.hitSeconds` e as `Layout` de `board`, `hand` (câmera da mão também usada pelo grimório), `sword` e `shield`), `hud` (tremor e piscada da vida, tempo do zoom, física e tempos dos números de dano). Unidades: `seconds`/`...Seconds` em segundos; posições e escalas 3D em unidades do mundo; `fov` em graus; ângulos 3D (`tilt`, `yaw`, `angle*`) em radianos; `...Speed` são taxas por segundo; `...Ratio`/`...Fraction` frações; `...Px` em px lógicos |
 | `text.json` | `text` | Variantes de texto combináveis (`text::Styles({"large", "bold"})` ou `text::StyleOf("large+bold")`, campos mesclados da esquerda para a direita): `size` na escala da fonte de depuração (vezes `ui::TextScale()` = `screen.textScale` 1,5; altura da linha = 8 px × size), `face` (`title` PirataOne / `body` Newsreader), `bold`, `italic` (falsos: segunda passada deslocada / cisalhamento), `letterSpacing` (fração do em), `lineGap` (fração da linha em `text::LineHeight`). Variantes: `xsmall`, `small`, `regular`, `description` (body), `large`, `xlarge`, `subtitle`, `heading`, `title`, `display`, `body`, `bold`, `italic`, `spaced`, `loose`. Quem usa o quê fica no código (`Layout` de cada cena) |
-| `rules.json` | `rules` | Regras da partida, lidas uma vez em `main.cpp` para `rules::Settings` (`rules::Get()`), com limites mínimos em `rules::Set`: `maxLife` (5000), `deckSize` (40), `initialHand` (5), `handLimit` (6, descarta no fim do turno), `maxCopies` (2 por carta), `maxCopiesRarest` (1 para hierarquia 1), `defaultDifficulty` (0 fácil a 3 impossível; 1 médio) |
+| `rules.json` | `rules` | Regras da partida, lidas uma vez em `main.cpp` para `rules::Settings` (`rules::Get()`), com limites mínimos em `rules::Set`: `maxLife` (5000), `deckSize` (40), `initialHand` (5), `handLimit` (6, descarta no fim do turno), `maxCopies` (2 por carta), `maxCopiesRarest` (1 para hierarquia 1), `defaultDifficulty` (0 fácil a 3 impossível; 1 médio), `starterHierarchy4` (26) e `starterHierarchy3` (10) do deck inicial do save (o resto até `deckSize` é campo) |
 
 - Cores aceitam `#rrggbb`, nome de `colors.json` (`"stoneDark"`) ou `[r, g, b]` em 0..1.
 - Valor ausente ou de tipo errado usa o padrão do código (os mesmos números de antes dos arquivos) e avisa no log uma vez.
@@ -397,6 +401,7 @@ Variáveis de ambiente lidas em `main.cpp`:
 |---|---|
 | `PONTIFICE_SCENE=battle` | Abre direto na cena de batalha; `=loading` abre na tela de loading (que segue para a batalha); `=menu` pula a escolha de idioma; `=language` força a cena de idioma; `=grimoire` abre o grimório |
 | `PONTIFICE_LANG=en` | Define o idioma (`en`, `es`, `pt`) sem passar pela cena de idioma e abre no menu |
+| `PONTIFICE_SAVE=arquivo.json` | Usa esse arquivo como save no lugar de `{home}/pontifice.json` (testes sem mexer no save real) |
 | `PONTIFICE_MOUSE=x,y` | Injeta um movimento de mouse em coordenadas lógicas a cada quadro |
 | `PONTIFICE_WINDOWED=1` | Abre em janela 1280x720 em vez de tela cheia; `=1920x1080` (ou outro LxA) abre nesse tamanho, útil para screenshots em resolução cheia |
 | `PONTIFICE_SEED=n` | Fixa o sorteio da batalha (montes, compras e quem começa), para repetir uma partida igual em testes |

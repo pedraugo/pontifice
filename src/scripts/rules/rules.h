@@ -13,6 +13,9 @@ struct Settings {
   int max_copies = 2;
   int max_copies_rarest = 1;  // hierarchy 1
   int default_difficulty = 1;  // ai::Difficulty: 0 easy to 3 impossible
+  // New save deck: hierarchy 4 and 3 cards (good, evil, neutral); field cards fill the rest.
+  int starter_hierarchy4 = 26;
+  int starter_hierarchy3 = 10;
 };
 
 const Settings& Get();

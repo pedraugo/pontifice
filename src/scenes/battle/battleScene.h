@@ -66,6 +66,8 @@ class BattleScene : public Scene {
   SDL_Texture* HudFace(const CardInfo& card);
   void ToggleSampleFieldCard();
   void DrawCard();
+  // After a win: one card drawn by its odds is unlocked in the save, new or repeated.
+  void GrantReward(SceneContext& ctx);
   void UpdateIntro(float dt_seconds);
   void UpdateCamera();
 
@@ -141,6 +143,8 @@ class BattleScene : public Scene {
   const Image& FrameFor(const CardInfo& card) const;
   std::vector<CardInfo> cards_;
   std::mt19937 rng_;
+  int deck_total_ = 0;  // player deck size at the start: the save's deck
+  bool reward_done_ = false;
   deck::Deck deck_;
   deck::Deck opponent_deck_;
   std::vector<const CardInfo*> opponent_hand_;
@@ -170,6 +174,7 @@ class BattleScene : public Scene {
   std::unordered_map<std::string, SDL_Texture*> hud_arts_;
   SDL_Texture* HudArt(const CardInfo& card, bool large = false);
   std::unique_ptr<Button> end_turn_;
+  std::unique_ptr<Button> result_menu_;  // in the victory and defeat window
   ButtonIcon sound_button_{ButtonIcon::Icon::kSound};
   ButtonIcon hint_button_{ButtonIcon::Icon::kHint};
   ButtonIcon exit_button_{ButtonIcon::Icon::kExit};

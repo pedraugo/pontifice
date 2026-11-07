@@ -39,4 +39,10 @@ using Weight = std::function<int(const CardInfo&)>;
 std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size, std::mt19937& rng,
                                    const Weight& weight = Weight());
 
+// One card with chance proportional to its odds; nullptr when every odds is 0.
+const CardInfo* PickByOdds(const std::vector<CardInfo>& all, std::mt19937& rng);
+
+// New save deck, uniform draw sized by rules::Get(): hierarchy 4, hierarchy 3, then field cards.
+std::vector<std::string> StarterDeck(const std::vector<CardInfo>& all, std::mt19937& rng);
+
 }

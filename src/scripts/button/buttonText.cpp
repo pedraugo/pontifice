@@ -21,10 +21,11 @@ void ButtonText::Render(SDL_Renderer* r) const {
   const SDL_FRect& rect = Rect();
   const float cy = rect.y + rect.h / 2.0f;
   const bool highlight = Highlighted();
-  const SDL_Color ink = colors::Get(Danger() ? (highlight ? "redLight"
-                                                         : "red")
-                                             : (highlight ? "silverLight"
-                                                          : "steelLight"));
+  SDL_Color ink = colors::Get(Danger() ? (highlight ? "redLight"
+                                                   : "red")
+                                       : (highlight ? "silverLight"
+                                                    : "steelLight"));
+  ink.a = static_cast<Uint8>(ink.a * Alpha());
   if (!flag_) {
     text::DrawCentered(r, Label().c_str(), rect.x + rect.w / 2.0f, cy, LabelStyle(), ink);
     return;

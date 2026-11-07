@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "scenes/scene.h"
@@ -54,10 +55,22 @@ class GrimoireScene : public Scene {
   void UpdateInspectFront();
   void OpenInspect(int index, const SceneContext& ctx);
   void EndInspect();
+  bool Unlocked(const CardInfo& card) const { return unlocked_.count(card.code) > 0; }
+  // Unlocked cards use their own front; the rest share the hidden one (kHiddenFace).
+  const std::string& FaceKey(const CardInfo& card) const;
+  // Deck building: over the bottom of each unlocked card a strip with its unlocked copies (left)
+  // and a field with its copies in the battle deck (right); a click selects, digits edit.
+  SDL_FRect StripRect(const SDL_FRect& card) const;
+  SDL_FRect CountRect(const SDL_FRect& strip) const;
+  int SlotAt(float x, float y) const;  // card index on the page, -1 when none
+  void SetCopies(SceneContext& ctx, int copies);
+  void RenderDeckBuilder(SDL_Renderer* r, const SceneContext& ctx) const;  // deck total
+  void RenderCardOverlay(SDL_Renderer* r, const SceneContext& ctx) const;
 
   bool preloaded_ = false;
   std::vector<CardInfo> cards_;
-  std::unordered_map<std::string, Image> faces_;  // composed fronts, half size
+  std::unordered_set<std::string> unlocked_;  // codes the save has unlocked
+  std::unordered_map<std::string, Image> faces_;  // composed fronts, half size, by FaceKey
   std::unordered_map<std::string, SDL_Texture*> textures_;  // 2D fallback without gpu_
   std::unordered_map<std::string, SDL_GPUTexture*> gpu_faces_;
   GpuMesh veil_quad_;
@@ -68,6 +81,8 @@ class GrimoireScene : public Scene {
   std::unique_ptr<Button> forward_;
   std::unique_ptr<Button> exit_;
   int page_ = 0;
+  const CardInfo* editing_ = nullptr;  // selected card: the keyboard edits its copies
+  bool typed_ = false;  // after selecting, the first digit replaces the count
   int hovered_ = -1;  // card index on the page under the mouse
   // The last hovered card keeps easing (grow, lift, tilt) after the mouse leaves it.
   int lift_card_ = -1;

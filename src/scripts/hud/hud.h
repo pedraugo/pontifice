@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "scripts/rules/rules.h"
@@ -44,18 +45,26 @@ class Hud {
   void ClearFieldCard();
   bool HasFieldCard() const { return has_field_; }
 
-  void SetDeck(int used, int remaining);  // used + remaining == rules deck_size
+  void SetDeck(int used, int remaining);  // used + remaining is the whole deck
 
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }
 
   void SetStats(const MatchStats& stats) { stats_ = stats; }
+  // Card won, shown beside the result window; the texture stays owned by the caller.
+  void SetReward(std::string label, SDL_Texture* card) {
+    reward_label_ = std::move(label);
+    reward_card_ = card;
+  }
 
   void Update(float dt, float mouse_x, float mouse_y);  // mouse in logical px
 
   void Render(SDL_Renderer* r, int width, int height) const;
+  // Bottom strip of the result window, where the battle places its Menu button.
+  SDL_FRect ResultButtonArea(int width, int height) const;
 
  private:
+  SDL_FRect ResultPanel(int width, int height) const;
   struct FieldLayout {
     SDL_FRect panel{};
     SDL_FRect thumb{};
@@ -89,6 +98,8 @@ class Hud {
   bool has_field_ = false;
   int deck_used_ = 0;
   int deck_remaining_ = rules::Get().deck_size;
+  std::string reward_label_;
+  SDL_Texture* reward_card_ = nullptr;
   int graveyard_ = 0;
   MatchStats stats_;
   float zoom_t_ = 0.0f;

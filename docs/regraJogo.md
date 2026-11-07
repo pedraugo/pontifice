@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-PONTIFICE é um jogo de cartas para dois jogadores, disputado em turnos. Cada jogador monta um monte de 40 cartas e tenta reduzir os pontos de vida do oponente de 5000 a 0.
+PONTIFICE é um jogo de cartas para dois jogadores, disputado em turnos. Cada jogador usa um monte de 40 cartas (o seu é montado no grimório com as cartas liberadas, e cada vitória libera mais uma) e tenta reduzir os pontos de vida do oponente de 5000 a 0.
 
 ## Componentes
 
