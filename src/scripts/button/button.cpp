@@ -1,5 +1,7 @@
 #include "scripts/button/button.h"
 
+#include <algorithm>
+
 #include "scripts/colors/colors.h"
 #include "scripts/config/config.h"
 #include "scripts/frame/frame.h"
@@ -65,12 +67,47 @@ bool Button::HandleEvent(const SDL_Event& event) {
   }
 }
 
-float Button::LabelScale() {
-  static const float scale = ui::TextScale("button.label", 2.0f);
-  return scale;
+const char* Button::SizeName() const {
+  switch (size_) {
+    case Size::kSmall:
+      return "small";
+    case Size::kLarge:
+      return "large";
+    default:
+      return "regular";
+  }
 }
 
-float Button::LabelWidth() const { return text::Width(label_.c_str(), LabelScale()); }
+std::string Button::VariantKey() const {
+  if (!danger_) return std::string("button.") + SizeName();
+  switch (size_) {
+    case Size::kSmall:
+      return "button.dangerSmall";
+    case Size::kLarge:
+      return "button.dangerLarge";
+    default:
+      return "button.dangerRegular";
+  }
+}
+
+float Button::Measure(const std::string& name, float fallback_cells) const {
+  return button::Cells(VariantKey() + "." + name, fallback_cells);
+}
+
+float Button::MeasureNumber(const std::string& name, float fallback) const {
+  return button::Number(VariantKey() + "." + name, fallback);
+}
+
+text::Style Button::LabelStyle() const {
+  return text::StyleOf(config::String("button", VariantKey() + ".label", "regular"));
+}
+
+float Button::LabelWidth() const { return text::Width(label_.c_str(), LabelStyle()); }
+
+float Button::PreferredWidth() const {
+  const float fitted = LabelWidth() + 2.0f * Measure("padding", 2.0f);
+  return ui::SnapUp(std::max(fitted, Measure("minWidth", 0.0f)));
+}
 
 void Button::Render(SDL_Renderer* r) const {
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;
@@ -84,7 +121,7 @@ void Button::Render(SDL_Renderer* r) const {
               alpha_);
   if (focused_) {
     // Keyboard focus adds a thin stroke around the fill.
-    StrokeRect(r, frame::Inner(rect_), colors::Get("button.focusBorder"), kBorderThin);
+    StrokeRect(r, frame::Inner(rect_), colors::Get("silver"), kBorderThin);
   }
   RenderContent(r);
 
@@ -92,8 +129,8 @@ void Button::Render(SDL_Renderer* r) const {
 }
 
 void Button::RenderContent(SDL_Renderer* r) const {
-  SDL_Color ink = colors::Get("button.text");
+  SDL_Color ink = colors::Get("silver");
   ink.a = static_cast<Uint8>(ink.a * alpha_);
   text::DrawCentered(r, label_.c_str(), rect_.x + rect_.w / 2.0f, rect_.y + rect_.h / 2.0f,
-                     LabelScale(), ink);
+                     LabelStyle(), ink);
 }

@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
+
 namespace {
 
 float SmoothStep(float t) {
@@ -10,9 +13,8 @@ float SmoothStep(float t) {
   return t * t * (3.0f - 2.0f * t);
 }
 
-float EaseOutBack(float t) {
+float EaseOutBack(float t, float c) {
   t = math::Clamp(t, 0.0f, 1.0f);
-  const float c = 1.9f;
   const float u = t - 1.0f;
   return 1.0f + (c + 1.0f) * u * u * u + c * u * u;
 }
@@ -68,8 +70,8 @@ void Box(std::vector<Vertex>& v, std::vector<Uint32>& idx, float x0, float y0, f
 }
 
 bool Shield::Init(Gpu& gpu) {
-  const SDL_FColor gold{0.86f, 0.68f, 0.26f, 1.0f};
-  const SDL_FColor silver{0.55f, 0.6f, 0.7f, 1.0f};
+  const SDL_FColor gold = colors::GetF("goldDark");
+  const SDL_FColor silver = colors::GetF("steel");
   auto add = [&](std::vector<Vertex>& v, std::vector<Uint32>& i, SDL_FColor color) {
     Part part;
     part.mesh = gpu.CreateMesh(v, i);
@@ -142,33 +144,33 @@ void Shield::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   if (!Active()) return;
   const float t = time_;
   const float since_hit = t - hit_;
-  float scale = EaseOutBack(t / layout_.appear);
+  float scale = EaseOutBack(t / layout_.appear, layout_.overshoot);
   float recoil = 0.0f, spin = 0.0f, drop = 0.0f, flash = 0.0f;
   if (since_hit >= 0.0f) {
-    recoil = 0.35f * std::exp(-since_hit * 9.0f);
-    flash = std::exp(-since_hit * 7.0f);
+    recoil = layout_.recoil * std::exp(-since_hit * layout_.recoil_decay);
+    flash = std::exp(-since_hit * layout_.flash_decay);
     if (broken_) {
       const float f = SmoothStep(since_hit / (layout_.broken - hit_));
-      spin = 1.6f * f;
-      drop = 0.7f * f * f;
+      spin = layout_.break_spin * f;
+      drop = layout_.break_drop * f * f;
       scale *= 1.0f - f;
     }
   }
   if (!broken_) {
-    const float out = (t - (layout_.hold - 0.25f)) / 0.25f;
+    const float out = (t - (layout_.hold - layout_.fade_seconds)) / layout_.fade_seconds;
     scale *= 1.0f - SmoothStep(out);
   }
   if (scale <= 0.001f) return;
 
   const math::Vec3 center{target_.x, target_.y + layout_.height - drop, target_.z};
   const math::Mat4 world = math::Mat4::Translate(center) * math::Mat4::RotateY(yaw_) *
-                           math::Mat4::Translate({0.0f, 0.0f, -0.25f * recoil}) *
+                           math::Mat4::Translate({0.0f, 0.0f, -layout_.recoil_push * recoil}) *
                            math::Mat4::RotateX(-(layout_.lean + recoil)) *
                            math::Mat4::RotateZ(spin) * math::Mat4::Scale(layout_.scale * scale);
   // Hit flash pushes colors above 1 (shader multiplies by light); broken tints red
   for (const Part& part : parts_) {
     SDL_FColor c = part.color;
-    const float boost = 1.0f + 1.4f * flash;
+    const float boost = 1.0f + layout_.flash_boost * flash;
     c.r *= boost;
     c.g *= boost;
     c.b *= boost;
@@ -181,12 +183,13 @@ void Shield::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   }
   if (since_hit >= 0.0f && since_hit < layout_.wave_seconds) {
     const float w = since_hit / layout_.wave_seconds;
-    const float radius = layout_.scale * (0.55f + 1.1f * SmoothStep(w));
-    const SDL_FColor color = broken_ ? SDL_FColor{1.0f, 0.35f, 0.25f, 0.85f * (1.0f - w)}
-                                     : SDL_FColor{1.0f, 0.88f, 0.45f, 0.85f * (1.0f - w)};
+    const float radius = layout_.scale * (layout_.wave_start + layout_.wave_grow * SmoothStep(w));
+    const float wave_alpha = opacity::Get("shieldWave") * (1.0f - w);
+    SDL_FColor color = colors::GetF(broken_ ? "vermilion" : "goldLight");
+    color.a = wave_alpha;
     const math::Mat4 ring = math::Mat4::Translate(center) * math::Mat4::RotateY(yaw_) *
                             math::Mat4::RotateX(-layout_.lean) *
-                            math::Mat4::Translate({0.0f, 0.0f, 0.09f}) *
+                            math::Mat4::Translate({0.0f, 0.0f, layout_.wave_lift}) *
                             math::Mat4::Scale({radius, radius, 1.0f});
     gpu.Draw(ring_, nullptr, ring, view_proj, color, Gpu::DrawMode::kEmissive);
   }

@@ -1,8 +1,8 @@
-<p align="center"><img src="src/assets/icon.png" alt="Ícone do PONTIFICE" width="160"></p>
+<p align="center"><img src="src/icons/icon.png" alt="Ícone do PONTIFICE" width="160"></p>
 
 # PONTIFICE
 
-![Batalha do PONTIFICE: arena 3D, mão de cartas e HUD](docs/cover.png)
+![Batalha do PONTIFICE: arena 3D, mão de cartas e HUD](cover.png)
 
 PONTIFICE é um jogo eletrônico brasileiro de cartas lançado exclusivamente para computadores inspirado na temática biblica.
 

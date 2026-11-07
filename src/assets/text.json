@@ -1,16 +1,17 @@
 {
-  "button": {"label": 2.0},
-  "menu": {"title": 8.0, "footer": 2.0},
-  "grimoire": {"title": 6.0, "page": 2.0},
-  "loading": {"text": 2.0},
-  "dialog": {"title": 3.0, "question": 2.0},
-  "hud": {"line": 2.0, "detail": 1.5, "result": 5.0, "popup": 3.5},
-  "battle": {
-    "status": 2.0,
-    "hint": 1.5,
-    "tip": 2.0,
-    "tipDetail": 1.5,
-    "revealCaption": 3.0,
-    "revealDetail": 2.5
-  }
+  "xsmall": {"size": 1.5},
+  "small": {"size": 1.75},
+  "regular": {"size": 2.0},
+  "description": {"size": 2.0, "face": "body"},
+  "large": {"size": 2.5},
+  "xlarge": {"size": 3.0},
+  "subtitle": {"size": 3.5},
+  "heading": {"size": 5.0},
+  "title": {"size": 6.0},
+  "display": {"size": 8.0},
+  "body": {"face": "body"},
+  "bold": {"bold": true},
+  "italic": {"italic": true},
+  "spaced": {"letterSpacing": 0.08},
+  "loose": {"lineGap": 0.5}
 }

@@ -3,7 +3,7 @@
 
 Pointed wooden handle, leather-wrapped grip, metal collar and, at the top, an iron cage
 (vertical bars and two riveted hoops) with coals inside; above it, the flame.
-Same art direction as the arena: wood and iron band come from src/art/arenaAtlas.png
+Same art direction as the arena: wood and iron band come from src/sprites/arenaAtlas.png
 (the atlas embedded in arena.glb); leather, coals and flame are procedural.
 Standard library only (reuses helpers from textureArena.py).
 
@@ -13,7 +13,7 @@ Two nodes in the GLB:
 
 Units: approximate meters. Origin at the tip of the handle, +y axis up. The flame starts at
 FLAME_BASE_Y and is centered at FLAME_CENTER_Y (scenes place the point light there).
-The atlas (512x512, RGBA because of the flame) is saved to src/art/torchAtlas.png.
+The atlas (512x512, RGBA because of the flame) is saved to src/sprites/torchAtlas.png.
 
 Usage: python3 tools/makeTorch.py
 """
@@ -31,8 +31,8 @@ from textureArena import Image, blit_scaled, crop, metal_fill, read_png  # noqa:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_GLB = os.path.join(ROOT, "src", "models", "torch.glb")
-OUT_ATLAS = os.path.join(ROOT, "src", "art", "torchAtlas.png")
-ARENA_ATLAS = os.path.join(ROOT, "src", "art", "arenaAtlas.png")
+OUT_ATLAS = os.path.join(ROOT, "src", "sprites", "torchAtlas.png")
+ARENA_ATLAS = os.path.join(ROOT, "src", "sprites", "arenaAtlas.png")
 ARENA_PLANKS = (20, 1538, 1530, 1972)
 ARENA_BAND = (0, 1986, 1536, 2046)
 ARENA_METAL = (74, 76, 82)

@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "scripts/colors/colors.h"
 #include "scripts/i18n/i18n.h"
+#include "scripts/opacity/opacity.h"
 #include "scripts/text/text.h"
 
 namespace {
@@ -21,10 +23,6 @@ constexpr float kStatsPx = 76.0f;
 constexpr float kDescPx = 40.0f;
 constexpr float kDescLine = 50.0f;
 
-constexpr SDL_Color kWhite{255, 255, 255, 255};
-constexpr SDL_Color kOutline{12, 12, 16, 255};
-constexpr SDL_Color kShadow{0, 0, 0, 150};
-constexpr SDL_Color kInk{20, 20, 24, 255};
 
 float CenteredTop(float top, float bottom, float px) { return (top + bottom) / 2.0f - px / 2.0f; }
 
@@ -32,14 +30,16 @@ void Label(Image& img, const std::string& s, float x, float y, float px) {
   const char* str = s.c_str();
   const float t = SDL_max(1.5f, px * 0.055f);  // outline thickness
   const float shadow = SDL_max(2.0f, px * 0.08f);
-  text::DrawOnImage(img, str, x + shadow, y + shadow, px, kShadow);
+  const SDL_Color outline = colors::Get("inkDark");
+  text::DrawOnImage(img, str, x + shadow, y + shadow, px,
+                    opacity::Apply(colors::Get("black"), "cardTextShadow"));
   for (int dy = -1; dy <= 1; ++dy) {
     for (int dx = -1; dx <= 1; ++dx) {
       if (dx == 0 && dy == 0) continue;
-      text::DrawOnImage(img, str, x + dx * t, y + dy * t, px, kOutline);
+      text::DrawOnImage(img, str, x + dx * t, y + dy * t, px, outline);
     }
   }
-  text::DrawOnImage(img, str, x, y, px, kWhite);
+  text::DrawOnImage(img, str, x, y, px, colors::Get("white"));
 }
 
 std::vector<std::string> Wrap(const std::string& textstr, float px, float max_width,
@@ -213,15 +213,16 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     std::string body = card.description;
     if (card.IsField() && !card.favored.empty()) {
       const std::string favored =
-          i18n::Get(card.favored == "evil" ? "category.evil.plural" : "category.good.plural");
+          i18n::Get(card.favored == "evil" ? "category.plural.evil" : "category.plural.good");
       body += "\n" + i18n::Format("cardface.favors", {favored});
     }
     const std::vector<std::string> lines = Wrap(body, px, (kRight - kLeft) * sx, text::Face::kBody);
     const float block_h = static_cast<float>(lines.size()) * line_h;
     float y = CenteredTop(kDescTop * sy, kDescBottom * sy, block_h);
+    const SDL_Color ink = colors::Get("ink");
     for (const std::string& line : lines) {
       const float w = text::ImageWidth(line.c_str(), px, text::Face::kBody);
-      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, kInk, text::Face::kBody);
+      text::DrawOnImage(img, line.c_str(), cx - w / 2.0f, y, px, ink, text::Face::kBody);
       y += line_h;
     }
   }

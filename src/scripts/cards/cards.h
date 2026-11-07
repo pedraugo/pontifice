@@ -34,7 +34,7 @@ std::vector<CardInfo> LoadAll(const std::string& base);
 
 const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code);
 
-// Weighted draw; at most 2 copies per card, 1 for hierarchy 1; weight 0 never enters.
+// Weighted draw; copy limits from rules::Get(); weight 0 never enters.
 using Weight = std::function<int(const CardInfo&)>;
 std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size, std::mt19937& rng,
                                    const Weight& weight = Weight());

@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 
 namespace {
 
@@ -236,11 +237,14 @@ void Board::Update(float dt) {
 void Board::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const {
   const float f = card.flash;
   const float spent = card.spent * (1.0f - SmoothStep(card.hover));  // opaque again under the mouse
-  const SDL_FColor tint{1.0f, 1.0f - 0.65f * f, 1.0f - 0.65f * f,
-                        math::Lerp(1.0f, layout_.spent_alpha, spent)};
+  const SDL_FColor flash = colors::GetF("redBright");
+  const SDL_FColor tint{math::Lerp(1.0f, flash.r, f), math::Lerp(1.0f, flash.g, f),
+                        math::Lerp(1.0f, flash.b, f),
+                        math::Lerp(1.0f, opacity::Get("cardSpent"), spent)};
   gpu.SetDesaturate(card.spent * layout_.spent_desaturate);
   if (card.foil && aura_ != nullptr) {
-    aura_->Draw(gpu, card.world, view_proj, (1.0f - 0.8f * spent) * (1.0f - card.discard));
+    const float aura_alpha = math::Lerp(1.0f, opacity::Get("cardSpentAura"), spent);
+    aura_->Draw(gpu, card.world, view_proj, aura_alpha * (1.0f - card.discard));
   }
   model_->Draw(gpu, card.world, view_proj, tint, SkinFor(card));
   gpu.SetDesaturate(0.0f);
@@ -261,8 +265,9 @@ void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   const float side = layout_.tile * layout_.arena_scale * layout_.highlight_inset;
   const float y = layout_.highlight_lift;
   if (highlight_) {
-    const float pulse = 0.75f + 0.25f * std::sin(time_ * layout_.pulse_speed);
-    SDL_FColor slot_color = colors::GetF("board.slot");
+    const float low = opacity::Get("boardSlotPulse");
+    const float pulse = low + (1.0f - low) * (0.5f + 0.5f * std::sin(time_ * layout_.pulse_speed));
+    SDL_FColor slot_color = opacity::Apply(colors::GetF("silverDark"), "boardSlot");
     slot_color.a *= pulse;
     for (int slot = 0; slot < kSlots; ++slot) {
       if (!Empty(slot)) continue;
@@ -278,7 +283,7 @@ void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
     gpu.Draw(frame_quad_, nullptr,
              math::Mat4::Translate({p.x, p.y + y * 1.5f, p.z}) *
                  math::Mat4::Scale({side, 1.0f, side}),
-             view_proj, colors::GetF(hover_role_), Gpu::DrawMode::kEmissive);
+             view_proj, colors::GetF(hover_color_), Gpu::DrawMode::kEmissive);
   }
 }
 

@@ -91,6 +91,7 @@ add_executable(pontifice
   src/scenes/grimoire/grimoireScene.cpp
   src/scripts/text/text.cpp
   src/scripts/ui/ui.cpp
+  src/scripts/layout/layout.cpp
   src/scripts/button/button.cpp
   src/scripts/button/buttonText.cpp
   src/scripts/button/buttonIcon.cpp
@@ -114,6 +115,7 @@ add_executable(pontifice
   src/scripts/i18n/i18n.cpp
   src/scripts/flag/flag.cpp
   src/scripts/colors/colors.cpp
+  src/scripts/opacity/opacity.cpp
   src/scripts/torch/torch.cpp
   src/scripts/deck/deck.cpp
   src/scripts/cards/cards.cpp
@@ -179,16 +181,22 @@ if(APPLE)
   endif()
 endif()
 
-# Copia assets, sprites, modelos e sons para junto do binário em toda build, mesmo sem mudança no
-# código (POST_BUILD só rodaria quando o executável fosse religado).
+# Copia assets, fontes, sprites, modelos, sons e o ícone da janela para junto do binário em toda
+# build, mesmo sem mudança no código (POST_BUILD só rodaria quando o executável fosse religado).
+# De src/icons só vai o icon.png: icon.ico e pontifice.rc entram no executável do Windows.
 add_custom_target(copy_assets ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:pontifice>/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${CMAKE_SOURCE_DIR}/src/fonts $<TARGET_FILE_DIR:pontifice>/fonts
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/sprites $<TARGET_FILE_DIR:pontifice>/sprites
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/models $<TARGET_FILE_DIR:pontifice>/models
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/src/audios $<TARGET_FILE_DIR:pontifice>/audios
-  COMMENT "Copiando assets, sprites, models e audios")
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:pontifice>/icons
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${CMAKE_SOURCE_DIR}/src/icons/icon.png $<TARGET_FILE_DIR:pontifice>/icons/
+  COMMENT "Copiando assets, fonts, sprites, models, audios e icon.png")
 add_dependencies(copy_assets pontifice)

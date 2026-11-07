@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scripts/colors/colors.h"
+
 namespace {
 
 float SmoothStep(float t) {
@@ -37,9 +39,9 @@ bool Sword::Init(Gpu& gpu) {
     float x0, y0, z0, x1, y1, z1;
     SDL_FColor color;
   };
-  const SDL_FColor steel{0.86f, 0.89f, 0.96f, 1.0f};
-  const SDL_FColor gold{0.82f, 0.66f, 0.28f, 1.0f};
-  const SDL_FColor leather{0.30f, 0.18f, 0.10f, 1.0f};
+  const SDL_FColor steel = colors::GetF("silver");
+  const SDL_FColor gold = colors::GetF("brass");
+  const SDL_FColor leather = colors::GetF("brown");
   // Blade, tip, guard, grip, pommel; blade runs along +y from the guard (y = 0), grip toward -y
   const Spec specs[] = {
       {-0.07f, 0.0f, -0.018f, 0.07f, 1.35f, 0.018f, steel},
@@ -91,7 +93,7 @@ void Sword::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   const float fade = t <= layout_.swing_end
                          ? 1.0f
                          : 1.0f - SmoothStep((t - layout_.swing_end) / (1.0f - layout_.swing_end));
-  const float drop = 0.35f * swing;
+  const float drop = layout_.drop * swing;
   const math::Mat4 world =
       math::Mat4::Translate({target_.x, target_.y + layout_.pivot_height - drop, target_.z}) *
       math::Mat4::RotateY(yaw_) * math::Mat4::Translate({0.0f, 0.0f, -layout_.pivot_back}) *
@@ -102,11 +104,12 @@ void Sword::Render(Gpu& gpu, const math::Mat4& view_proj) const {
   const float since_hit = time_ - layout_.seconds * layout_.swing_end;
   if (since_hit >= 0.0f && since_hit < layout_.slash_seconds) {
     const float s = since_hit / layout_.slash_seconds;
-    const float length = layout_.slash_length * std::min(1.0f, s * 4.0f);
-    const SDL_FColor color{1.0f, 0.97f, 0.85f, 0.9f * (1.0f - s)};
+    const float length = layout_.slash_length * std::min(1.0f, s * layout_.slash_grow);
+    SDL_FColor color = colors::GetF("ivory");
+    color.a = layout_.slash_alpha * (1.0f - s);
     const math::Mat4 slash =
-        math::Mat4::Translate({target_.x, target_.y + 0.03f, target_.z}) *
-        math::Mat4::RotateY(yaw_ + 0.7f) *
+        math::Mat4::Translate({target_.x, target_.y + layout_.slash_lift, target_.z}) *
+        math::Mat4::RotateY(yaw_ + layout_.slash_angle) *
         math::Mat4::Scale({layout_.slash_width * (1.0f + s), 1.0f, length});
     gpu.Draw(slash_, nullptr, slash, view_proj, color, Gpu::DrawMode::kEmissive);
   }

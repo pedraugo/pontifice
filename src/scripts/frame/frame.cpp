@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 
 namespace frame {
 
@@ -89,14 +90,15 @@ void Draw(SDL_Renderer* r, const SDL_FRect& rect, Kind kind, State state, float 
 
   const bool danger = kind == Kind::kButtonDanger;
   const bool pressed = state == State::kPressed;
-  const char* fill = danger ? (pressed ? "frame.dangerFillPressed" : "frame.dangerFill")
-                            : (pressed ? "frame.fillPressed" : "frame.fill");
-  SDL_Color line = colors::Get(state == State::kHighlight ? "frame.borderHighlight" : "frame.border");
+  const SDL_Color fill = opacity::Apply(colors::Get(danger ? "redDark" : "black"),
+                                        pressed ? "frameBackgroundClicked" : "frameBackground");
+  SDL_Color line = opacity::Apply(colors::Get("white"),
+                                  state == State::kHighlight ? "frameBorderHover" : "frameBorder");
   line.a = static_cast<Uint8>(line.a * alpha);
 
-  Ring(r, rect, outline, colors::Get("frame.outline"), alpha);
+  Ring(r, rect, outline, opacity::Apply(colors::Get("black"), "frameOutline"), alpha);
   const SDL_FRect edge = Shrink(rect, outline);
-  Fill(r, edge, colors::Get(fill), alpha);  // fill also runs under the border
+  Fill(r, edge, fill, alpha);  // fill also runs under the border
   BorderWithKnots(r, edge, border, line);
 }
 

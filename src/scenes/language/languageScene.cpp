@@ -35,8 +35,8 @@ void LanguageScene::OnEnter(SceneContext& ctx) {
 void LanguageScene::LayoutButtons(const SceneContext& ctx) {
   float width = 0.0f;
   for (const auto& button : buttons_) width = std::max(width, button->ContentWidth());
-  const float row_h = button::Cells("language.rowHeight", 4.0f);
-  const float row_gap = button::Cells("language.rowGap", 2.0f);
+  const float row_h = buttons_.front()->Measure("rowHeight", 4.0f);
+  const float row_gap = buttons_.front()->Measure("rowGap", 2.0f);
   const float total = buttons_.size() * row_h + (buttons_.size() - 1) * row_gap;
   const float x = ui::SnapUp((ctx.logical_width - width) / 2.0f);
   float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
@@ -90,7 +90,7 @@ void LanguageScene::Update(SceneContext&, float) {}
 
 void LanguageScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const SDL_Color background = colors::Get("background.language");
+  const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
   for (auto& button : buttons_) button->Render(r);

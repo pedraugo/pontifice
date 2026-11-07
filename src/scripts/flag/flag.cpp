@@ -3,11 +3,11 @@
 #include <cmath>
 #include <vector>
 
+#include "scripts/colors/colors.h"
+
 namespace flag {
 
 namespace {
-
-constexpr SDL_Color kBorder{12, 16, 24, 255};
 
 void Fill(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color c) {
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
@@ -49,9 +49,9 @@ void FillCircle(SDL_Renderer* r, SDL_FPoint c, float radius, SDL_Color color) {
 }
 
 void DrawUnitedStates(SDL_Renderer* r, const SDL_FRect& f, float sat) {
-  const SDL_Color red = Tone({178, 34, 52, 255}, sat);
-  const SDL_Color white = Tone({255, 255, 255, 255}, sat);
-  const SDL_Color blue = Tone({60, 59, 110, 255}, sat);
+  const SDL_Color red = Tone(colors::Get("flagUsRed"), sat);
+  const SDL_Color white = Tone(colors::Get("white"), sat);
+  const SDL_Color blue = Tone(colors::Get("flagUsBlue"), sat);
   Fill(r, f, white);
   const float stripe = f.h / 13.0f;
   for (int i = 0; i < 13; i += 2) {
@@ -71,16 +71,16 @@ void DrawUnitedStates(SDL_Renderer* r, const SDL_FRect& f, float sat) {
 }
 
 void DrawSpain(SDL_Renderer* r, const SDL_FRect& f, float sat) {
-  const SDL_Color red = Tone({170, 21, 27, 255}, sat);
-  const SDL_Color yellow = Tone({241, 191, 0, 255}, sat);
+  const SDL_Color red = Tone(colors::Get("flagEsRed"), sat);
+  const SDL_Color yellow = Tone(colors::Get("flagEsYellow"), sat);
   Fill(r, f, red);
   Fill(r, SDL_FRect{f.x, f.y + f.h * 0.25f, f.w, f.h * 0.5f}, yellow);
 }
 
 void DrawBrazil(SDL_Renderer* r, const SDL_FRect& f, float sat) {
-  const SDL_Color green = Tone({0, 156, 59, 255}, sat);
-  const SDL_Color yellow = Tone({255, 223, 0, 255}, sat);
-  const SDL_Color blue = Tone({0, 39, 118, 255}, sat);
+  const SDL_Color green = Tone(colors::Get("flagBrGreen"), sat);
+  const SDL_Color yellow = Tone(colors::Get("flagBrYellow"), sat);
+  const SDL_Color blue = Tone(colors::Get("flagBrBlue"), sat);
   Fill(r, f, green);
   const float inset_x = f.w * 0.085f;
   const float inset_y = f.h * 0.085f;
@@ -117,7 +117,8 @@ void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect, float saturat
       DrawBrazil(r, rect, saturation);
       break;
   }
-  SDL_SetRenderDrawColor(r, kBorder.r, kBorder.g, kBorder.b, kBorder.a);
+  const SDL_Color border = colors::Get("stoneDarker");
+  SDL_SetRenderDrawColor(r, border.r, border.g, border.b, border.a);
   SDL_RenderRect(r, &rect);
   SDL_SetRenderDrawBlendMode(r, previous);
 }

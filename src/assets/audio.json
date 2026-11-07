@@ -1,41 +1,43 @@
 {
   "music": {
-    "volume": {"menu": 0.10, "battle": 0.20},
-    "random": ["battle"],
-    "categories": {
-      "menu": [
-        {"file": "audios/music/menu/1.ruinsOfYore.ogg", "gain": 0.80},
-        {"file": "audios/music/menu/2.decayTemples.ogg", "gain": 0.59},
-        {"file": "audios/music/menu/3.howlsOfTheNight.ogg", "gain": 0.66},
-        {"file": "audios/music/menu/4.forgottenDungeons.ogg", "gain": 0.79}
-      ],
-      "battle": [
-        {"file": "audios/music/battle/1.fastBattle.ogg", "gain": 0.74},
-        {"file": "audios/music/battle/2.gloryAndVictory.ogg", "gain": 0.72},
-        {"file": "audios/music/battle/3.shoutSword.ogg", "gain": 0.72},
-        {"file": "audios/music/battle/5.startedFight.ogg", "gain": 0.64}
+    "menu": {
+      "volume": 0.10,
+      "random": false,
+      "sources": [
+        {"name": "ruinsOfYore", "file": "audios/music/menu/1.ruinsOfYore.ogg", "gain": 0.80},
+        {"name": "decayTemples", "file": "audios/music/menu/2.decayTemples.ogg", "gain": 0.59},
+        {"name": "howlsOfTheNight", "file": "audios/music/menu/3.howlsOfTheNight.ogg", "gain": 0.66},
+        {"name": "forgottenDungeons", "file": "audios/music/menu/4.forgottenDungeons.ogg", "gain": 0.79}
+      ]
+    },
+    "battle": {
+      "volume": 0.20,
+      "random": true,
+      "sources": [
+        {"name": "fastBattle", "file": "audios/music/battle/1.fastBattle.ogg", "gain": 0.74},
+        {"name": "gloryAndVictory", "file": "audios/music/battle/2.gloryAndVictory.ogg", "gain": 0.72},
+        {"name": "shoutSword", "file": "audios/music/battle/3.shoutSword.ogg", "gain": 0.72},
+        {"name": "startedFight", "file": "audios/music/battle/4.startedFight.ogg", "gain": 0.64}
       ]
     }
   },
-  "sfx": {
-    "volume": 1.0,
-    "clips": {
-      "open": {"file": "audios/sfx/openBattle.ogg", "gain": 1.0},
-      "turning": {"file": "audios/sfx/turningArena.ogg", "gain": 0.5},
-      "sword1": {"file": "audios/sfx/sword1.ogg", "gain": 0.45},
-      "sword2": {"file": "audios/sfx/sword2.ogg", "gain": 0.45},
-      "sword3": {"file": "audios/sfx/sword3.ogg", "gain": 0.45},
-      "sword4": {"file": "audios/sfx/sword4.ogg", "gain": 0.45},
-      "sword5": {"file": "audios/sfx/sword5.ogg", "gain": 0.45},
-      "shield1": {"file": "audios/sfx/shield1.ogg", "gain": 0.45},
-      "shield2": {"file": "audios/sfx/shield2.ogg", "gain": 0.45},
-      "shield3": {"file": "audios/sfx/shield3.ogg", "gain": 0.45},
-      "shield4": {"file": "audios/sfx/shield4.ogg", "gain": 0.45},
-      "shield5": {"file": "audios/sfx/shield5.ogg", "gain": 0.45},
-      "attackToDefense": {"file": "audios/sfx/attackToDefense.ogg", "gain": 0.3},
-      "defenseToAttack": {"file": "audios/sfx/defenseToAttack.ogg", "gain": 0.3},
-      "comming": {"file": "audios/sfx/commingCard.ogg", "gain": 0.45},
-      "putting": {"file": "audios/sfx/puttingCard.ogg", "gain": 0.3}
-    }
-  }
+  "sfx": [
+    {"name": "open", "file": "audios/sfx/openBattle.ogg", "gain": 1.0, "volume": 1.0},
+    {"name": "turning", "file": "audios/sfx/turningArena.ogg", "gain": 0.5, "volume": 1.0},
+    {"name": "sword1", "file": "audios/sfx/sword1.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "sword2", "file": "audios/sfx/sword2.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "sword3", "file": "audios/sfx/sword3.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "sword4", "file": "audios/sfx/sword4.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "sword5", "file": "audios/sfx/sword5.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "shield1", "file": "audios/sfx/shield1.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "shield2", "file": "audios/sfx/shield2.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "shield3", "file": "audios/sfx/shield3.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "shield4", "file": "audios/sfx/shield4.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "shield5", "file": "audios/sfx/shield5.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "attackToDefense", "file": "audios/sfx/attackToDefense.ogg", "gain": 0.3, "volume": 1.0},
+    {"name": "defenseToAttack", "file": "audios/sfx/defenseToAttack.ogg", "gain": 0.3, "volume": 1.0},
+    {"name": "comming", "file": "audios/sfx/commingCard.ogg", "gain": 0.45, "volume": 1.0},
+    {"name": "putting", "file": "audios/sfx/puttingCard.ogg", "gain": 0.3, "volume": 1.0}
+  ],
+  "voices": []
 }

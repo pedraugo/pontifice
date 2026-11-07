@@ -1,14 +1,15 @@
 {
-  "hud": {
-    "margin": 1,
-    "padding": 1,
-    "life": {"width": 34, "height": 6},
-    "field": {"width": 24, "height": 6},
-    "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3},
-    "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9}
+  "screen": {
+    "windowedWidth": 1280,
+    "windowedHeight": 720,
+    "width": 1920,
+    "height": 1080,
+    "grid": 16,
+    "textScale": 1.5
   },
-  "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5},
+  "language": {},
   "menu": {"titleCenterY": 12, "footerBottom": 3},
+  "loading": {"textMargin": 90},
   "grimoire": {
     "titleCenterY": 4,
     "filterY": 8,
@@ -20,13 +21,59 @@
     "margin": 4,
     "exitMargin": 1,
     "hoverGrow": 0.06,
-    "slideSeconds": 0.8,
-    "slideShrink": 0.25
+    "columns": 4,
+    "rows": 2
   },
   "battle": {
     "statusY": 2,
+    "endTurnTop": 6,
     "hintY": 4,
-    "tip": {"padding": 1, "gap": 0.5, "offset": 1, "imageHeight": 14, "textWidth": 24},
-    "reveal": {"cardHeight": 35, "captionGap": 3}
-  }
+    "tip": {
+      "padding": 1,
+      "gap": 0.5,
+      "offset": 1,
+      "imageHeight": 14,
+      "textWidth": 24,
+      "minTextFraction": 0.6
+    },
+    "reveal": {
+      "cardHeight": 35,
+      "captionGap": 3,
+      "offsetY": 1,
+      "glow": {"outer": 6, "inner": 2}
+    },
+    "input": {"clickSlopPx": 6, "attackDragPx": 24, "handDragPx": 12, "inspectClickPx": 6},
+    "attack": {
+      "arrow": {
+        "minLengthPx": 8,
+        "bend": 0.35,
+        "bendMinPx": 40,
+        "bendMaxPx": 320,
+        "segments": 48,
+        "headLengthPx": 34,
+        "headWidthPx": 34,
+        "headOutlinePx": 3,
+        "widthStartPx": 4,
+        "widthEndPx": 10,
+        "glowWidth": 3.2,
+        "outlinePx": 4,
+        "pulseSharpness": 120
+      }
+    }
+  },
+  "hud": {
+    "margin": 1,
+    "padding": 1,
+    "life": {"width": 34, "height": 6, "lineGap": 0.75},
+    "field": {
+      "width": 24,
+      "height": 6,
+      "textGap": 0.25,
+      "zoom": {"gap": 1, "widthPx": 668, "heightPx": 448}
+    },
+    "piles": {"height": 3.5, "padding": 1.5, "counterGap": 1, "gap": 3},
+    "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9},
+    "popup": {"offsetX": 4, "shadowOffsetPx": 3}
+  },
+  "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5}
 }

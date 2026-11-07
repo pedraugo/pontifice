@@ -6,12 +6,12 @@
 
 namespace colors {
 
-// Loads "roles.*" (flattened, no prefix) and "palette.*"; call again to reload.
+// Loads the flat {"name": "#rrggbb"} map; call again to reload.
 bool Load(const std::string& path);
 
-// By role ("panel.fill", "text.primary"), never by hue; unknown role is magenta, logged once.
-SDL_Color Get(const std::string& role);
-SDL_FColor GetF(const std::string& role);
+// By name ("silver", "stoneBlack"); unknown name is magenta, logged once.
+SDL_Color Get(const std::string& name);
+SDL_FColor GetF(const std::string& name);
 
 // "#rrggbb" or "#rrggbbaa".
 bool ParseHex(const std::string& hex, SDL_Color& out);

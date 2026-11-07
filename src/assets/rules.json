@@ -1,0 +1,9 @@
+{
+  "maxLife": 5000,
+  "deckSize": 40,
+  "initialHand": 5,
+  "handLimit": 6,
+  "maxCopies": 2,
+  "maxCopiesRarest": 1,
+  "defaultDifficulty": 1
+}

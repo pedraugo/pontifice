@@ -2,27 +2,33 @@
 
 #include <string>
 
+#include "scripts/math/math.h"
+
 namespace ui {
 
-// Text sizes follow the debug font scale, measured at 1280x720.
-constexpr float kScale = 1.5f;
-constexpr float Px(float v) { return v * kScale; }
+// Logical resolution and grid from assets/ui.json ("screen"), read on first use.
+int Width();
+int Height();
+float GridSize();
+float TextScale();
 
-// Layout grid of the 1920x1080 logical resolution: 120 x 67.5 cells.
-constexpr float kGrid = 16.0f;
-constexpr float Grid(float cells) { return cells * kGrid; }
+// Text sizes follow the debug font scale, measured at 1280x720.
+inline float Px(float v) { return v * TextScale(); }
+
+// Layout grid of the logical resolution (1920x1080 with 16 px cells: 120 x 67.5 cells).
+inline float Grid(float cells) { return cells * GridSize(); }
 // Rounds up to a whole grid multiple (widths computed from text).
-constexpr float SnapUp(float v) {
-  const float cells = v / kGrid;
+inline float SnapUp(float v) {
+  const float cells = v / GridSize();
   const float whole = static_cast<float>(static_cast<int>(cells));
-  return (cells > whole ? whole + 1.0f : whole) * kGrid;
+  return (cells > whole ? whole + 1.0f : whole) * GridSize();
 }
 
 // Layout measure from assets/ui.json, in grid cells, converted to logical px.
 float Cells(const std::string& path, float fallback_cells);
-// Text size from assets/text.json, in debug font units, times kScale.
-float TextScale(const std::string& path, float fallback);
-// Plain number from assets/ui.json (fractions, counts).
+// Plain number from assets/ui.json (px, seconds, world units, fractions, counts).
 float Number(const std::string& path, float fallback);
+// [x, y, z] from assets/ui.json (world positions, camera eyes and targets).
+math::Vec3 Vec3(const std::string& path, const math::Vec3& fallback);
 
 }

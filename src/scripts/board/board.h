@@ -7,6 +7,7 @@
 #include "scripts/cards/cards.h"
 #include "scripts/gpu/gpu.h"
 #include "scripts/math/math.h"
+#include "scripts/layout/layout.h"
 #include "scripts/model/model.h"
 
 class CardAura;
@@ -20,33 +21,34 @@ class Board {
 
   // Arena measures in model units (tools/textureArena.py ARENA_*), scaled by arena_scale.
   struct Layout {
-    float arena_scale = 4.2f;
-    float tile = 0.356f;
-    float channel_half = 0.178f;
-    float top_y = 0.30f;
-    float card_scale = 0.36f;  // card.glb is 3.5 tall; fits the tile
-    float highlight_inset = 0.88f;
-    float frame_thickness = 0.08f;
-    float highlight_lift = 0.012f;  // above the tile top, avoids depth fighting
-    float place_seconds = 0.45f;
-    math::Vec3 place_from{0.0f, 2.4f, 1.4f};
-    float place_tilt = -0.9f;
-    float place_scale = 1.5f;
-    float discard_seconds = 0.35f;
-    float discard_rise = 1.6f;
-    float position_speed = 9.0f;
-    float hover_scale = 1.45f;
-    float hover_lift = 0.35f;
-    float hover_speed = 12.0f;
-    float lunge_seconds = 0.5f;
-    float lunge_reach = 0.7f;
-    float lunge_height = 0.6f;
-    float flash_speed = 5.0f;
-    float spent_scale = 0.82f;
-    float spent_alpha = 0.75f;
-    float spent_desaturate = 0.5f;
-    float spent_speed = 8.0f;
-    float pulse_speed = 3.0f;
+    float arena_scale = layout::Number("battle.arena.scale", 4.2f);
+    float tile = layout::Number("battle.board.tile", 0.356f);
+    float channel_half = layout::Number("battle.board.channelHalf", 0.178f);
+    float top_y = layout::Number("battle.board.topY", 0.30f);
+    // card.glb is 3.5 tall; fits the tile
+    float card_scale = layout::Number("battle.board.cardScale", 0.36f);
+    float highlight_inset = layout::Number("battle.board.highlightInset", 0.88f);
+    float frame_thickness = layout::Number("battle.board.frameThickness", 0.08f);
+    // above the tile top, avoids depth fighting
+    float highlight_lift = layout::Number("battle.board.highlightLift", 0.012f);
+    float place_seconds = layout::Number("battle.board.placeSeconds", 0.45f);
+    math::Vec3 place_from = layout::Vec3("battle.board.placeFrom", {0.0f, 2.4f, 1.4f});
+    float place_tilt = layout::Number("battle.board.placeTilt", -0.9f);
+    float place_scale = layout::Number("battle.board.placeScale", 1.5f);
+    float discard_seconds = layout::Number("battle.board.discardSeconds", 0.35f);
+    float discard_rise = layout::Number("battle.board.discardRise", 1.6f);
+    float position_speed = layout::Number("battle.board.positionSpeed", 9.0f);
+    float hover_scale = layout::Number("battle.board.hoverScale", 1.45f);
+    float hover_lift = layout::Number("battle.board.hoverLift", 0.35f);
+    float hover_speed = layout::Number("battle.board.hoverSpeed", 12.0f);
+    float lunge_seconds = layout::Number("battle.board.lungeSeconds", 0.5f);
+    float lunge_reach = layout::Number("battle.board.lungeReach", 0.7f);
+    float lunge_height = layout::Number("battle.board.lungeHeight", 0.6f);
+    float flash_speed = layout::Number("battle.board.flashSpeed", 5.0f);
+    float spent_scale = layout::Number("battle.board.spentScale", 0.82f);
+    float spent_desaturate = layout::Number("battle.board.spentDesaturate", 0.5f);
+    float spent_speed = layout::Number("battle.board.spentSpeed", 8.0f);
+    float pulse_speed = layout::Number("battle.board.pulseSpeed", 3.0f);
   };
 
   struct Card {
@@ -108,7 +110,7 @@ class Board {
   void SetHighlight(bool on) { highlight_ = on; }
   void SetHoverSlot(int slot) { hover_slot_ = slot; }
   // `role` must outlive the Board (string literal).
-  void SetHoverRole(const char* role) { hover_role_ = role; }
+  void SetHoverColor(const char* color) { hover_color_ = color; }
   void SetHoverCard(int slot) { hover_card_ = slot; }
 
   void Update(float dt);
@@ -141,7 +143,7 @@ class Board {
   GpuMesh frame_quad_;
   bool highlight_ = false;
   int hover_slot_ = -1;
-  const char* hover_role_ = "board.slotHover";
+  const char* hover_color_ = "yellow";
   int hover_card_ = -1;
   float time_ = 0.0f;
 };

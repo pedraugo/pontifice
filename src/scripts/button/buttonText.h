@@ -17,6 +17,13 @@ class ButtonText : public Button {
 
   void Render(SDL_Renderer* r) const override;
 
+ protected:
+  std::string VariantKey() const override;  // "buttonText.flag", ".danger" or ".regular"
+
  private:
+  float FlagHeight() const { return Measure("flagHeight", 2.5f); }
+  float FlagWidth() const { return FlagHeight() * 1.5f; }  // 3:2 aspect
+  float FlagGap() const { return Measure("gap", 1.0f); }
+
   std::optional<flag::Country> flag_;
 };

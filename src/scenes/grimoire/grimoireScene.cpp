@@ -8,21 +8,18 @@
 
 #include "scripts/cardface/cardFace.h"
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 #include "scripts/config/config.h"
 #include "scripts/frame/frame.h"
 #include "scripts/i18n/i18n.h"
 #include "scripts/log/log.h"
 #include "scripts/text/text.h"
+#include "scripts/layout/layout.h"
 #include "scripts/ui/ui.h"
 
 namespace {
 
 constexpr float kCardAspect = static_cast<float>(cardface::kWidth) / cardface::kHeight;
-constexpr float kMenuFadeOut = 0.4f;
-constexpr float kMenuFadeIn = 0.4f;
-constexpr float kDisabledAlpha = 0.75f;  // unselected filter, page button at the end
-constexpr float kHandFov = 35.0f;  // must match Hand::Layout::fov_y and camera_z
-constexpr float kHoverLift = 0.05f;  // hovered grid card a bit closer to the camera
 
 bool Inside(const SDL_FRect& rect, float x, float y) {
   return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
@@ -37,7 +34,7 @@ float Approach(float value, float target, float speed, float dt) {
   return value + (target - value) * (1.0f - std::exp(-speed * dt));
 }
 
-// Measures from ui.json ("grimoire"), button.json ("grimoire") and text.json ("grimoire").
+// Sizes from ui.json, motion and timing from layout.json, text from text.json ("grimoire").
 struct Measures {
   float title_y = ui::Cells("grimoire.titleCenterY", 4.0f);
   float filter_y = ui::Cells("grimoire.filterY", 8.0f);
@@ -49,22 +46,26 @@ struct Measures {
   float margin = ui::Cells("grimoire.margin", 4.0f);
   float exit_margin = ui::Cells("grimoire.exitMargin", 1.0f);
   float hover_grow = ui::Number("grimoire.hoverGrow", 0.06f);
-  float slide_seconds = ui::Number("grimoire.slideSeconds", 0.8f);
-  float slide_shrink = ui::Number("grimoire.slideShrink", 0.25f);  // size lost while leaving
-  float filter_h = button::Cells("grimoire.filterHeight", 3.0f);
-  float filter_pad = button::Cells("grimoire.filterPadding", 2.0f);
-  float nav_w = button::Cells("grimoire.navWidth", 12.0f);
-  float nav_h = button::Cells("grimoire.navHeight", 3.5f);
-  float exit_w = button::Cells("grimoire.exitWidth", 10.0f);
-  float exit_h = button::Cells("grimoire.exitHeight", 3.5f);
-  float title_scale = ui::TextScale("grimoire.title", 6.0f);
-  float page_scale = ui::TextScale("grimoire.page", 2.0f);
+  float slide_seconds = layout::Number("grimoire.slideSeconds", 0.8f);
+  float slide_shrink = layout::Number("grimoire.slideShrink", 0.25f);  // size lost while leaving
+  // Hovered grid card a bit closer to the camera.
+  float hover_lift = layout::Number("grimoire.hoverLift", 0.05f);
+  int columns = std::max(1, static_cast<int>(ui::Number("grimoire.columns", 4.0f)));
+  int rows = std::max(1, static_cast<int>(ui::Number("grimoire.rows", 2.0f)));
+  float fade_out = layout::Number("grimoire.fadeOut", 0.4f);
+  float menu_fade_in = layout::Number("grimoire.menuFadeIn", 0.4f);
+  text::Style title_style = text::Styles({"title"});
+  text::Style page_style = text::Styles({"xsmall", "body"});
 };
 
 const Measures& M() {
   static const Measures m;
   return m;
 }
+
+int Columns() { return M().columns; }
+int Rows() { return M().rows; }
+int PerPage() { return M().columns * M().rows; }
 
 std::string BasePath() {
   const char* base = SDL_GetBasePath();
@@ -109,13 +110,15 @@ GrimoireScene::GrimoireScene() {
                                            });
     filters_[i]->SetFocused(true);
   }
-  back_ = std::make_unique<Button>(i18n::Get("grimoire.back"),
+  back_ = std::make_unique<Button>(i18n::Get("general.back"),
                                    [this](SceneContext&) { ChangePage(-1); });
-  forward_ = std::make_unique<Button>(i18n::Get("grimoire.forward"),
+  forward_ = std::make_unique<Button>(i18n::Get("general.forward"),
                                       [this](SceneContext&) { ChangePage(+1); });
-  exit_ = std::make_unique<Button>(i18n::Get("grimoire.exit"), [](SceneContext& ctx) {
-    ctx.fade_out_seconds = kMenuFadeOut;
-    ctx.fade_in_seconds = kMenuFadeIn;
+  back_->SetSize(Button::Size::kSmall);
+  forward_->SetSize(Button::Size::kSmall);
+  exit_ = std::make_unique<Button>(i18n::Get("general.menu"), [](SceneContext& ctx) {
+    ctx.fade_out_seconds = M().fade_out;
+    ctx.fade_in_seconds = M().menu_fade_in;
     ctx.next_scene = SceneId::kMenu;
   });
 }
@@ -218,8 +221,9 @@ void GrimoireScene::OnEnter(SceneContext& ctx) {
   if (gpu_ == nullptr) return;
   gpu_->SetRenderer(ctx.renderer);
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
-  hand_view_proj_ = math::Mat4::Perspective(math::Radians(kHandFov), aspect, 0.1f, 100.0f) *
-                    math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
+  const Hand::Layout& hand = hand_.GetLayout();
+  hand_view_proj_ = math::Mat4::Perspective(hand.fov_y, aspect, 0.1f, 100.0f) *
+                    math::Mat4::LookAt({0, 0, hand.camera_z}, {0, 0, 0}, {0, 1, 0});
   // Same light as the battle hand.
   hand_atmosphere_.light_dir = config::Vec3("light", "battle.hand.lightDir", {0.3f, 0.6f, 1.0f});
   hand_atmosphere_.light_intensity = config::Float("light", "battle.hand.lightIntensity", 0.5f);
@@ -227,7 +231,7 @@ void GrimoireScene::OnEnter(SceneContext& ctx) {
       config::Color("light", "battle.hand.ambient", {0.34f, 0.36f, 0.46f, 1.0f});
   hand_atmosphere_.point_pos = config::Vec3("light", "battle.hand.pointPos", {0.0f, 2.5f, 4.0f});
   hand_atmosphere_.point_intensity = config::Float("light", "battle.hand.pointIntensity", 1.0f);
-  hand_atmosphere_.camera_pos = {0, 0, 10};
+  hand_atmosphere_.camera_pos = {0, 0, hand_.GetLayout().camera_z};
 }
 
 void GrimoireScene::OnExit(SceneContext&) {
@@ -268,7 +272,7 @@ math::Mat4 GrimoireScene::PoseForRect(const SDL_FRect& rect, int width, int heig
 
 void GrimoireScene::OpenInspect(int index, const SceneContext& ctx) {
   if (gpu_ == nullptr || inspect_ != nullptr) return;
-  const int first = page_ * kPerPage;
+  const int first = page_ * PerPage();
   if (first + index >= static_cast<int>(visible_.size())) return;
   const CardInfo* card = visible_[static_cast<size_t>(first + index)];
   const auto face = faces_.find(card->code);
@@ -309,33 +313,38 @@ void GrimoireScene::Layout(const SceneContext& ctx) {
   float total = 0.0f;
   float widths[kCategories];
   for (int i = 0; i < kCategories; ++i) {
-    widths[i] = ui::SnapUp(filters_[i]->LabelWidth() + 2 * m.filter_pad);
+    widths[i] = filters_[i]->PreferredWidth();
     total += widths[i];
   }
   total += m.filter_gap * (kCategories - 1);
   float x = (width - total) / 2.0f;
   for (int i = 0; i < kCategories; ++i) {
-    filters_[i]->SetRect(SDL_FRect{x, m.filter_y, widths[i], m.filter_h});
+    filters_[i]->SetRect(SDL_FRect{x, m.filter_y, widths[i], filters_[i]->Height()});
     x += widths[i] + m.filter_gap;
   }
   // Grid: as tall as fits between gridTop and gridBottom, as wide as fits the margins.
   gap_ = m.card_gap;
   const float avail_h = m.grid_bottom - m.grid_top;
   const float avail_w = width - 2 * m.margin;
-  card_h_ = (avail_h - gap_ * (kRows - 1)) / kRows;
+  card_h_ = (avail_h - gap_ * (Rows() - 1)) / Rows();
   card_w_ = card_h_ * kCardAspect;
-  if (card_w_ * kColumns + gap_ * (kColumns - 1) > avail_w) {
-    card_w_ = (avail_w - gap_ * (kColumns - 1)) / kColumns;
+  if (card_w_ * Columns() + gap_ * (Columns() - 1) > avail_w) {
+    card_w_ = (avail_w - gap_ * (Columns() - 1)) / Columns();
     card_h_ = card_w_ / kCardAspect;
   }
-  const float grid_w = card_w_ * kColumns + gap_ * (kColumns - 1);
-  const float grid_h = card_h_ * kRows + gap_ * (kRows - 1);
+  const float grid_w = card_w_ * Columns() + gap_ * (Columns() - 1);
+  const float grid_h = card_h_ * Rows() + gap_ * (Rows() - 1);
   grid_ = SDL_FRect{(width - grid_w) / 2.0f, m.grid_top + (avail_h - grid_h) / 2.0f, grid_w,
                     grid_h};
-  back_->SetRect(SDL_FRect{grid_.x, m.nav_y, m.nav_w, m.nav_h});
-  forward_->SetRect(SDL_FRect{grid_.x + grid_.w - m.nav_w, m.nav_y, m.nav_w, m.nav_h});
-  exit_->SetRect(SDL_FRect{width - m.exit_margin - m.exit_w, height - m.exit_margin - m.exit_h,
-                           m.exit_w, m.exit_h});
+  const float back_w = back_->PreferredWidth();
+  const float forward_w = forward_->PreferredWidth();
+  back_->SetRect(SDL_FRect{grid_.x, m.nav_y, back_w, back_->Height()});
+  forward_->SetRect(
+      SDL_FRect{grid_.x + grid_.w - forward_w, m.nav_y, forward_w, forward_->Height()});
+  const float exit_w = exit_->PreferredWidth();
+  const float exit_h = exit_->Height();
+  exit_->SetRect(
+      SDL_FRect{width - m.exit_margin - exit_w, height - m.exit_margin - exit_h, exit_w, exit_h});
 }
 
 void GrimoireScene::Refilter() {
@@ -351,7 +360,7 @@ void GrimoireScene::Refilter() {
 }
 
 int GrimoireScene::PageCount() const {
-  return (static_cast<int>(visible_.size()) + kPerPage - 1) / kPerPage;
+  return (static_cast<int>(visible_.size()) + PerPage() - 1) / PerPage();
 }
 
 void GrimoireScene::ChangePage(int delta) {
@@ -376,8 +385,8 @@ SDL_Texture* GrimoireScene::FaceFor(SDL_Renderer* r, const CardInfo& card) {
 }
 
 SDL_FRect GrimoireScene::CardRect(int index) const {
-  const int col = index % kColumns;
-  const int row = index / kColumns;
+  const int col = index % Columns();
+  const int row = index / Columns();
   return SDL_FRect{grid_.x + col * (card_w_ + gap_), grid_.y + row * (card_h_ + gap_), card_w_,
                    card_h_};
 }
@@ -448,7 +457,7 @@ void GrimoireScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if (event.type == SDL_EVENT_MOUSE_MOTION && slide_from_ < 0) {
     hovered_ = -1;
-    const int count = std::min(kPerPage, static_cast<int>(visible_.size()) - page_ * kPerPage);
+    const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - page_ * PerPage());
     for (int i = 0; i < count; ++i) {
       const SDL_FRect rect = CardRect(i);
       if (event.motion.x >= rect.x && event.motion.x < rect.x + rect.w &&
@@ -459,7 +468,7 @@ void GrimoireScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
   }
   if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT &&
       event.button.clicks >= 2 && slide_from_ < 0) {
-    const int count = std::min(kPerPage, static_cast<int>(visible_.size()) - page_ * kPerPage);
+    const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - page_ * PerPage());
     for (int i = 0; i < count; ++i) {
       if (Inside(CardRect(i), event.button.x, event.button.y)) {
         OpenInspect(i, ctx);
@@ -523,8 +532,8 @@ void GrimoireScene::UpdateInspectFront() {
 
 void GrimoireScene::RenderPage3D(int page, float offset_x, float alpha, float scale,
                                  bool with_hover, int width, int height) {
-  const int first = page * kPerPage;
-  const int count = std::min(kPerPage, static_cast<int>(visible_.size()) - first);
+  const int first = page * PerPage();
+  const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - first);
   const float z = hand_.GetLayout().inspect_z;
   for (int i = 0; i < count; ++i) {
     if (with_hover && i == lift_card_) continue;  // drawn last, in front
@@ -542,7 +551,7 @@ void GrimoireScene::RenderPage3D(int page, float offset_x, float alpha, float sc
     hand_.DrawLoose(
         *gpu_, hand_view_proj_,
         PoseForRect(Grown(PageCardRect(lift_card_, offset_x, scale), M().hover_grow * hover_t_),
-                    width, height, z + kHoverLift * hover_t_, tilt_y_, tilt_x_),
+                    width, height, z + M().hover_lift * hover_t_, tilt_y_, tilt_x_),
         face, card.hierarchy == 1, alpha);
   }
 }
@@ -579,7 +588,7 @@ void GrimoireScene::RenderPages(SDL_Renderer* r, const SceneContext& ctx) {
     const float veil_z = layout.inspect_z;
     const float veil_h = 2.2f * (layout.camera_z - veil_z) * std::tan(layout.fov_y * 0.5f);
     const float aspect = static_cast<float>(w) / static_cast<float>(h);
-    SDL_FColor veil = colors::GetF("background.overlay");
+    SDL_FColor veil = opacity::Apply(colors::GetF("stoneBlack"), "overlay");
     veil.a *= SmoothStep(hand_.InspectProgress());
     gpu_->NewLayer();
     gpu_->Draw(veil_quad_, nullptr,
@@ -596,8 +605,8 @@ void GrimoireScene::RenderPages(SDL_Renderer* r, const SceneContext& ctx) {
 void GrimoireScene::RenderPage(SDL_Renderer* r, int page, float offset_x, float alpha,
                                float scale, bool with_hover) {
   const Uint8 mod = static_cast<Uint8>(std::clamp(alpha, 0.0f, 1.0f) * 255.0f);
-  const int first = page * kPerPage;
-  const int count = std::min(kPerPage, static_cast<int>(visible_.size()) - first);
+  const int first = page * PerPage();
+  const int count = std::min(PerPage(), static_cast<int>(visible_.size()) - first);
   SDL_FRect hovered_rect{};
   SDL_Texture* hovered_face = nullptr;
   for (int i = 0; i < count; ++i) {
@@ -626,31 +635,31 @@ void GrimoireScene::RenderPage(SDL_Renderer* r, int page, float offset_x, float 
 void GrimoireScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
   const Measures& m = M();
-  const SDL_Color background = colors::Get("background.menu");
+  const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
   const float cx = ctx.logical_width / 2.0f;
-  text::DrawCentered(r, i18n::Get("grimoire.title").c_str(), cx, m.title_y, m.title_scale,
-                     colors::Get("text.title"));
+  text::DrawCentered(r, i18n::Get("grimoire.title").c_str(), cx, m.title_y, m.title_style,
+                     colors::Get("silverLight"));
   for (int i = 0; i < kCategories; ++i) {
-    filters_[i]->SetAlpha(selected_[i] ? 1.0f : kDisabledAlpha);
+    filters_[i]->SetAlpha(selected_[i] ? 1.0f : opacity::Get("disabled"));
     filters_[i]->Render(r);
   }
 
   if (visible_.empty()) {
     text::DrawCentered(r, i18n::Get("grimoire.empty").c_str(), cx, grid_.y + grid_.h / 2.0f,
-                       m.page_scale, colors::Get("text.secondary"), text::Face::kBody);
+                       m.page_style, colors::Get("steelLight"));
   }
 
   const std::string page = i18n::Format(
       "grimoire.page", {std::to_string(PageCount() == 0 ? 0 : page_ + 1),
                         std::to_string(PageCount())});
-  text::DrawCentered(r, page.c_str(), cx, m.nav_y + m.nav_h / 2.0f, m.page_scale,
-                     colors::Get("text.secondary"), text::Face::kBody);
-  back_->SetAlpha(page_ > 0 ? 1.0f : kDisabledAlpha);
-  forward_->SetAlpha(page_ + 1 < PageCount() ? 1.0f : kDisabledAlpha);
+  text::DrawCentered(r, page.c_str(), cx, m.nav_y + back_->Height() / 2.0f, m.page_style,
+                     colors::Get("steelLight"));
+  back_->SetAlpha(page_ > 0 ? 1.0f : opacity::Get("disabled"));
+  forward_->SetAlpha(page_ + 1 < PageCount() ? 1.0f : opacity::Get("disabled"));
   back_->Render(r);
   forward_->Render(r);
   exit_->Render(r);

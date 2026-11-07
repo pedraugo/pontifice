@@ -1,6 +1,27 @@
 #include "scripts/rules/rules.h"
 
+#include <algorithm>
+
 namespace rules {
+
+namespace {
+
+Settings g_settings;
+
+}
+
+const Settings& Get() { return g_settings; }
+
+void Set(const Settings& settings) {
+  g_settings = settings;
+  g_settings.max_life = std::max(1, settings.max_life);
+  g_settings.deck_size = std::max(1, settings.deck_size);
+  g_settings.initial_hand = std::clamp(settings.initial_hand, 0, g_settings.deck_size);
+  g_settings.hand_limit = std::max(1, settings.hand_limit);
+  g_settings.max_copies = std::max(1, settings.max_copies);
+  g_settings.max_copies_rarest = std::max(0, settings.max_copies_rarest);
+  g_settings.default_difficulty = std::clamp(settings.default_difficulty, 0, 3);
+}
 
 Field Field::From(const CardInfo& card) {
   Field f;

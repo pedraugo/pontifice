@@ -38,7 +38,7 @@ RAW_GLB = os.path.join(ROOT, "src", "models", "ArenaRaw.glb")
 ART_PNG = os.path.join(ROOT, "src", "art", "Arena.png")
 SHEET_PNG = os.path.join(ROOT, "src", "art", "ArenaAtlas3.png")
 OUT_GLB = os.path.join(ROOT, "src", "models", "arena.glb")
-OUT_ATLAS = os.path.join(ROOT, "src", "art", "arenaAtlas.png")
+OUT_ATLAS = os.path.join(ROOT, "src", "sprites", "arenaAtlas.png")
 
 ATLAS = 2048
 TOP_H = 1024

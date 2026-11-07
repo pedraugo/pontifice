@@ -10,12 +10,14 @@
 
 #include "scripts/cardface/cardFace.h"
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 #include "scripts/config/config.h"
 #include "scripts/frame/frame.h"
 #include "scripts/i18n/i18n.h"
 #include "scripts/image/image.h"
 #include "scripts/audios/music.h"
 #include "scripts/text/text.h"
+#include "scripts/layout/layout.h"
 #include "scripts/ui/ui.h"
 #include "scripts/log/log.h"
 
@@ -26,9 +28,90 @@ std::string BasePath() {
   return base != nullptr ? std::string(base) : std::string("./");
 }
 
-constexpr float kArenaScale = 4.2f;
-constexpr float kArenaBaseY = -0.061f * kArenaScale;
-constexpr float kArenaTopY = 0.3f * kArenaScale;
+// 3D, motion and timing from assets/layout.json; 2D sizes from assets/ui.json ("battle").
+struct Settings {
+  float arena_scale = layout::Number("battle.arena.scale", 4.2f);
+  float arena_base_y = layout::Number("battle.arena.baseY", -0.061f) * arena_scale;
+  float arena_top_y = layout::Number("battle.arena.topY", 0.3f) * arena_scale;
+  float field_glow_speed = layout::Number("battle.arena.fieldGlowSpeed", 6.0f);
+  float field_glow_boost = layout::Number("battle.arena.fieldGlowBoost", 1.5f);
+  float torch_x = layout::Number("battle.torch.x", 6.4f);
+  float torch_z = layout::Number("battle.torch.z", -1.0f);
+  float torch_scale = layout::Number("battle.torch.scale", 2.6f);
+  float torch_tilt = layout::Number("battle.torch.tilt", 0.10f);
+  float fov = layout::Number("battle.camera.fov", 35.0f);
+  math::Vec3 eye = layout::Vec3("battle.camera.eye", {0.0f, 10.5f, 12.2f});
+  math::Vec3 target = layout::Vec3("battle.camera.target", {0.0f, -0.1f, -0.3f});
+  math::Vec3 intro_eye = layout::Vec3("battle.camera.introEye", {0.0f, 16.0f, 22.0f});
+  float orbit_seconds = layout::Number("battle.camera.orbitSeconds", 1.0f);
+  float shake_seconds = layout::Number("battle.camera.shake.seconds", 0.45f);
+  float shake_amplitude = layout::Number("battle.camera.shake.amplitude", 0.16f);
+  math::Vec3 shake_frequency = layout::Vec3("battle.camera.shake.frequency", {57.0f, 43.0f, 67.0f});
+  math::Vec3 shake_ratio = layout::Vec3("battle.camera.shake.ratio", {1.0f, 0.8f, 0.6f});
+  math::Vec3 shake_phase = layout::Vec3("battle.camera.shake.phase", {0.0f, 1.3f, 2.1f});
+  float shake_target = layout::Number("battle.camera.shake.targetFollow", 0.6f);
+  float intro_seconds = layout::Number("battle.intro.seconds", 1.6f);
+  float intro_drop = layout::Number("battle.intro.drop", 3.2f);
+  float torch_intro_start = layout::Number("battle.intro.torchStart", 1.1f);
+  float torch_intro_seconds = layout::Number("battle.intro.torchSeconds", 1.2f);
+  float torch_intro_drop = layout::Number("battle.intro.torchDrop", 4.5f);
+  float ignite_seconds = layout::Number("battle.intro.igniteSeconds", 0.6f);
+  float match_start = layout::Number("battle.intro.matchStart", 3.2f);
+  float deal_delay = layout::Number("battle.intro.dealDelay", 0.8f);
+  float click_slop = ui::Number("battle.input.clickSlopPx", 6.0f);
+  float attack_drag = ui::Number("battle.input.attackDragPx", 24.0f);
+  float opponent_pause = layout::Number("battle.opponent.pauseSeconds", 0.7f);
+  float after_orbit = layout::Number("battle.opponent.afterOrbitSeconds", 0.2f);
+  float position_sfx_gap = layout::Number("battle.opponent.positionSfxGapSeconds", 0.25f);
+  float attack_delay = layout::Number("battle.opponent.attackDelaySeconds", 0.3f);
+  float attack_gap = layout::Number("battle.opponent.attackGapSeconds", 0.9f);
+  float opponent_hidden_drop = layout::Number("battle.opponent.handHiddenDrop", 0.35f);
+  float hand_hide_seconds = layout::Number("battle.handHideSeconds", 0.5f);
+  float reveal_seconds = layout::Number("battle.reveal.seconds", 2.0f);
+  float reveal_travel = layout::Number("battle.reveal.travelSeconds", 0.5f);
+  float reveal_fade_in = layout::Number("battle.reveal.fadeInSeconds", 0.2f);
+  float reveal_fade_out = layout::Number("battle.reveal.fadeOutSeconds", 0.25f);
+  float reveal_scale_in = layout::Number("battle.reveal.scaleIn", 0.85f);
+  float reveal_scale_out = layout::Number("battle.reveal.scaleOut", 0.92f);
+  float reveal_offset_y = ui::Cells("battle.reveal.offsetY", 1.0f);
+  float reveal_veil_behind = layout::Number("battle.reveal.veilBehind", 1.0f);
+  float sway_seconds = layout::Number("battle.reveal.sway.seconds", 0.3f);
+  float sway_yaw = layout::Number("battle.reveal.sway.yaw", 0.42f);
+  float sway_yaw_frequency = layout::Number("battle.reveal.sway.yawFrequency", 3.1f);
+  float sway_pitch = layout::Number("battle.reveal.sway.pitch", 0.1f);
+  float sway_pitch_frequency = layout::Number("battle.reveal.sway.pitchFrequency", 2.3f);
+  float glow_outer = ui::Cells("battle.reveal.glow.outer", 6.0f);
+  float glow_inner = ui::Cells("battle.reveal.glow.inner", 2.0f);
+  float glow_pulse_frequency = layout::Number("battle.reveal.glow.pulseFrequency", 2.6f);
+  float glow_hue_speed = layout::Number("battle.reveal.glow.hueSpeed", 0.12f);
+  float tip_min_text = ui::Number("battle.tip.minTextFraction", 0.6f);
+  float attack_hit = layout::Number("battle.attack.hitSeconds", 0.25f);
+  float arrow_min_length = ui::Number("battle.attack.arrow.minLengthPx", 8.0f);
+  float arrow_bend = ui::Number("battle.attack.arrow.bend", 0.35f);
+  float arrow_bend_min = ui::Number("battle.attack.arrow.bendMinPx", 40.0f);
+  float arrow_bend_max = ui::Number("battle.attack.arrow.bendMaxPx", 320.0f);
+  int arrow_segments = static_cast<int>(ui::Number("battle.attack.arrow.segments", 48.0f));
+  float arrow_head_length = ui::Number("battle.attack.arrow.headLengthPx", 34.0f);
+  float arrow_head_width = ui::Number("battle.attack.arrow.headWidthPx", 34.0f);
+  float arrow_head_outline = ui::Number("battle.attack.arrow.headOutlinePx", 3.0f);
+  float arrow_width_start = ui::Number("battle.attack.arrow.widthStartPx", 4.0f);
+  float arrow_width_end = ui::Number("battle.attack.arrow.widthEndPx", 10.0f);
+  float arrow_glow_width = ui::Number("battle.attack.arrow.glowWidth", 3.2f);
+  float arrow_outline = ui::Number("battle.attack.arrow.outlinePx", 4.0f);
+  float arrow_pulse_speed = layout::Number("battle.attack.arrow.pulseSpeed", 1.25f);
+  float arrow_pulse_sharpness = ui::Number("battle.attack.arrow.pulseSharpness", 120.0f);
+};
+
+const Settings& S() {
+  static const Settings settings;
+  return settings;
+}
+
+// Reveal size: grows from scaleIn while fading in, shrinks toward scaleOut while fading out.
+float RevealScale(float in, float out) {
+  const float grow = S().reveal_scale_in, shrink = S().reveal_scale_out;
+  return (grow + (1.0f - grow) * in) * (shrink + (1.0f - shrink) * out);
+}
 
 std::vector<BattleScene::MistLayer> LoadMistLayers(const char* path) {
   std::vector<BattleScene::MistLayer> layers;
@@ -36,38 +119,21 @@ std::vector<BattleScene::MistLayer> LoadMistLayers(const char* path) {
   if (list != nullptr && list->IsArray()) {
     for (const json::Value& item : list->array) {
       if (!item.IsObject()) continue;
-      layers.push_back({kArenaBaseY + config::Float(item, "y", 0.0f),
+      layers.push_back({S().arena_base_y + config::Float(item, "y", 0.0f),
                         config::Float(item, "alpha", 0.5f)});
     }
   }
   return layers;
 }
 
-constexpr float kTorchX = 6.4f;
-constexpr float kTorchZ = -1.0f;
-constexpr float kTorchScale = 2.6f;
-constexpr float kTorchTilt = 0.10f;
-
-constexpr float kIntroSeconds = 1.6f;
-constexpr float kIntroDrop = 3.2f;
-constexpr float kTorchIntroStart = 1.1f;
-constexpr float kTorchIntroSeconds = 1.2f;
-constexpr float kTorchIntroDrop = 4.5f;
-constexpr float kIgniteSeconds = 0.6f;
-constexpr float kMatchStart = 3.2f;
-constexpr math::Vec3 kIntroEyeStart{0.0f, 16.0f, 22.0f};
-constexpr math::Vec3 kArenaTarget{0.0f, -0.1f, -0.3f};
-
-constexpr float kOrbitSeconds = 1.0f;
-
-// Measures from assets/ui.json ("battle") and assets/text.json ("battle"), read once on use.
+// Measures from assets/ui.json ("battle") and text variants from assets/text.json, read once.
 struct Layout {
-  float hint_scale = ui::TextScale("battle.hint", 1.5f);
-  float tip_scale = ui::TextScale("battle.tip", 2.0f);
-  float tip_detail_scale = ui::TextScale("battle.tipDetail", 1.5f);
-  float status_scale = ui::TextScale("battle.status", 2.0f);
-  float reveal_caption_scale = ui::TextScale("battle.revealCaption", 3.0f);
-  float reveal_detail_scale = ui::TextScale("battle.revealDetail", 2.5f);
+  text::Style hint_style = text::Styles({"xsmall", "body"});
+  text::Style tip_style = text::Styles({"regular"});
+  text::Style tip_detail_style = text::Styles({"xsmall", "body"});
+  text::Style status_style = text::Styles({"description"});
+  text::Style reveal_caption_style = text::Styles({"xlarge"});
+  text::Style reveal_detail_style = text::Styles({"large"});
   float tip_padding = ui::Cells("battle.tip.padding", 1.0f);
   float tip_gap = ui::Cells("battle.tip.gap", 0.5f);
   float tip_offset = ui::Cells("battle.tip.offset", 1.0f);
@@ -83,25 +149,13 @@ const Layout& L() {
   static const Layout layout;
   return layout;
 }
-constexpr float kCardAspect = 1600.0f / 2230.0f;
 
-constexpr float kClickSlop = 6.0f;
-constexpr float kAttackDragPx = 24.0f;
-constexpr int kHandLimit = 6;
-constexpr float kOpponentPause = 0.7f;
-constexpr float kFieldGlowSpeed = 6.0f;
-constexpr float kFieldArenaBoost = 1.5f;
+constexpr float kCardAspect = static_cast<float>(cardface::kWidth) / cardface::kHeight;
 
 SDL_FColor LerpColor(SDL_FColor a, SDL_FColor b, float t) {
   return SDL_FColor{a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t,
                     a.a + (b.a - a.a) * t};
 }
-constexpr float kRevealSeconds = 2.0f;
-constexpr float kRevealTravel = 0.5f;
-constexpr float kHandHideSeconds = 0.5f;
-constexpr float kRevealFadeIn = 0.2f;
-constexpr float kRevealFadeOut = 0.25f;
-constexpr float kAttackHit = 0.25f;
 
 // Card stat (attack or defense) to effect tier 1 (weakest) to 5 (strongest).
 int SfxTier(int value) {
@@ -111,8 +165,6 @@ int SfxTier(int value) {
   if (value < 1800) return 4;
   return 5;
 }
-constexpr float kShakeSeconds = 0.45f;
-constexpr float kShakeAmplitude = 0.16f;
 
 
 void DrawGlowRing(SDL_Renderer* r, const SDL_FRect& inner, float margin, const SDL_FColor c[4]) {
@@ -180,18 +232,18 @@ void DrawStrip(SDL_Renderer* r, const std::vector<SDL_FPoint>& pts,
 void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color color, float time) {
   const float dx = to.x - from.x, dy = to.y - from.y;
   const float dist = SDL_sqrtf(dx * dx + dy * dy);
-  if (dist < 8.0f) return;
+  const Settings& a = S();
+  if (dist < a.arrow_min_length) return;
   float nx = -dy / dist, ny = dx / dist;
   // The arc always bends upward on screen.
   if (ny > 0.0f || (ny == 0.0f && nx < 0.0f)) {
     nx = -nx;
     ny = -ny;
   }
-  const float bend = SDL_clamp(dist * 0.35f, 40.0f, 320.0f);
+  const float bend = SDL_clamp(dist * a.arrow_bend, a.arrow_bend_min, a.arrow_bend_max);
   const SDL_FPoint ctrl{(from.x + to.x) * 0.5f + nx * bend, (from.y + to.y) * 0.5f + ny * bend};
-  constexpr int kSegments = 48;
-  constexpr float kHeadLength = 34.0f;
-  constexpr float kHeadWidth = 34.0f;
+  const int segments = std::max(1, a.arrow_segments);
+  const float head_length = a.arrow_head_length;
   auto at = [&](float t) {
     const float u = 1.0f - t;
     return SDL_FPoint{u * u * from.x + 2 * u * t * ctrl.x + t * t * to.x,
@@ -201,40 +253,47 @@ void DrawAttackArc(SDL_Renderer* r, SDL_FPoint from, SDL_FPoint to, SDL_Color co
   const float elen = SDL_sqrtf(ex * ex + ey * ey);
   ex /= SDL_max(elen, 1e-4f);
   ey /= SDL_max(elen, 1e-4f);
-  const SDL_FPoint base{to.x - ex * kHeadLength, to.y - ey * kHeadLength};
+  const SDL_FPoint base{to.x - ex * head_length, to.y - ey * head_length};
   std::vector<SDL_FPoint> pts;
   std::vector<float> core_w, glow_w, outline_w;
   std::vector<SDL_FColor> core_c, glow_c, outline_c;
   // The curve stops before the arrowhead.
-  const float head_t = SDL_max(0.0f, 1.0f - kHeadLength / SDL_max(dist * 1.15f, 1.0f));
+  const float head_t = SDL_max(0.0f, 1.0f - head_length / SDL_max(dist * 1.15f, 1.0f));
   const SDL_FColor c{color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f};
-  for (int i = 0; i <= kSegments; ++i) {
-    const float s = static_cast<float>(i) / kSegments;
-    pts.push_back(i == kSegments ? base : at(s * head_t));
-    const float w = 4.0f + 6.0f * s;
-    const float phase = s - SDL_fmodf(time * 1.25f, 1.0f);
-    const float pulse = SDL_expf(-phase * phase * 120.0f);
+  const float core_tail = opacity::Get("attackArrowCoreTail");
+  const float glow_low = opacity::Get("attackArrowGlow");
+  const float glow_high = opacity::Get("attackArrowGlowPulse");
+  const float outline_alpha = opacity::Get("attackArrowOutline");
+  const SDL_FColor black = colors::GetF("black");
+  for (int i = 0; i <= segments; ++i) {
+    const float s = static_cast<float>(i) / segments;
+    pts.push_back(i == segments ? base : at(s * head_t));
+    const float w = a.arrow_width_start + (a.arrow_width_end - a.arrow_width_start) * s;
+    const float phase = s - SDL_fmodf(time * a.arrow_pulse_speed, 1.0f);
+    const float pulse = SDL_expf(-phase * phase * a.arrow_pulse_sharpness);
     core_w.push_back(w);
-    glow_w.push_back(w * 3.2f);
-    outline_w.push_back(w + 4.0f);
+    glow_w.push_back(w * a.arrow_glow_width);
+    outline_w.push_back(w + a.arrow_outline);
+    const float tail = 0.5f + 0.5f * s;
     core_c.push_back(SDL_FColor{SDL_min(1.0f, c.r + 0.5f * pulse), SDL_min(1.0f, c.g + 0.5f * pulse),
-                                SDL_min(1.0f, c.b + 0.5f * pulse), 0.55f + 0.45f * s});
-    glow_c.push_back(SDL_FColor{c.r, c.g, c.b, (0.12f + 0.25f * pulse) * (0.5f + 0.5f * s)});
-    outline_c.push_back(SDL_FColor{0.0f, 0.0f, 0.0f, 0.45f * (0.5f + 0.5f * s)});
+                                SDL_min(1.0f, c.b + 0.5f * pulse),
+                                core_tail + (1.0f - core_tail) * s});
+    glow_c.push_back(SDL_FColor{c.r, c.g, c.b, (glow_low + (glow_high - glow_low) * pulse) * tail});
+    outline_c.push_back(SDL_FColor{black.r, black.g, black.b, outline_alpha * tail});
   }
   DrawStrip(r, pts, glow_w, glow_c);
   DrawStrip(r, pts, outline_w, outline_c);
   DrawStrip(r, pts, core_w, core_c);
   auto head = [&](float grow, SDL_FColor fill) {
     const float px = -ey, py = ex;
-    const float half = kHeadWidth * 0.5f + grow;
+    const float half = a.arrow_head_width * 0.5f + grow;
     const SDL_FPoint tip{to.x + ex * grow, to.y + ey * grow};
     const SDL_FPoint b0{base.x - ex * grow + px * half, base.y - ey * grow + py * half};
     const SDL_FPoint b1{base.x - ex * grow - px * half, base.y - ey * grow - py * half};
     const SDL_Vertex tri[3] = {{tip, fill, {0, 0}}, {b0, fill, {0, 0}}, {b1, fill, {0, 0}}};
     SDL_RenderGeometry(r, nullptr, tri, 3, nullptr, 0);
   };
-  head(3.0f, SDL_FColor{0.0f, 0.0f, 0.0f, 0.5f});
+  head(a.arrow_head_outline, opacity::Apply(black, "attackArrowHeadOutline"));
   head(0.0f, SDL_FColor{c.r, c.g, c.b, 1.0f});
 }
 
@@ -300,7 +359,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
       cardface::NormalMap(Image::LoadFile(base + "sprites/cardFrontNormalMap.webp"), 2));
   back_normal_ = UploadSprite(Image::LoadFile(base + "sprites/cardBackNormalMap.webp"));
   for (Board* board : {&board_, &opponent_board_}) {
-    board->GetLayout().arena_scale = kArenaScale;
+    board->GetLayout().arena_scale = S().arena_scale;
     board->SetModel(card_model_.get());
     board->SetAura(&card_aura_);
     board->SetBack(back_);
@@ -353,7 +412,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   } else {
     rng_.seed(std::random_device{}());
   }
-  deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_));
+  deck_ = deck::Deck(cards::BuildDeck(cards_, rules::Get().deck_size, rng_));
   deck_.Shuffle();
   int level = info.difficulty;
   if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
@@ -363,7 +422,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
     if (std::strcmp(env, "impossible") == 0) level = 3;
   }
   difficulty_ = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
-  opponent_deck_ = deck::Deck(cards::BuildDeck(cards_, Hud::kDeckSize, rng_,
+  opponent_deck_ = deck::Deck(cards::BuildDeck(cards_, rules::Get().deck_size, rng_,
                                                [this](const CardInfo& card) {
                                                  return ai::DeckWeight(card, difficulty_);
                                                }));
@@ -381,10 +440,11 @@ void BattleScene::Preload(const PreloadInfo& info) {
       pos = end + 1;
     }
   }
-  for (int i = 0; i < 5; ++i) {
+  const size_t initial_hand = static_cast<size_t>(rules::Get().initial_hand);
+  for (size_t i = 0; i < initial_hand; ++i) {
     std::optional<std::string> code;
     if (!forced.empty()) {
-      if (i < static_cast<int>(forced.size())) {
+      if (i < forced.size()) {
         code = forced[i];
         deck_.Draw();  // still draws, to keep the deck count right
       }
@@ -398,7 +458,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   if (const char* env = SDL_getenv("PONTIFICE_OPPONENT_HAND")) {
     std::string spec = env;
     size_t pos = 0;
-    while (pos < spec.size() && opponent_hand_.size() < 5) {
+    while (pos < spec.size() && opponent_hand_.size() < initial_hand) {
       size_t end = spec.find(',', pos);
       if (end == std::string::npos) end = spec.size();
       if (const CardInfo* info = cards::Find(cards_, spec.substr(pos, end - pos))) {
@@ -408,7 +468,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
       pos = end + 1;
     }
   }
-  while (opponent_hand_.size() < 5 && opponent_deck_.Size() > 0) OpponentDraw();
+  while (opponent_hand_.size() < initial_hand && opponent_deck_.Size() > 0) OpponentDraw();
   arena_model_ = std::make_unique<Model>();
   if (!arena_model_->Upload(*gpu_, Model::Parse(base + "models/arena.glb"))) {
     LOG("arena.glb not loaded; generate it with tools/textureArena.py");
@@ -425,7 +485,9 @@ void BattleScene::Preload(const PreloadInfo& info) {
       {0, 1, 2, 0, 2, 3});
   mist_layers_ = LoadMistLayers("battle.mist.layers");
   intro_mist_layers_ = LoadMistLayers("battle.introMist.layers");
-  if (mist_layers_.empty()) mist_layers_ = {{kArenaBaseY + 0.05f, 0.8f}, {kArenaBaseY + 0.45f, 0.5f}};
+  if (mist_layers_.empty()) {
+    mist_layers_ = {{S().arena_base_y + 0.05f, 0.8f}, {S().arena_base_y + 0.45f, 0.5f}};
+  }
 }
 
 SDL_GPUTexture* BattleScene::UploadSprite(const Image& image) {
@@ -513,7 +575,8 @@ SDL_Texture* BattleScene::HudFace(const CardInfo& card) {
 void BattleScene::DrawCard() {
   const std::optional<std::string> code = deck_.Draw();
   if (!code) return;
-  hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
+  const int remaining = static_cast<int>(deck_.Size());
+  hud_.SetDeck(rules::Get().deck_size - remaining, remaining);
   const Face face = MakeCardFace(*code);
   if (face.texture != nullptr) AddToHand(hand_, face.texture, face.foil, face.info);
 }
@@ -570,7 +633,7 @@ void BattleScene::AddToHand(Hand& hand, SDL_GPUTexture* front, bool foil, const 
 }
 
 float BattleScene::RevealDuration() const {
-  return (reveal_.from_hand ? kRevealTravel : 0.0f) + kRevealSeconds;
+  return (reveal_.from_hand ? S().reveal_travel : 0.0f) + S().reveal_seconds;
 }
 
 void BattleScene::StartReveal(const CardInfo& card, std::string caption, std::string detail,
@@ -617,7 +680,8 @@ void BattleScene::StartMatch() {
     opponent_hand_view_.SetAway(false);
     const bool turned = orbit_ >= 1.0f;
     Orbit(1.0f);
-    Schedule(turned ? 0.2f : kOrbitSeconds + 0.2f, [this] { RunOpponentTurn(); });
+    const float wait = turned ? S().after_orbit : S().orbit_seconds + S().after_orbit;
+    Schedule(wait, [this] { RunOpponentTurn(); });
   }
 }
 
@@ -648,11 +712,11 @@ void BattleScene::EndTurn() {
   hand_.SetAway(true);
   opponent_hand_view_.SetAway(false);
   Orbit(1.0f);
-  Schedule(kOrbitSeconds + 0.2f, [this] { RunOpponentTurn(); });
+  Schedule(S().orbit_seconds + S().after_orbit, [this] { RunOpponentTurn(); });
 }
 
 void BattleScene::DiscardExtraCards() {
-  while (hand_.Size() > static_cast<size_t>(kHandLimit)) {
+  while (hand_.Size() > static_cast<size_t>(rules::Get().hand_limit)) {
     size_t worst = 0;
     int worst_value = 1 << 30;
     for (size_t i = 0; i < hand_.Size(); ++i) {
@@ -676,16 +740,16 @@ void BattleScene::RunOpponentTurn() {
   if (!(starter_ == Side::kOpponent && turns_played_[1] == 0)) OpponentDraw();  // same rule
   LOG("Turn %d: opponent (%zu in hand, %zu in deck)", turn_, opponent_hand_.size(),
           opponent_deck_.Size());
-  Schedule(kOpponentPause, [this] {
+  Schedule(S().opponent_pause, [this] {
     float delay = 0.0f;
     for (int slot : ai::ChoosePositionChanges(BuildOpponentView())) {
       if (!opponent_board_.TogglePosition(slot)) continue;
       PlaySfxLater(delay, opponent_board_.At(slot)->defense ? "attackToDefense"
                                                              : "defenseToAttack");
-      delay += 0.25f;
+      delay += S().position_sfx_gap;
     }
   });
-  Schedule(kOpponentPause, [this] {
+  Schedule(S().opponent_pause, [this] {
     const int index = ai::ChooseFieldCard(BuildOpponentView());
     if (index < 0) return;
     const CardInfo* card = opponent_hand_[static_cast<size_t>(index)];
@@ -698,7 +762,7 @@ void BattleScene::RunOpponentTurn() {
       PlayField(Side::kOpponent, *card);
     });
   });
-  Schedule(kOpponentPause, [this] {
+  Schedule(S().opponent_pause, [this] {
     const std::optional<ai::Summon> summon = ai::ChooseSummon(BuildOpponentView());
     if (!summon || summon->hand_index < 0 ||
         summon->hand_index >= static_cast<int>(opponent_hand_.size())) {
@@ -718,23 +782,23 @@ void BattleScene::RunOpponentTurn() {
       OpponentSummon(card, defense, face.texture != nullptr ? &face : nullptr);
     });
   });
-  Schedule(kOpponentPause + 0.3f, [this] { OpponentAttackStep(); });
+  Schedule(S().opponent_pause + S().attack_delay, [this] { OpponentAttackStep(); });
 }
 
 void BattleScene::OpponentAttackStep() {
   if (hud_.Over()) return;
   const std::optional<ai::Attack> attack = ai::ChooseAttack(BuildOpponentView());
   if (!attack) {
-    Schedule(kOpponentPause, [this] { FinishOpponentTurn(); });
+    Schedule(S().opponent_pause, [this] { FinishOpponentTurn(); });
     return;
   }
   PerformAttack(Side::kOpponent, attack->slot, attack->target_slot);
-  Schedule(0.9f, [this] { OpponentAttackStep(); });
+  Schedule(S().attack_gap, [this] { OpponentAttackStep(); });
 }
 
 void BattleScene::FinishOpponentTurn() {
   ++turns_played_[1];
-  while (opponent_hand_.size() > static_cast<size_t>(kHandLimit)) {
+  while (opponent_hand_.size() > static_cast<size_t>(rules::Get().hand_limit)) {
     auto worst = std::min_element(opponent_hand_.begin(), opponent_hand_.end(),
                                   [](const CardInfo* a, const CardInfo* b) {
                                     return a->attack < b->attack;
@@ -745,9 +809,9 @@ void BattleScene::FinishOpponentTurn() {
   ++turn_;
   opponent_hand_view_.SetAway(true);
   // The opponent hand retracts before the camera orbits back.
-  ScheduleNext(kHandHideSeconds, [this] {
+  ScheduleNext(S().hand_hide_seconds, [this] {
     Orbit(0.0f);
-    ScheduleNext(kOrbitSeconds + 0.2f, [this] { BeginPlayerTurn(); });
+    ScheduleNext(S().orbit_seconds + S().after_orbit, [this] { BeginPlayerTurn(); });
   });
 }
 
@@ -812,8 +876,8 @@ bool BattleScene::CanSummon() const {
   return DraggedIsField() || !summoned_;
 }
 
-const char* BattleScene::HoverRole() const {
-  return field_.active || DraggedIsField() ? "board.slotHoverField" : "board.slotHover";
+const char* BattleScene::HoverColor() const {
+  return field_.active || DraggedIsField() ? "pink" : "yellow";
 }
 
 bool BattleScene::DraggedIsField() const {
@@ -876,7 +940,7 @@ void BattleScene::PerformAttack(Side attacker, int slot, int target_slot) {
                                 ? theirs.CardPosition(target_slot)
                                 : theirs.SlotPosition(Board::kCols / 2 + Board::kCols);
   mine.Lunge(slot, target);
-  Schedule(kAttackHit, [this, attacker, slot, target_slot] {
+  Schedule(S().attack_hit, [this, attacker, slot, target_slot] {
     ResolveAttack(attacker, slot, target_slot);
   });
 }
@@ -939,7 +1003,7 @@ void BattleScene::Destroy(Side owner, int slot) {
   if (!BoardOf(owner).Discard(slot)) return;
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
   if (owner == Side::kOpponent) ++stats_.graveyard[1];
-  shake_left_ = kShakeSeconds;
+  shake_left_ = S().shake_seconds;
 }
 
 void BattleScene::ApplyDamage(Side side, int damage) {
@@ -962,12 +1026,13 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 
   end_turn_ = std::make_unique<Button>(i18n::Get("battle.endTurn"),
                                        [this](SceneContext&) { EndTurn(); });
-  const float end_turn_w = button::Cells("battle.endTurn.width", 21.0f);
-  const float end_turn_h = button::Cells("battle.endTurn.height", 3.5f);
+  end_turn_->SetSize(Button::Size::kLarge);
+  const float end_turn_w = end_turn_->PreferredWidth();
   end_turn_->SetRect(SDL_FRect{(ctx.logical_width - end_turn_w) / 2.0f,
-                               button::Cells("battle.endTurn.top", 6.0f), end_turn_w, end_turn_h});
-  const float icon_size = button::Cells("icon.size", 3.0f);
-  const float icon_margin = button::Cells("icon.margin", 1.0f);
+                               ui::Cells("battle.endTurnTop", 6.0f), end_turn_w,
+                               end_turn_->Height()});
+  const float icon_size = sound_button_.Side();
+  const float icon_margin = sound_button_.Margin();
   sound_button_.SetRect(SDL_FRect{icon_margin, ctx.logical_height - icon_margin - icon_size,
                                   icon_size, icon_size});
   hint_button_.SetRect(SDL_FRect{icon_margin, sound_button_.Rect().y - icon_margin - icon_size,
@@ -984,12 +1049,12 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   reveal_ = Reveal{};
   field_ = rules::Field{};
 
-  hud_.SetLife(Hud::kMaxLife, Hud::kMaxLife);
+  hud_.SetLife(rules::Get().max_life, rules::Get().max_life);
   hud_.ClearFieldCard();
   hud_.SetGraveyard(0);
   stats_ = MatchStats{};
-  fog_color_ = config::Color("fog", "battle.fog.color", colors::GetF("background.fog"));
-  mist_color_ = config::Color("fog", "battle.mist.color", colors::GetF("background.mist"));
+  fog_color_ = config::Color("fog", "battle.fog.color", colors::GetF("stoneDark"));
+  mist_color_ = config::Color("fog", "battle.mist.color", colors::GetF("grayLight"));
   if (field_front_2d_ == nullptr) {
     field_front_2d_ = UploadHudSprite(ctx.renderer, hud_field_);
     hud_field_ = Image{};  // free the image: already a texture
@@ -1005,7 +1070,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_.SetAura(&card_aura_);
   hand_.SetBack(back_);
   hand_.SetNormalMaps(front_normal_, back_normal_);
-  hand_.DelayDeal(0.8f);
+  hand_.DelayDeal(S().deal_delay);
   for (const Face& face : initial_hand_) AddToHand(hand_, face.texture, face.foil, face.info);
   initial_hand_.clear();
   starter_ = std::uniform_int_distribution<int>(0, 1)(rng_) == 0 ? Side::kPlayer : Side::kOpponent;
@@ -1022,10 +1087,10 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   opponent_hand_view_.SetModel(card_model_.get());
   opponent_hand_view_.SetBack(back_);
   opponent_hand_view_.SetNormalMaps(front_normal_, back_normal_);
-  opponent_hand_view_.GetLayout().hidden_drop = 0.35f;
+  opponent_hand_view_.GetLayout().hidden_drop = S().opponent_hidden_drop;
   opponent_hand_view_.Clear();
   const bool opponent_first = starter_ == Side::kOpponent;
-  if (opponent_first) opponent_hand_view_.DelayDeal(0.8f);
+  if (opponent_first) opponent_hand_view_.DelayDeal(S().deal_delay);
   for (size_t i = 0; i < opponent_hand_.size() && hidden_face_ != nullptr; ++i) {
     if (opponent_first) {
       AddToHand(opponent_hand_view_, hidden_face_, false, nullptr);
@@ -1034,18 +1099,21 @@ void BattleScene::OnEnter(SceneContext& ctx) {
     }
   }
   opponent_hand_view_.SetAwayNow(!opponent_first);
-  hud_.SetDeck(Hud::kDeckSize - static_cast<int>(deck_.Size()), static_cast<int>(deck_.Size()));
-  arena_world_ = math::Mat4::Scale(kArenaScale);
+  const int remaining = static_cast<int>(deck_.Size());
+  hud_.SetDeck(rules::Get().deck_size - remaining, remaining);
+  arena_world_ = math::Mat4::Scale(S().arena_scale);
 
   const float aspect = static_cast<float>(ctx.logical_width) / ctx.logical_height;
-  proj_ = math::Mat4::Perspective(math::Radians(35.0f), aspect, 0.1f, 100.0f);
-  hand_view_proj_ = proj_ * math::Mat4::LookAt({0, 0, 10}, {0, 0, 0}, {0, 1, 0});
-  math::Vec3 eye{0, 10.5f, 12.2f};
+  proj_ = math::Mat4::Perspective(math::Radians(S().fov), aspect, 0.1f, 100.0f);
+  const Hand::Layout& hand = hand_.GetLayout();
+  hand_view_proj_ = math::Mat4::Perspective(hand.fov_y, aspect, 0.1f, 100.0f) *
+                    math::Mat4::LookAt({0, 0, hand.camera_z}, {0, 0, 0}, {0, 1, 0});
+  math::Vec3 eye = S().eye;
   if (const char* env = SDL_getenv("PONTIFICE_ARENA_EYE")) {
     SDL_sscanf(env, "%f,%f,%f", &eye.x, &eye.y, &eye.z);
   }
   eye_final_ = eye;
-  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, S().target, {0, 1, 0});
 
   arena_atmosphere_.light_dir = config::Vec3("light", "battle.arena.lightDir", {-0.35f, 1.0f, 0.45f});
   arena_atmosphere_.light_intensity = config::Float("light", "battle.arena.lightIntensity", 0.0f);
@@ -1056,8 +1124,10 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   arena_atmosphere_.fog_color = fog_color_;
   arena_atmosphere_.fog_density = config::Float("fog", "battle.fog.density", 0.05f);
   arena_atmosphere_.fog_start = config::Float("fog", "battle.fog.start", 15.0f);
-  arena_atmosphere_.fog_full_y = kArenaBaseY + config::Float("fog", "battle.fog.fullYOffset", 0.0f);
-  arena_atmosphere_.fog_clear_y = kArenaTopY + config::Float("fog", "battle.fog.clearYOffset", -0.2f);
+  arena_atmosphere_.fog_full_y =
+      S().arena_base_y + config::Float("fog", "battle.fog.fullYOffset", 0.0f);
+  arena_atmosphere_.fog_clear_y =
+      S().arena_top_y + config::Float("fog", "battle.fog.clearYOffset", -0.2f);
   arena_atmosphere_.fog_height_strength = config::Float("fog", "battle.fog.heightStrength", 0.9f);
   arena_atmosphere_.camera_pos = eye;
   arena_atmosphere_.vignette = config::Float("light", "battle.arena.vignette", 0.55f);
@@ -1078,7 +1148,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.ambient = config::Color("light", "battle.hand.ambient", {0.34f, 0.36f, 0.46f, 1.0f});
   hand_atmosphere_.point_pos = config::Vec3("light", "battle.hand.pointPos", {0.0f, 2.5f, 4.0f});
   hand_atmosphere_.point_intensity = config::Float("light", "battle.hand.pointIntensity", 1.0f);
-  hand_atmosphere_.camera_pos = {0, 0, 10};
+  hand_atmosphere_.camera_pos = {0, 0, hand_.GetLayout().camera_z};
   ready_ = true;
   sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
   UpdateIntro(0.0f);
@@ -1087,18 +1157,20 @@ void BattleScene::OnEnter(SceneContext& ctx) {
 void BattleScene::UpdateIntro(float dt_seconds) {
   intro_time_ += dt_seconds;
   if (intro_ >= 1.0f && torch_intro_ >= 1.0f && ignite_ >= 1.0f) return;
-  intro_ = SmoothStep(intro_time_ / kIntroSeconds);
-  torch_intro_ = SmoothStep((intro_time_ - kTorchIntroStart) / kTorchIntroSeconds);
-  ignite_ = SmoothStep((intro_time_ - kTorchIntroStart - kTorchIntroSeconds) / kIgniteSeconds);
+  intro_ = SmoothStep(intro_time_ / S().intro_seconds);
+  torch_intro_ = SmoothStep((intro_time_ - S().torch_intro_start) / S().torch_intro_seconds);
+  const float ignite_start = S().torch_intro_start + S().torch_intro_seconds;
+  ignite_ = SmoothStep((intro_time_ - ignite_start) / S().ignite_seconds);
   // Debug: PONTIFICE_ARENA_EYE skips the intro.
   if (SDL_getenv("PONTIFICE_ARENA_EYE") != nullptr) intro_ = torch_intro_ = ignite_ = 1.0f;
-  const float drop = kIntroDrop * (1.0f - intro_);
-  arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(kArenaScale);
-  const float torch_drop = kTorchIntroDrop * (1.0f - torch_intro_);
-  torch_world_[0] = math::Mat4::Translate({-kTorchX, kArenaBaseY - torch_drop, kTorchZ}) *
-                    math::Mat4::RotateZ(kTorchTilt) * math::Mat4::Scale(kTorchScale);
-  torch_world_[1] = math::Mat4::Translate({kTorchX, kArenaBaseY - torch_drop, kTorchZ}) *
-                    math::Mat4::RotateZ(-kTorchTilt) * math::Mat4::Scale(kTorchScale);
+  const float drop = S().intro_drop * (1.0f - intro_);
+  arena_world_ = math::Mat4::Translate({0.0f, -drop, 0.0f}) * math::Mat4::Scale(S().arena_scale);
+  const float torch_drop = S().torch_intro_drop * (1.0f - torch_intro_);
+  const float torch_y = S().arena_base_y - torch_drop;
+  torch_world_[0] = math::Mat4::Translate({-S().torch_x, torch_y, S().torch_z}) *
+                    math::Mat4::RotateZ(S().torch_tilt) * math::Mat4::Scale(S().torch_scale);
+  torch_world_[1] = math::Mat4::Translate({S().torch_x, torch_y, S().torch_z}) *
+                    math::Mat4::RotateZ(-S().torch_tilt) * math::Mat4::Scale(S().torch_scale);
   arena_atmosphere_.point_pos = Torch::FlamePosition(torch_world_[0]);
   arena_atmosphere_.point2_pos = Torch::FlamePosition(torch_world_[1]);
   for (int k = 0; k < 2; ++k) {
@@ -1107,13 +1179,13 @@ void BattleScene::UpdateIntro(float dt_seconds) {
   }
   arena_atmosphere_.point_intensity = torch_light_ * ignite_;
   arena_atmosphere_.point2_intensity = torch_light_ * ignite_;
-  math::Vec3 eye = kIntroEyeStart + (eye_final_ - kIntroEyeStart) * intro_;
+  math::Vec3 eye = S().intro_eye + (eye_final_ - S().intro_eye) * intro_;
   if (orbit_ > 0.0f) {  // orbit 180° around Y to the opponent side
     const float angle = math::kPi * SmoothStep(orbit_);
     const float c = std::cos(angle), s = std::sin(angle);
     eye = math::Vec3{eye.x * c + eye.z * s, eye.y, -eye.x * s + eye.z * c};
   }
-  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, kArenaTarget, {0, 1, 0});
+  arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, S().target, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
 }
 
@@ -1123,15 +1195,18 @@ void BattleScene::UpdateCamera() {
   const float c = std::cos(angle), s = std::sin(angle);
   const math::Vec3 e = eye_final_;
   math::Vec3 eye{e.x * c + e.z * s, e.y, -e.x * s + e.z * c};
-  math::Vec3 target = kArenaTarget;
+  math::Vec3 target = S().target;
   if (shake_left_ > 0.0f) {
-    const float k = shake_left_ / kShakeSeconds;
-    const float a = kShakeAmplitude * k * k;  // shake decays quadratically
+    const float k = shake_left_ / S().shake_seconds;
+    const float a = S().shake_amplitude * k * k;  // shake decays quadratically
     const float t = shake_time_;
-    const math::Vec3 offset{a * std::sin(t * 57.0f), a * 0.8f * std::sin(t * 43.0f + 1.3f),
-                            a * 0.6f * std::sin(t * 67.0f + 2.1f)};
+    const math::Vec3& f = S().shake_frequency;
+    const math::Vec3& k3 = S().shake_ratio;
+    const math::Vec3& p = S().shake_phase;
+    const math::Vec3 offset{a * k3.x * std::sin(t * f.x + p.x), a * k3.y * std::sin(t * f.y + p.y),
+                            a * k3.z * std::sin(t * f.z + p.z)};
     eye = eye + offset;
-    target = target + offset * 0.6f;
+    target = target + offset * S().shake_target;
   }
   arena_view_proj_ = proj_ * math::Mat4::LookAt(eye, target, {0, 1, 0});
   arena_atmosphere_.camera_pos = eye;
@@ -1148,7 +1223,7 @@ void BattleScene::Pause(SceneContext& ctx) {
     ctx.music->SetCategory("menu");
   }
   abandon_dialog_.Open(i18n::Get("battle.abandon.title"), i18n::Get("battle.abandon.question"),
-                       i18n::Get("battle.abandon.no"), i18n::Get("battle.abandon.yes"),
+                       i18n::Get("ui.confirm.no"), i18n::Get("ui.confirm.yes"),
                        ctx.logical_width, ctx.logical_height, true);
 }
 
@@ -1216,7 +1291,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     mouse_ = {event.motion.x, event.motion.y};
     if (attack_from_ >= 0 && !attack_drag_ && press_.x >= 0) {
       const float moved = std::fabs(mouse_.x - press_.x) + std::fabs(mouse_.y - press_.y);
-      if (moved >= kAttackDragPx) attack_drag_ = true;
+      if (moved >= S().attack_drag) attack_drag_ = true;
     }
   }
   if (sound_button_.HandleEvent(event)) {
@@ -1301,7 +1376,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
           PerformAttack(Side::kPlayer, attack_from_, -1);
         }
       }
-    } else if (!inspecting && press_.x >= 0 && moved < kClickSlop && hand_.Hovered() < 0 &&
+    } else if (!inspecting && press_.x >= 0 && moved < S().click_slop && hand_.Hovered() < 0 &&
                CanAct()) {
       const int slot =
           board_.PickSlot(pos, arena_view_proj_, ctx.logical_width, ctx.logical_height);
@@ -1344,8 +1419,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
   if (started_ && !hud_.Over()) stats_.seconds += dt_seconds;
   stats_.rounds = turn_;
-  stats_.drawn[0] = Hud::kDeckSize - static_cast<int>(deck_.Size());
-  stats_.drawn[1] = Hud::kDeckSize - static_cast<int>(opponent_deck_.Size());
+  stats_.drawn[0] = rules::Get().deck_size - static_cast<int>(deck_.Size());
+  stats_.drawn[1] = rules::Get().deck_size - static_cast<int>(opponent_deck_.Size());
   stats_.graveyard[0] = hud_.Graveyard();
   hud_.SetStats(stats_);
   hud_.Update(dt_seconds, mouse_.x, mouse_.y);
@@ -1355,10 +1430,11 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
     shake_left_ = std::max(0.0f, shake_left_ - dt_seconds);
     shake_time_ += dt_seconds;
   }
-  if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + dt_seconds / kOrbitSeconds);
-  if (orbit_ > orbit_target_) orbit_ = std::max(orbit_target_, orbit_ - dt_seconds / kOrbitSeconds);
+  const float orbit_step = dt_seconds / S().orbit_seconds;
+  if (orbit_ < orbit_target_) orbit_ = std::min(orbit_target_, orbit_ + orbit_step);
+  if (orbit_ > orbit_target_) orbit_ = std::max(orbit_target_, orbit_ - orbit_step);
   UpdateCamera();
-  if (!started_ && intro_time_ >= kMatchStart) StartMatch();
+  if (!started_ && intro_time_ >= S().match_start) StartMatch();
   if (!steps_.empty()) {
     step_timer_ += dt_seconds;
     if (step_timer_ >= steps_.front().first) {
@@ -1381,11 +1457,11 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
     if (field_selected) {
       evil = hand_.CardAt(static_cast<size_t>(hand_.Dragging())).info->favored == "evil";
     }
-    field_mist_color_ = colors::GetF(evil ? "board.fieldMistEvil" : "board.fieldMistGood");
-    field_fog_color_ = colors::GetF(evil ? "board.fieldFogEvil" : "board.fieldFogGood");
+    field_mist_color_ = colors::GetF(evil ? "purple" : "blue");
+    field_fog_color_ = colors::GetF(evil ? "purpleDark" : "blueMarine");
   }
   field_glow_ += ((field_selected || field_.active ? 1.0f : 0.0f) - field_glow_) *
-                 std::min(1.0f, dt_seconds * kFieldGlowSpeed);
+                 std::min(1.0f, dt_seconds * S().field_glow_speed);
   arena_atmosphere_.fog_color = LerpColor(fog_color_, field_fog_color_, field_glow_);
   const bool summoning = CanSummon();
   board_.SetHighlight(summoning);
@@ -1404,8 +1480,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
   board_.SetHoverSlot(hover);
   opponent_board_.SetHoverSlot(opponent_hover);
-  board_.SetHoverRole(HoverRole());
-  opponent_board_.SetHoverRole(HoverRole());
+  board_.SetHoverColor(HoverColor());
+  opponent_board_.SetHoverColor(HoverColor());
   board_.Update(dt_seconds);
   opponent_board_.Update(dt_seconds);
   sword_.Update(dt_seconds);
@@ -1431,30 +1507,31 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
 
 namespace {
 void RevealCurve(float t, float& alpha, float& scale) {
-  const float in = SmoothStep(t / kRevealFadeIn);
-  const float out = 1.0f - SmoothStep((t - (kRevealSeconds - kRevealFadeOut)) / kRevealFadeOut);
+  const float in = SmoothStep(t / S().reveal_fade_in);
+  const float fade_start = S().reveal_seconds - S().reveal_fade_out;
+  const float out = 1.0f - SmoothStep((t - fade_start) / S().reveal_fade_out);
   alpha = std::min(in, out);
-  scale = (0.85f + 0.15f * in) * (0.92f + 0.08f * out);
+  scale = RevealScale(in, out);
 }
 }
 
 void BattleScene::RenderReveal3D(int width, int height) {
   if (reveal_.card == nullptr || reveal_.front3d == nullptr) return;
-  const float travel = reveal_.from_hand ? kRevealTravel : 0.0f;
+  const float travel = reveal_.from_hand ? S().reveal_travel : 0.0f;
   const float hold = reveal_.time - travel;
   float alpha = 0.0f, scale = 1.0f;
   RevealCurve(hold, alpha, scale);
   float veil_alpha = alpha;
   if (reveal_.from_hand) {  // coming from the hand, no zoom in
-    RevealCurve(std::max(hold, kRevealFadeIn), alpha, scale);
+    RevealCurve(std::max(hold, S().reveal_fade_in), alpha, scale);
     veil_alpha = std::min(SmoothStep(reveal_.time / travel), alpha);
   }
   const Hand::Layout& layout = hand_.GetLayout();
   // Veil behind the card, covering the whole hand camera view.
-  const float veil_z = layout.inspect_z - 1.0f;
+  const float veil_z = layout.inspect_z - S().reveal_veil_behind;
   const float veil_h = 2.2f * (layout.camera_z - veil_z) * std::tan(layout.fov_y * 0.5f);
   const float aspect = static_cast<float>(width) / static_cast<float>(height);
-  SDL_FColor veil = colors::GetF("background.overlay");
+  SDL_FColor veil = opacity::Apply(colors::GetF("stoneBlack"), "overlay");
   veil.a *= veil_alpha;
   gpu_->Draw(veil_quad_, nullptr,
              math::Mat4::Translate({0.0f, 0.0f, veil_z}) *
@@ -1477,9 +1554,9 @@ void BattleScene::RenderReveal3D(int width, int height) {
     return;
   }
   const float t = std::max(hold, 0.0f);
-  const float sway = reveal_.from_hand ? SmoothStep(t / 0.3f) : 1.0f;
-  const float yaw = sway * 0.42f * std::sin(t * 3.1f);
-  const float pitch = sway * 0.1f * std::sin(t * 2.3f);
+  const float sway = reveal_.from_hand ? SmoothStep(t / S().sway_seconds) : 1.0f;
+  const float yaw = sway * S().sway_yaw * std::sin(t * S().sway_yaw_frequency);
+  const float pitch = sway * S().sway_pitch * std::sin(t * S().sway_pitch_frequency);
   const math::Mat4 world = Hand::PoseMatrix(center, center_scale, yaw, pitch, 0.0f);
   hand_.DrawLoose(*gpu_, hand_view_proj_, world, reveal_.front3d, reveal_.foil, alpha);
 }
@@ -1488,11 +1565,11 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   if (reveal_.card == nullptr) return;
   if (reveal_.front3d != nullptr) {  // card drawn in 3D: only caption and detail here
     float alpha = 0.0f, scale = 1.0f;
-    const float hold = reveal_.time - (reveal_.from_hand ? kRevealTravel : 0.0f);
+    const float hold = reveal_.time - (reveal_.from_hand ? S().reveal_travel : 0.0f);
     RevealCurve(hold, alpha, scale);
     if (reveal_.from_hand) {
       float unused = 0.0f;
-      RevealCurve(std::max(hold, kRevealFadeIn), unused, scale);
+      RevealCurve(std::max(hold, S().reveal_fade_in), unused, scale);
     }
     const auto with_alpha = [alpha](SDL_Color c) {
       c.a = static_cast<Uint8>(c.a * alpha);
@@ -1502,19 +1579,20 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
     const float cx = width / 2.0f;
     const float top = height / 2.0f - h / 2.0f;
     text::DrawCentered(r, reveal_.caption.c_str(), cx, top - L().reveal_caption_gap,
-                       L().reveal_caption_scale, with_alpha(colors::Get("panel.title")));
+                       L().reveal_caption_style, with_alpha(colors::Get("silverLight")));
     if (!reveal_.detail.empty()) {
       text::DrawCentered(r, reveal_.detail.c_str(), cx, top + h + L().reveal_caption_gap,
-                         L().reveal_detail_scale, with_alpha(colors::Get("text.secondary")));
+                         L().reveal_detail_style, with_alpha(colors::Get("steelLight")));
     }
     return;
   }
   if (reveal_.face == nullptr) return;
-  const float in = SmoothStep(reveal_.time / kRevealFadeIn);
+  const float in = SmoothStep(reveal_.time / S().reveal_fade_in);
   const float out =
-      1.0f - SmoothStep((reveal_.time - (kRevealSeconds - kRevealFadeOut)) / kRevealFadeOut);
+      1.0f - SmoothStep((reveal_.time - (S().reveal_seconds - S().reveal_fade_out)) /
+                        S().reveal_fade_out);
   const float alpha = std::min(in, out);
-  const float scale = (0.85f + 0.15f * in) * (0.92f + 0.08f * out);
+  const float scale = RevealScale(in, out);
   const auto with_alpha = [alpha](SDL_Color c) {
     c.a = static_cast<Uint8>(c.a * alpha);
     return c;
@@ -1523,7 +1601,7 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   SDL_BlendMode previous = SDL_BLENDMODE_NONE;
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
-  const SDL_Color veil = with_alpha(colors::Get("background.overlay"));
+  const SDL_Color veil = with_alpha(opacity::Apply(colors::Get("stoneBlack"), "overlay"));
   SDL_SetRenderDrawColor(r, veil.r, veil.g, veil.b, veil.a);
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
   SDL_RenderFillRect(r, &full);
@@ -1531,30 +1609,33 @@ void BattleScene::RenderReveal(SDL_Renderer* r, int width, int height) const {
   const float h = L().reveal_card_h * scale;
   const float w = h * kCardAspect;
   const float cx = width / 2.0f;
-  const float cy = height / 2.0f + ui::Grid(1);
+  const float cy = height / 2.0f + S().reveal_offset_y;
   const SDL_FRect card{cx - w / 2.0f, cy - h / 2.0f, w, h};
   if (reveal_.card->hierarchy == 1) {
     const float t = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    const float pulse = 0.8f + 0.2f * std::sin(t * 2.6f);
+    const float low = opacity::Get("revealGlowPulse");
+    const float pulse = low + (1.0f - low) * (0.5f + 0.5f * std::sin(t * S().glow_pulse_frequency));
+    const float outer = opacity::Get("revealGlowOuter") * alpha * pulse;
+    const float inner = opacity::Get("revealGlowInner") * alpha * pulse;
     SDL_FColor wide[4], near_edge[4];
     for (int k = 0; k < 4; ++k) {
-      wide[k] = Hue(t * 0.12f + k * 0.25f, 0.55f * alpha * pulse);
-      const SDL_FColor hue = Hue(t * 0.12f + k * 0.25f, 0.9f * alpha * pulse);
+      wide[k] = Hue(t * S().glow_hue_speed + k * 0.25f, outer);
+      const SDL_FColor hue = Hue(t * S().glow_hue_speed + k * 0.25f, inner);
       near_edge[k] = SDL_FColor{0.55f + 0.45f * hue.r, 0.55f + 0.45f * hue.g,
                                 0.5f + 0.45f * hue.b, hue.a};
     }
-    DrawGlowRing(r, card, ui::Grid(6) * scale, wide);
-    DrawGlowRing(r, card, ui::Grid(2) * scale, near_edge);
+    DrawGlowRing(r, card, S().glow_outer * scale, wide);
+    DrawGlowRing(r, card, S().glow_inner * scale, near_edge);
   }
   SDL_SetTextureAlphaMod(reveal_.face, static_cast<Uint8>(alpha * 255.0f));
   SDL_RenderTexture(r, reveal_.face, nullptr, &card);
   SDL_SetTextureAlphaMod(reveal_.face, 255);
 
   text::DrawCentered(r, reveal_.caption.c_str(), cx, card.y - L().reveal_caption_gap,
-                     L().reveal_caption_scale, with_alpha(colors::Get("panel.title")));
+                     L().reveal_caption_style, with_alpha(colors::Get("silverLight")));
   if (!reveal_.detail.empty()) {
     text::DrawCentered(r, reveal_.detail.c_str(), cx, card.y + card.h + L().reveal_caption_gap,
-                       L().reveal_detail_scale, with_alpha(colors::Get("text.secondary")));
+                       L().reveal_detail_style, with_alpha(colors::Get("steelLight")));
   }
   SDL_SetRenderDrawBlendMode(r, previous);
 }
@@ -1570,49 +1651,49 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
 
   struct Line {
     std::string text;
-    float scale;
+    text::Style style;
     SDL_Color color;
     float gap_after;
-    text::Face face = text::Face::kTitle;
   };
   std::vector<Line> lines;
-  const SDL_Color title = colors::Get("panel.title");
-  const SDL_Color label = colors::Get("panel.label");
-  const SDL_Color value = colors::Get("panel.value");
+  const SDL_Color title = colors::Get("silverLight");
+  const SDL_Color label = colors::Get("steelLight");
+  const SDL_Color value = colors::Get("silver");
   auto stat_color = [&](int effective, int base) {
-    return effective > base ? colors::Get("status.buff")
-           : effective < base ? colors::Get("status.nerf")
+    return effective > base ? colors::Get("green")
+           : effective < base ? colors::Get("red")
                               : value;
   };
-  lines.push_back({info.name, L().tip_scale, title, L().tip_gap * 2});
+  lines.push_back({info.name, L().tip_style, title, L().tip_gap * 2});
   lines.push_back({i18n::Get("cardface.atk") + " " + std::to_string(attack),
-                   L().tip_scale, stat_color(attack, info.attack), L().tip_gap});
+                   L().tip_style, stat_color(attack, info.attack), L().tip_gap});
   lines.push_back({i18n::Get("cardface.def") + " " + std::to_string(defense),
-                   L().tip_scale, stat_color(defense, info.defense), L().tip_gap * 2});
+                   L().tip_style, stat_color(defense, info.defense), L().tip_gap * 2});
   const std::string mode =
-      i18n::Get(card->defense ? "battle.tooltip.inDefense" : "battle.tooltip.inAttack");
-  lines.push_back({i18n::Get("battle.tooltip.mode") + " " + mode, L().tip_detail_scale, label,
-                   L().tip_gap, text::Face::kBody});
+      i18n::Get(card->defense ? "general.defense" : "general.attack");
+  lines.push_back({i18n::Get("battle.tooltip.mode") + " " + mode, L().tip_detail_style, label,
+                   L().tip_gap});
   lines.push_back({i18n::Get("battle.tooltip.category") + " " + info.CategoryLabel(),
-                   L().tip_detail_scale, label, L().tip_gap, text::Face::kBody});
+                   L().tip_detail_style, label, L().tip_gap});
   if (info.hierarchy > 0) {
     std::string hier = i18n::Get("battle.tooltip.hierarchy") + " ";
     hier += info.hierarchy_name.empty() ? std::to_string(info.hierarchy)
                                         : info.hierarchy_name + " (" +
                                               std::to_string(info.hierarchy) + ")";
-    lines.push_back({hier, L().tip_detail_scale, label, 0.0f, text::Face::kBody});
+    lines.push_back({hier, L().tip_detail_style, label, 0.0f});
   }
   lines.back().gap_after = 0.0f;
 
   float text_w = 0.0f;
   float text_h = 0.0f;
   for (const Line& line : lines) {
-    text_w = std::max(text_w, text::Width(line.text.c_str(), line.scale, line.face));
-    text_h += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
+    text_w = std::max(text_w, text::Width(line.text.c_str(), line.style));
+    text_h += text::LineHeight(line.style) + line.gap_after;
   }
   const float image_w = L().tip_image_h * kCardAspect;
   const float w =
-      ui::SnapUp(3 * L().tip_padding + image_w + std::max(text_w, L().tip_text_w * 0.6f));
+      ui::SnapUp(3 * L().tip_padding + image_w +
+                 std::max(text_w, L().tip_text_w * S().tip_min_text));
   const float h = ui::SnapUp(2 * L().tip_padding + std::max(L().tip_image_h, text_h));
   float x = mouse_.x + L().tip_offset;
   float y = mouse_.y + L().tip_offset;
@@ -1627,19 +1708,19 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   if (face != nullptr) {
     SDL_RenderTexture(r, face, nullptr, &image);
   } else {
-    c = colors::Get("border.subtle");
+    c = colors::Get("stone");
     SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
     SDL_RenderFillRect(r, &image);
   }
-  c = colors::Get("panel.border");
+  c = colors::Get("steel");
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   SDL_RenderRect(r, &image);
 
   const float tx = image.x + image.w + L().tip_padding;
   float ty = y + L().tip_padding;
   for (const Line& line : lines) {
-    text::Draw(r, line.text.c_str(), tx, ty, line.scale, line.color, line.face);
-    ty += SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * line.scale + line.gap_after;
+    text::Draw(r, line.text.c_str(), tx, ty, line.style, line.color);
+    ty += text::LineHeight(line.style) + line.gap_after;
   }
 }
 
@@ -1728,7 +1809,9 @@ std::string BattleScene::Hint(int width, int height) const {
     }
   }
   if (!summoned_ && has_battle_card) return i18n::Get("battle.hint.select");
-  if (hand_.Size() > static_cast<size_t>(kHandLimit)) return i18n::Get("battle.hint.handLimit");
+  if (hand_.Size() > static_cast<size_t>(rules::Get().hand_limit)) {
+    return i18n::Get("battle.hint.handLimit");
+  }
   if (has_field_card) return i18n::Get("battle.hint.fieldLeft");
   const std::string end_turn = i18n::Get("battle.endTurn");
   return i18n::Format(AttacksAllowed(Side::kPlayer) ? "battle.hint.endTurn"
@@ -1738,8 +1821,8 @@ std::string BattleScene::Hint(int width, int height) const {
 
 void BattleScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const SDL_Color fg = colors::Get("text.primary");
-  const SDL_Color background = colors::Get("background.fog");
+  const SDL_Color fg = colors::Get("silver");
+  const SDL_Color background = colors::Get("stoneDark");
   const float cx = ctx.logical_width / 2.0f;
 
   if (ready_) {
@@ -1757,9 +1840,9 @@ void BattleScene::Render(SceneContext& ctx) {
   if (ready_ && gpu_->BeginFrame(arena_atmosphere_.fog_color)) {
     gpu_->SetAtmosphere(arena_atmosphere_);
     if (arena_model_ != nullptr) {
-      SDL_FColor gold = colors::GetF("board.fieldArena");
-      gold = SDL_FColor{gold.r * kFieldArenaBoost, gold.g * kFieldArenaBoost,
-                        gold.b * kFieldArenaBoost, 1.0f};
+      SDL_FColor gold = colors::GetF("gold");
+      gold = SDL_FColor{gold.r * S().field_glow_boost, gold.g * S().field_glow_boost,
+                        gold.b * S().field_glow_boost, 1.0f};
       arena_model_->Draw(*gpu_, arena_world_, arena_view_proj_,
                          LerpColor(SDL_FColor{1, 1, 1, 1}, gold, field_glow_));
     }
@@ -1813,31 +1896,31 @@ void BattleScene::Render(SceneContext& ctx) {
     SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
     SDL_RenderClear(r);
     text::DrawCentered(r, i18n::Get("battle.noRender").c_str(), cx, ctx.logical_height * 0.5f,
-                       2.0f * ui::kScale, fg);
+                       L().status_style, fg);
   }
 
   if (started_ && !hud_.Over()) {
     const std::string status = i18n::Format(
-        "battle.status",
+        "battle.status.turn",
         {std::to_string(turn_),
          i18n::Get(turn_side_ == Side::kPlayer && player_turn_ ? "battle.status.yourTurn"
-                                                               : "battle.status.opponent")});
-    text::DrawCentered(r, status.c_str(), cx, L().status_y, L().status_scale,
-                       colors::Get("board.status"), text::Face::kBody);
+                                                               : "general.opponent")});
+    text::DrawCentered(r, status.c_str(), cx, L().status_y, L().status_style,
+                       colors::Get("white"));
   }
   if (attack_from_ >= 0 && attack_drag_ && mouse_.x >= 0) {
     const math::Vec2 from =
         ScreenOf(board_.CardPosition(attack_from_), ctx.logical_width, ctx.logical_height);
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
     DrawAttackArc(r, SDL_FPoint{from.x, from.y}, SDL_FPoint{mouse_.x, mouse_.y},
-                  colors::Get(HoverRole()),
+                  colors::Get(HoverColor()),
                   static_cast<float>(SDL_GetTicks()) / 1000.0f);
   }
   const std::string hint =
       hints_enabled_ ? Hint(ctx.logical_width, ctx.logical_height) : std::string();
   if (!hint.empty()) {
-    text::DrawCentered(r, hint.c_str(), cx, L().hint_y, L().hint_scale, colors::Get("board.hint"),
-                       text::Face::kBody);
+    text::DrawCentered(r, hint.c_str(), cx, L().hint_y, L().hint_style,
+                       opacity::Apply(colors::Get("silver"), "boardHint"));
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (CanAct()) end_turn_->Render(r);

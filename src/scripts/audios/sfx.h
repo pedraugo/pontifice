@@ -16,7 +16,7 @@ class Sfx {
   Sfx(const Sfx&) = delete;
   Sfx& operator=(const Sfx&) = delete;
 
-  // Loads every clip of the "sfx" section of assets/audio.json ("volume" and "clips").
+  // Loads the "sfx" array of assets/audio.json: {"name", "file", "gain", "volume"} per clip.
   bool Init(const std::string& base_path);
   // `gain` is the clip's own level, applied on every Play.
   bool Load(const std::string& name, const std::string& path, float gain = 1.0f);

@@ -1,13 +1,7 @@
 {
-  "notes": [
-    "Névoa, clima e nuvens (scripts/config, nome \"fog\"). Cores: #rrggbb, papel de colors.json ou [r, g, b].",
-    "battle.fog: névoa por distância (density, start) e de altura (heightStrength) da arena; fullYOffset/clearYOffset são somados à base e ao topo da arena.",
-    "battle.mist: camadas de névoa de chão (quads com ruído) na base da arena; y acima da base, alpha 0..1.",
-    "battle.introMist: manto denso da abertura, que se dissipa enquanto a arena sobe; y acima da base."
-  ],
   "battle": {
     "fog": {
-      "color": "background.fog",
+      "color": "stoneDark",
       "density": 0.05,
       "start": 15.0,
       "fullYOffset": 0.0,
@@ -15,7 +9,7 @@
       "heightStrength": 0.9
     },
     "mist": {
-      "color": "background.mist",
+      "color": "grayLight",
       "halfSize": 40.0,
       "noiseScale": 1.0,
       "fadeStart": 8.0,

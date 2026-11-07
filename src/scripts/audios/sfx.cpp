@@ -10,25 +10,23 @@ bool Sfx::Init(const std::string& base_path) {
   json::Value file;
   if (!json::LoadFile(base_path + "assets/audio.json", file)) return false;
   const json::Value* sfx = file.Find("sfx");
-  if (sfx == nullptr || !sfx->IsObject()) {
+  if (sfx == nullptr || !sfx->IsArray()) {
     LOG("audio.json has no \"sfx\" section; continuing without sound effects");
     return false;
   }
-  if (const json::Value* volume = sfx->Find("volume"); volume != nullptr && volume->IsNumber()) {
-    SetVolume(static_cast<float>(volume->number));
-  }
-  const json::Value* clips = sfx->Find("clips");
-  if (clips == nullptr || !clips->IsObject()) return false;
   size_t loaded = 0;
-  for (const auto& [name, clip] : clips->object) {
-    const json::Value* path = clip.IsObject() ? clip.Find("file") : &clip;
-    if (path == nullptr || !path->IsString()) continue;
-    const json::Value* gain = clip.IsObject() ? clip.Find("gain") : nullptr;
-    const float level = gain != nullptr && gain->IsNumber() ? static_cast<float>(gain->number) : 1.0f;
-    if (Load(name, base_path + path->string, level)) ++loaded;
+  for (const json::Value& clip : sfx->array) {
+    if (!clip.IsObject()) continue;
+    const json::Value* name = clip.Find("name");
+    const json::Value* path = clip.Find("file");
+    if (name == nullptr || !name->IsString() || path == nullptr || !path->IsString()) continue;
+    const auto number = [&clip](const char* key) {
+      const json::Value* value = clip.Find(key);
+      return value != nullptr && value->IsNumber() ? static_cast<float>(value->number) : 1.0f;
+    };
+    if (Load(name->string, base_path + path->string, number("gain") * number("volume"))) ++loaded;
   }
-  LOG("Sfx: %zu/%zu clip(s) loaded, volume %.0f%%", loaded, clips->object.size(),
-      volume_ * 100.0f);
+  LOG("Sfx: %zu/%zu clip(s) loaded, volume %.0f%%", loaded, sfx->array.size(), volume_ * 100.0f);
   return loaded > 0;
 }
 

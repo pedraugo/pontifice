@@ -4,7 +4,7 @@ O menu abre logo depois da escolha de idioma (docs/idioma.md), a primeira cena d
 
 ## Layout
 
-Tela simples, centralizada horizontalmente, fundo liso quase preto (`background.menu`, `#091119`, a mesma da cena de idioma), sem nuvens, ícone ou imagem de fundo. Os itens são só texto, sem placa nem borda, como na cena de idioma.
+Tela simples, centralizada horizontalmente, fundo liso quase preto (`stoneDarker`, `#091119`, a mesma da cena de idioma), sem nuvens, ícone ou imagem de fundo. Os itens são só texto, sem placa nem borda, como na cena de idioma.
 
 ```
 +------------------------------------------------------------+
@@ -27,7 +27,7 @@ Tela simples, centralizada horizontalmente, fundo liso quase preto (`background.
 
 | Elemento | Posição | Conteúdo |
 |---|---|---|
-| Título | Topo, centrado em y = 12 células | Texto `PONTIFICE` na fonte de título (`assets/pirataOne.ttf`), linha de 96 px, cor `text.title` |
+| Título | Topo, centrado em y = 12 células | Texto `PONTIFICE` na fonte de título (`fonts/pirataOne.ttf`), linha de 96 px, cor `silverLight` |
 | Jogar | Centro, em cima | Texto `Jogar` |
 | Nível | Centro, no meio | Texto `Nível: Fácil`, `Médio`, `Difícil` ou `Impossível`; cada clique passa ao próximo |
 | Grimório | Centro, abaixo do nível | Texto `Grimório`; abre a galeria de cartas (docs/grimorio.md) |
@@ -52,16 +52,17 @@ Os quatro itens ficam em linhas de 4 células, com 2 células entre elas, o bloc
 
 | Estado | Visual |
 |---|---|
-| Normal | Texto apagado (`buttonText.text`) |
-| Hover / Foco / Pressionado | Texto claro (`buttonText.highlight`) |
+| Normal | Texto apagado (`steelLight`) |
+| Hover / Foco / Pressionado | Texto claro (`silverLight`) |
+| Sair (variante `buttonText.danger`) | Texto avermelhado (`red`, `redLight` com hover/foco) |
 
 ## Cores
 
-Papéis de `assets/colors.json`: `background.menu` (fundo, `#091119`), `text.title` (título), `buttonText.text` / `buttonText.highlight` (itens), `text.secondary` (rodapé).
+Cores de `assets/colors.json`: `stoneDarker` (fundo, `#091119`), `silverLight` (título), `steelLight` / `silverLight` (itens), `red` / `redLight` (Sair), `steelLight` (rodapé).
 
 ## Implementação
 
 - Cena: `src/scenes/menu/menuScene.h` e `src/scenes/menu/menuScene.cpp`.
 - Itens: `src/scripts/button/ButtonText.*` (botão só de texto, com rótulo e ação; Jogar, Nível, Grimório e Sair são instâncias dele criadas em `MenuScene`). A base `Button` (com placa) continua nos diálogos e na batalha; `ButtonIcon` (placa com ícone) é o botão de som.
-- Texto renderizado com a fonte do jogo (`assets/pirataOne.ttf`, via stb_truetype, ver `scripts/text/Text.*`), com acentos.
+- Texto renderizado com a fonte do jogo (`fonts/pirataOne.ttf`, via stb_truetype, ver `scripts/text/Text.*`), com acentos.
 - Tela cheia por padrão (sem redimensionar) e resolução lógica `1920x1080` com letterbox, para o layout não depender do monitor.

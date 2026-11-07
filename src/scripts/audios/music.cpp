@@ -38,22 +38,6 @@ bool Music::Init(const std::string& base_path) {
     LOG("audio.json has no \"music\" section; continuing without music");
     return false;
   }
-  const json::Value& root = *music;
-  // "volume": a number, or a per-scene object like {"menu": 0.15, "battle": 0.25}.
-  if (const json::Value* volume = root.Find("volume")) {
-    if (volume->IsNumber()) {
-      volume_ = static_cast<float>(SDL_clamp(volume->number, 0.0, 1.0));
-    } else if (volume->IsObject()) {
-      for (const auto& [key, value] : volume->object) {
-        if (value.IsNumber()) {
-          scene_volumes_[key] = static_cast<float>(SDL_clamp(value.number, 0.0, 1.0));
-        }
-      }
-      if (scene_volumes_.count("menu")) volume_ = scene_volumes_["menu"];
-    }
-  }
-  target_volume_.store(volume_);
-  debug_log_ = SDL_getenv("PONTIFICE_AUDIO_LOG") != nullptr;
   auto read_list = [](const json::Value& list) {
     std::vector<Track> out;
     if (!list.IsArray()) return out;
@@ -72,25 +56,23 @@ bool Music::Init(const std::string& base_path) {
     }
     return out;
   };
-  if (const json::Value* categories = root.Find("categories");
-      categories != nullptr && categories->IsObject()) {
-    for (const auto& [name, list] : categories->object) {
-      Category category{name, read_list(list)};
-      if (!category.tracks.empty()) categories_.push_back(std::move(category));
+  // Each key is a category: {"volume": 0.2, "random": true, "sources": [{"file", "gain"}]}.
+  for (const auto& [name, entry] : music->object) {
+    if (!entry.IsObject()) continue;
+    if (const json::Value* volume = entry.Find("volume"); volume != nullptr && volume->IsNumber()) {
+      scene_volumes_[name] = static_cast<float>(SDL_clamp(volume->number, 0.0, 1.0));
     }
-  }
-  if (const json::Value* tracks = root.Find("tracks"); tracks != nullptr) {
-    Category category{"menu", read_list(*tracks)};
+    const json::Value* sources = entry.Find("sources");
+    if (sources == nullptr) continue;
+    Category category{name, read_list(*sources)};
+    const json::Value* random = entry.Find("random");
+    category.random = random != nullptr && random->type == json::Value::Type::kBool &&
+                      random->boolean;
     if (!category.tracks.empty()) categories_.push_back(std::move(category));
   }
-  if (const json::Value* random = root.Find("random"); random != nullptr && random->IsArray()) {
-    for (const json::Value& name : random->array) {
-      if (!name.IsString()) continue;
-      for (Category& category : categories_) {
-        if (category.name == name.string) category.random = true;
-      }
-    }
-  }
+  if (scene_volumes_.count("menu")) volume_ = scene_volumes_["menu"];
+  target_volume_.store(volume_);
+  debug_log_ = SDL_getenv("PONTIFICE_AUDIO_LOG") != nullptr;
   rng_.seed(static_cast<unsigned>(std::random_device{}() ^ SDL_GetTicksNS()));
   if (categories_.empty()) {
     LOG("audio.json has no music tracks; continuing without music");

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "scripts/rules/rules.h"
+
 enum class Category { kGood, kEvil };
 
 struct FieldCardInfo {
@@ -33,9 +35,6 @@ struct MatchStats {
 
 class Hud {
  public:
-  static constexpr int kMaxLife = 5000;
-  static constexpr int kDeckSize = 40;
-
   void SetLife(int opponent, int player);
   int OpponentLife() const { return opponent_life_; }
   int PlayerLife() const { return player_life_; }
@@ -45,7 +44,7 @@ class Hud {
   void ClearFieldCard();
   bool HasFieldCard() const { return has_field_; }
 
-  void SetDeck(int used, int remaining);  // used + remaining == kDeckSize
+  void SetDeck(int used, int remaining);  // used + remaining == rules deck_size
 
   void SetGraveyard(int count);
   int Graveyard() const { return graveyard_; }
@@ -84,12 +83,12 @@ class Hud {
   float life_shake_time_ = 0.0f;
   float life_flash_[2] = {0.0f, 0.0f};
 
-  int opponent_life_ = kMaxLife;
-  int player_life_ = kMaxLife;
+  int opponent_life_ = rules::Get().max_life;
+  int player_life_ = rules::Get().max_life;
   FieldCardInfo field_;
   bool has_field_ = false;
   int deck_used_ = 0;
-  int deck_remaining_ = kDeckSize;
+  int deck_remaining_ = rules::Get().deck_size;
   int graveyard_ = 0;
   MatchStats stats_;
   float zoom_t_ = 0.0f;

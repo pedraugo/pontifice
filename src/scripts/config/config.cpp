@@ -75,6 +75,25 @@ float Float(const std::string& name, const std::string& path, float fallback) {
   return static_cast<float>(v->number);
 }
 
+bool Bool(const std::string& name, const std::string& path, bool fallback) {
+  const json::Value* v = Node(name, path);
+  if (v == nullptr || v->type != json::Value::Type::kBool) {
+    WarnOnce(name + ":" + path);
+    return fallback;
+  }
+  return v->boolean;
+}
+
+std::string String(const std::string& name, const std::string& path,
+                   const std::string& fallback) {
+  const json::Value* v = Node(name, path);
+  if (v == nullptr || !v->IsString()) {
+    WarnOnce(name + ":" + path);
+    return fallback;
+  }
+  return v->string;
+}
+
 int Int(const std::string& name, const std::string& path, int fallback) {
   const json::Value* v = Node(name, path);
   if (v == nullptr || !v->IsNumber()) {

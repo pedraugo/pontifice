@@ -29,23 +29,6 @@ int HexDigit(char c) {
   return -1;
 }
 
-void Collect(const json::Value& node, const std::string& prefix, const std::string& file) {
-  for (const auto& [key, value] : node.object) {
-    const std::string name = prefix.empty() ? key : prefix + "." + key;
-    if (value.IsObject()) {
-      Collect(value, name, file);
-    } else if (value.IsString()) {
-      SDL_Color color;
-      if (ParseHex(value.string, color)) {
-        Table()[name] = color;
-      } else {
-        LOG("%s: invalid color in %s: \"%s\"", file.c_str(), name.c_str(),
-                value.string.c_str());
-      }
-    }
-  }
-}
-
 }
 
 bool ParseHex(const std::string& hex, SDL_Color& out) {
@@ -67,20 +50,26 @@ bool Load(const std::string& path) {
   if (!json::LoadFile(path, root)) return false;
   Table().clear();
   Warned().clear();
-  if (const json::Value* palette = root.Find("palette")) Collect(*palette, "palette", path);
-  if (const json::Value* roles = root.Find("roles")) Collect(*roles, "", path);
+  for (const auto& [name, value] : root.object) {
+    SDL_Color color;
+    if (value.IsString() && ParseHex(value.string, color)) {
+      Table()[name] = color;
+    } else {
+      LOG("%s: invalid color in %s", path.c_str(), name.c_str());
+    }
+  }
   return !Table().empty();
 }
 
-SDL_Color Get(const std::string& role) {
-  const auto it = Table().find(role);
+SDL_Color Get(const std::string& name) {
+  const auto it = Table().find(name);
   if (it != Table().end()) return it->second;
-  if (Warned().insert(role).second) LOG("Color not defined in colors.json: %s", role.c_str());
+  if (Warned().insert(name).second) LOG("Color not defined in colors.json: %s", name.c_str());
   return kMissing;
 }
 
-SDL_FColor GetF(const std::string& role) {
-  const SDL_Color c = Get(role);
+SDL_FColor GetF(const std::string& name) {
+  const SDL_Color c = Get(name);
   return {c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f};
 }
 

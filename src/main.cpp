@@ -11,29 +11,27 @@
 #include "scenes/scene.h"
 #include "scenes/sceneManager.h"
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 #include "scripts/config/config.h"
+#include "scripts/rules/rules.h"
 #include "scripts/image/image.h"
 #include "scripts/i18n/i18n.h"
 #include "scripts/audios/music.h"
 #include "scripts/text/text.h"
+#include "scripts/ui/ui.h"
 #include "scripts/log/log.h"
 
 namespace {
-
-constexpr int kLogicalWidth = 1920;
-constexpr int kLogicalHeight = 1080;
 
 struct App {
   SDL_Window* window = nullptr;
   SDL_Renderer* renderer = nullptr;
 };
 
-// Ícone da janela a partir de assets/icon.png: título e barra de tarefas no Windows, janela e
-// dock no Linux, Dock no macOS (SDL chama setApplicationIconImage). O ícone do executável em
-// si vem de src/icons (recurso .rc no Windows).
+// Window and Dock icon; the executable icon comes from src/icons (.rc on Windows).
 void SetWindowIcon(SDL_Window* window) {
   const char* base = SDL_GetBasePath();
-  const std::string path = std::string(base != nullptr ? base : "./") + "assets/icon.png";
+  const std::string path = std::string(base != nullptr ? base : "./") + "icons/icon.png";
   const Image image = Image::LoadFile(path);
   if (!image.Valid()) {
     LOG("Icon not loaded: %s", path.c_str());
@@ -44,8 +42,7 @@ void SetWindowIcon(SDL_Window* window) {
                                             image.width * 4);
   if (icon == nullptr) return;
 #ifndef SDL_PLATFORM_MACOS
-  // Fora do macOS os sistemas não precisam de 1024 px; X11 copia o ícone inteiro para uma
-  // propriedade da janela, então reduz para 256.
+  // Outside macOS 1024 px is not needed; X11 copies the whole icon into a window property.
   constexpr int kMaxSize = 256;
   if (image.width > kMaxSize || image.height > kMaxSize) {
     SDL_Surface* small = SDL_ScaleSurface(icon, kMaxSize, kMaxSize, SDL_SCALEMODE_LINEAR);
@@ -66,14 +63,11 @@ bool Init(App& app) {
     return false;
   }
 
-  // Tela cheia (sem borda, na resolução do monitor) por padrão; a resolução lógica 1920x1080
-  // vai com letterbox. Sem SDL_WINDOW_RESIZABLE o usuário não redimensiona nem sai da tela
-  // cheia pelo sistema. PONTIFICE_WINDOWED=1 (depuração) abre em janela de 1280x720;
-  // PONTIFICE_WINDOWED=LxA (ex.: 1920x1080) abre nesse tamanho, para screenshots em resolução
-  // cheia sem tomar a tela.
+  // Borderless fullscreen by default; PONTIFICE_WINDOWED=1 or WxH opens a debug window instead.
   const char* env_windowed = std::getenv("PONTIFICE_WINDOWED");
   const bool windowed = env_windowed != nullptr;
-  int window_w = 1280, window_h = 720;
+  int window_w = static_cast<int>(ui::Number("screen.windowedWidth", 1280.0f));
+  int window_h = static_cast<int>(ui::Number("screen.windowedHeight", 720.0f));
   if (windowed) {
     int w = 0, h = 0;
     if (std::sscanf(env_windowed, "%dx%d", &w, &h) == 2 && w > 0 && h > 0) {
@@ -83,21 +77,19 @@ bool Init(App& app) {
   }
   SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
   if (!windowed) flags |= SDL_WINDOW_FULLSCREEN;
-  app.window = SDL_CreateWindow("PONTIFICE", windowed ? window_w : kLogicalWidth,
-                                windowed ? window_h : kLogicalHeight, flags);
+  app.window = SDL_CreateWindow("PONTIFICE", windowed ? window_w : ui::Width(),
+                                windowed ? window_h : ui::Height(), flags);
   if (app.window == nullptr) {
     LOG("SDL_CreateWindow: %s", SDL_GetError());
     return false;
   }
   SetWindowIcon(app.window);
-  if (!windowed) SDL_SetWindowFullscreenMode(app.window, nullptr);  // sem borda, resolução do monitor
+  if (!windowed) SDL_SetWindowFullscreenMode(app.window, nullptr);
 
-  // Renderer 2D sobre o SDL_GPU (Metal no macOS, Vulkan/D3D12 em outros sistemas).
-  // O device fica acessível via SDL_GetGPURendererDevice para o render 3D do campo.
+  // 2D renderer on SDL_GPU; its device also draws the 3D scenes.
   app.renderer = SDL_CreateGPURenderer(nullptr, app.window);
   if (app.renderer == nullptr) {
-    LOG("SDL_CreateGPURenderer failed (%s), using the default renderer",
-                 SDL_GetError());
+    LOG("SDL_CreateGPURenderer failed (%s), using the default renderer", SDL_GetError());
     app.renderer = SDL_CreateRenderer(app.window, nullptr);
   }
   if (app.renderer == nullptr) {
@@ -106,7 +98,7 @@ bool Init(App& app) {
   }
 
   SDL_SetRenderVSync(app.renderer, 1);
-  SDL_SetRenderLogicalPresentation(app.renderer, kLogicalWidth, kLogicalHeight,
+  SDL_SetRenderLogicalPresentation(app.renderer, ui::Width(), ui::Height(),
                                    SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
   LOG("Renderer: %s", SDL_GetRendererName(app.renderer));
@@ -122,81 +114,91 @@ void Shutdown(App& app) {
 }  // namespace
 
 int main(int /*argc*/, char** /*argv*/) {
-  App app;
-  if (!Init(app)) {
-    Shutdown(app);
-    return 1;
-  }
-
   const char* base_path = SDL_GetBasePath();
   const std::string base = base_path != nullptr ? base_path : "./";
 
-  // Paleta (assets/colors.json) antes da primeira cena: menu e HUD pedem cores por papel.
   {
     const std::string palette = base + "assets/colors.json";
     if (!colors::Load(palette)) {
       LOG("Palette not loaded (%s); colors fall back to magenta", palette.c_str());
     }
   }
-  // Ajustes (assets/light.json, fog.json, shadow.json, button.json, ui.json, text.json):
-  // iluminação, névoa/nuvens, sombras, medidas dos botões, medidas da interface e tamanhos de
-  // texto. Valor ausente cai no padrão do código, com aviso no log.
+  {
+    const std::string opacities = base + "assets/opacity.json";
+    if (!opacity::Load(opacities)) {
+      LOG("Opacities not loaded (%s); everything stays opaque", opacities.c_str());
+    }
+  }
+  // Settings by name; a missing value falls back to the code default with a log warning.
   for (const auto& [name, file] :
        {std::pair{"light", "light.json"}, std::pair{"fog", "fog.json"},
         std::pair{"shadow", "shadow.json"}, std::pair{"button", "button.json"},
-        std::pair{"ui", "ui.json"}, std::pair{"text", "text.json"}}) {
+        std::pair{"ui", "ui.json"}, std::pair{"layout", "layout.json"},
+        std::pair{"text", "text.json"}}) {
     const std::string path = base + "assets/" + file;
     if (!config::Load(name, path)) {
       LOG("Settings not loaded (%s); using defaults", path.c_str());
     }
   }
-  // Textos (assets/translate.json): pt, en e es. O idioma é escolhido na primeira cena;
-  // PONTIFICE_LANG=en|es|pt (depuração) já define o idioma e pula essa cena.
+  // Match rules (assets/rules.json): life, deck, hand and default opponent level.
+  {
+    const std::string path = base + "assets/rules.json";
+    if (!config::Load("rules", path)) LOG("Rules not loaded (%s); using defaults", path.c_str());
+    rules::Settings settings;
+    settings.max_life = config::Int("rules", "maxLife", settings.max_life);
+    settings.deck_size = config::Int("rules", "deckSize", settings.deck_size);
+    settings.initial_hand = config::Int("rules", "initialHand", settings.initial_hand);
+    settings.hand_limit = config::Int("rules", "handLimit", settings.hand_limit);
+    settings.max_copies = config::Int("rules", "maxCopies", settings.max_copies);
+    settings.max_copies_rarest =
+        config::Int("rules", "maxCopiesRarest", settings.max_copies_rarest);
+    settings.default_difficulty =
+        config::Int("rules", "defaultDifficulty", settings.default_difficulty);
+    rules::Set(settings);
+  }
   {
     const std::string translate = base + "assets/translate.json";
     if (!i18n::Load(translate)) {
-      LOG("Translations not loaded (%s); texts fall back to keys",
-                   translate.c_str());
+      LOG("Translations not loaded (%s); texts fall back to keys", translate.c_str());
     }
   }
+  // Debug: PONTIFICE_LANG=en|es|pt sets the language and skips the language scene.
   const char* env_lang = std::getenv("PONTIFICE_LANG");
   if (env_lang != nullptr) i18n::SetLanguage(env_lang);
-  // Fontes do jogo (atlas de glifos no renderer): PirataOne nos títulos e rótulos, Newsreader
-  // no texto corrido. Sem a de corpo, usa a de título; sem a de título, a fonte de depuração.
-  text::Init(app.renderer, base + "assets/pirataOne.ttf", text::Face::kTitle);
-  text::Init(app.renderer, base + "assets/newsreader.ttf", text::Face::kBody);
+
+  // Window and renderer after the settings: the resolution comes from assets/ui.json.
+  App app;
+  if (!Init(app)) {
+    Shutdown(app);
+    return 1;
+  }
+  // Title and body fonts; a missing one falls back to the other, then the debug font.
+  text::Init(app.renderer, base + "fonts/pirataOne.ttf", text::Face::kTitle);
+  text::Init(app.renderer, base + "fonts/newsreader.ttf", text::Face::kBody);
 
   SceneContext ctx;
   ctx.renderer = app.renderer;
-  ctx.gpu_device = SDL_GetGPURendererDevice(app.renderer);  // nulo no renderer de fallback
-  ctx.logical_width = kLogicalWidth;
-  ctx.logical_height = kLogicalHeight;
+  ctx.gpu_device = SDL_GetGPURendererDevice(app.renderer);  // null on the fallback renderer
+  ctx.logical_width = ui::Width();
+  ctx.logical_height = ui::Height();
 
-  // Bloco próprio: as cenas (e seus recursos de GPU) precisam ser destruídas antes de
-  // Shutdown(), que destrói o renderer, o device e encerra o SDL.
+  // Own block: scenes and their GPU resources die before Shutdown destroys the renderer.
   {
-  // Trilha sonora (assets/audio.json, seção "music") toca em loop durante todo o jogo, em qualquer cena.
+  // Soundtrack loops through every scene.
   Music music;
   music.Init(base);
-  ctx.music = &music;  // vive até o fim deste bloco, depois das cenas
+  ctx.music = &music;  // declared before the scenes, so it outlives them
   SceneManager scenes(std::move(ctx));
 
-  // Depuração: PONTIFICE_SCENE=menu abre direto no menu (pulando a escolha de idioma),
-  // =battle na batalha e =loading na tela de loading (que segue para a batalha);
-  // PONTIFICE_MOUSE=x,y injeta um
-  // movimento de mouse em coordenadas lógicas; PONTIFICE_SCREENSHOT=arquivo.bmp salva o
-  // quadro PONTIFICE_SCREENSHOT_FRAME (padrão 60), ou o primeiro quadro depois de
-  // PONTIFICE_SCREENSHOT_TIME segundos, e encerra.
+  // Debug: PONTIFICE_SCENE opens that scene first; PONTIFICE_MOUSE=x,y injects a mouse move.
   const char* env_scene = std::getenv("PONTIFICE_SCENE");
   const char* env_mouse = std::getenv("PONTIFICE_MOUSE");
-  // PONTIFICE_DRAG: sequência de gestos separados por ';'. "x0,y0,x1,y1,t" = arrasto do botão
-  // esquerdo de (x0,y0) a (x1,y1) começando em t s (pressiona, move em 0,3 s, solta em 0,6 s;
-  // x0=x1,y0=y1 vira clique); "w,dy,t" = roda do mouse dy em t s; "d,x,y,t" = duplo clique.
+  // Debug: PONTIFICE_DRAG lists drags "x0,y0,x1,y1,t", wheels "w,dy,t", double clicks "d,x,y,t".
   struct Gesture {
     bool wheel = false;
     bool double_click = false;
     float x0 = 0, y0 = 0, x1 = 0, y1 = 0, t = 2.0f, dy = 0;
-    int stage = 0;  // 0 nada, 1 pressionado, 2 movido, 3 feito
+    int stage = 0;  // 0 idle, 1 pressed, 2 moved, 3 done
   };
   std::vector<Gesture> gestures;
   if (const char* env_drag = std::getenv("PONTIFICE_DRAG")) {
@@ -222,8 +224,7 @@ int main(int /*argc*/, char** /*argv*/) {
       pos = end + 1;
     }
   }
-  // PONTIFICE_KEYS: teclas separadas por ';', "nome,t" = aperta a tecla (nome do SDL, ex.:
-  // Escape, Return, Left) em t s.
+  // Debug: PONTIFICE_KEYS is a ';' list of "name,t" SDL key presses at t seconds.
   struct KeyPress {
     SDL_Keycode key = SDLK_UNKNOWN;
     float t = 0.0f;
@@ -247,12 +248,13 @@ int main(int /*argc*/, char** /*argv*/) {
       pos = end + 1;
     }
   }
+  // Debug: screenshot at PONTIFICE_SCREENSHOT_FRAME (60) or PONTIFICE_SCREENSHOT_TIME, then quit.
   const char* env_shot = std::getenv("PONTIFICE_SCREENSHOT");
   const char* env_shot_frame = std::getenv("PONTIFICE_SCREENSHOT_FRAME");
   const char* env_shot_time = std::getenv("PONTIFICE_SCREENSHOT_TIME");
   const int shot_frame = env_shot_frame != nullptr ? std::atoi(env_shot_frame) : 60;
   const double shot_time = env_shot_time != nullptr ? std::atof(env_shot_time) : -1.0;
-  // Primeira cena: escolha de idioma (docs/idioma.md); com PONTIFICE_LANG, direto no menu.
+  // First scene: language choice, or the menu when PONTIFICE_LANG is set.
   SceneId first = env_lang != nullptr ? SceneId::kMenu : SceneId::kLanguage;
   if (env_scene != nullptr && std::strcmp(env_scene, "language") == 0) first = SceneId::kLanguage;
   if (env_scene != nullptr && std::strcmp(env_scene, "menu") == 0) first = SceneId::kMenu;
@@ -262,7 +264,7 @@ int main(int /*argc*/, char** /*argv*/) {
   scenes.SwitchTo(first);
   int frame = 0;
 
-  const Uint64 start = SDL_GetTicksNS();  // depois da primeira cena carregar
+  const Uint64 start = SDL_GetTicksNS();  // after the first scene loads
   Uint64 last = start;
   while (!scenes.ShouldQuit()) {
     SDL_Event event;
@@ -271,7 +273,6 @@ int main(int /*argc*/, char** /*argv*/) {
         scenes.RequestQuit();
         break;
       }
-      // Converte coordenadas de mouse da janela para a resolução lógica.
       SDL_ConvertEventToRenderCoordinates(app.renderer, &event);
       scenes.HandleEvent(event);
     }
@@ -363,9 +364,9 @@ int main(int /*argc*/, char** /*argv*/) {
 
     SDL_RenderPresent(app.renderer);
   }
-  }  // cenas destruídas aqui
+  }  // scenes destroyed here
 
-  text::Shutdown();  // textura da fonte antes de destruir o renderer
+  text::Shutdown();  // font texture before the renderer goes away
   Shutdown(app);
   return 0;
 }

@@ -32,9 +32,6 @@ class GrimoireScene : public Scene {
   void Render(SceneContext& ctx) override;
 
  private:
-  static constexpr int kColumns = 4;
-  static constexpr int kRows = 2;
-  static constexpr int kPerPage = kColumns * kRows;
   static constexpr int kCategories = 4;  // G, E, N, F
   static constexpr char kCategoryCodes[kCategories] = {'G', 'E', 'N', 'F'};
 

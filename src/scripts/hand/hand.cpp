@@ -179,7 +179,7 @@ void Hand::MouseUp(math::Vec2 mouse, int clicks) {
   if (rotating_) {
     rotating_ = false;
     const float moved = std::fabs(mouse.x - press_pos_.x) + std::fabs(mouse.y - press_pos_.y);
-    if (moved < 6.0f && clicks <= 1) {  // click: on the card flips, elsewhere stops
+    if (moved < layout_.click_slop && clicks <= 1) {  // click: on the card flips, elsewhere stops
       if (PickCard(mouse, last_view_proj_, last_width_, last_height_) == inspecting_) {
         Flip();
       } else {
@@ -271,14 +271,14 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
     yaw_target_ = inspect_yaw_;
   } else if (Inspecting()) {
     inspect_yaw_ = Approach(inspect_yaw_, yaw_target_, layout_.flip_speed, dt);
-    inspect_pitch_ = Approach(inspect_pitch_, 0.0f, layout_.flip_speed * 0.5f, dt);
+    inspect_pitch_ = Approach(inspect_pitch_, 0.0f, layout_.flip_speed * layout_.unflip_ratio, dt);
   }
   last_mouse_ = mouse;
   inspect_t_ = Approach(inspect_t_, Inspecting() ? 1.0f : 0.0f, layout_.inspect_speed, dt);
   zoom_shown_ = Approach(zoom_shown_, zoom_, layout_.inspect_speed, dt);
   if (!Inspecting() && inspect_t_ < 0.01f) inspect_card_ = -1;
 
-  away_t_ = Approach(away_t_, away_ ? 1.0f : 0.0f, layout_.raise_speed * 0.6f, dt);
+  away_t_ = Approach(away_t_, away_ ? 1.0f : 0.0f, layout_.raise_speed * layout_.away_ratio, dt);
   const bool interactive = !Inspecting() && !away_ && dragging_ < 0;
   hovered_ = interactive ? PickCard(mouse, view_proj, width, height) : -1;
   raised_ = interactive ? MouseOverHand(mouse, view_proj, height) : false;

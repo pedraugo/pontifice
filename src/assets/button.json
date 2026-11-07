@@ -1,9 +1,21 @@
 {
-  "icon": {"size": 3, "margin": 1, "padding": 0.12},
-  "flag": {"height": 2.5, "gap": 1},
-  "menu": {"rowHeight": 4, "rowGap": 2},
-  "language": {"rowHeight": 4, "rowGap": 2},
-  "battle": {"endTurn": {"width": 21, "height": 3.5, "top": 6}},
-  "dialog": {"width": 14, "height": 3.5},
-  "grimoire": {"filterHeight": 3, "filterPadding": 2, "navWidth": 12, "navHeight": 3.5, "exitWidth": 10, "exitHeight": 3.5}
+  "button": {
+    "small": {"height": 2.5, "padding": 1, "minWidth": 0, "label": "small"},
+    "regular": {"height": 3.5, "padding": 2, "minWidth": 12, "label": "regular"},
+    "large": {"height": 4, "padding": 3, "minWidth": 21, "label": "large"},
+    "dangerSmall": {"height": 2.5, "padding": 1, "minWidth": 0, "label": "small"},
+    "dangerRegular": {"height": 3.5, "padding": 2, "minWidth": 12, "label": "regular"},
+    "dangerLarge": {"height": 4, "padding": 3, "minWidth": 21, "label": "large"}
+  },
+  "buttonText": {
+    "regular": {"rowHeight": 4, "rowGap": 2, "label": "regular"},
+    "danger": {"rowHeight": 4, "rowGap": 2, "label": "regular"},
+    "flag": {"rowHeight": 4, "rowGap": 2, "flagHeight": 2.5, "gap": 1, "label": "regular"}
+  },
+  "buttonIcon": {
+    "small": {"size": 2, "margin": 1, "padding": 0.12},
+    "regular": {"size": 3, "margin": 1, "padding": 0.12},
+    "large": {"size": 4, "margin": 1, "padding": 0.12},
+    "danger": {"size": 3, "margin": 1, "padding": 0.12}
+  }
 }

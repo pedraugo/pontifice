@@ -1,98 +1,42 @@
 {
-  "source": "assets/icon.png",
-  "notes": [
-    "Paleta extraída do ícone: pedra azul-acinzentada escura e aço claro, tudo no mesmo matiz (~211 graus).",
-    "palette: tons medidos no ícone, do mais escuro (900) ao mais claro (50).",
-    "roles: para que serve cada cor no jogo. Formato #rrggbb ou #rrggbbaa.",
-    "status.buff, status.nerf e board.slotHover (amarelo) não existem no ícone: escolhidos para contrastar com a paleta.",
-    "board.slotHoverField: moldura de seleção do slot e seta de ataque com carta de campo ativa (ou selecionada), rosa para não sumir na arena dourada.",
-    "board.fieldArena: tint dourado da arena enquanto há carta de campo ativa (ou uma selecionada na mão) (multiplica a pedra, reforçado 1,5x no código). board.fieldMistGood / fieldMistEvil: névoa de chão nesse estado; board.fieldFogGood / fieldFogEvil: fundo do ambiente (cor de limpeza e névoa por distância), tom escuro da categoria, conforme a categoria que a carta favorece.",
-    "board.status: linha de situação da batalha, branca opaca. board.hint: dica abaixo dela, com 75% de opacidade (bf).",
-    "background.menu / background.language: fundo quase preto do menu e da cena de idioma. buttonText.text / highlight: botões só de texto (ButtonText: menu e idiomas), normal e com hover/foco.",
-    "frame.*: placa da interface (botões, janelas, painéis do HUD, tooltip), desenhada só com retângulos: fill preto a 75% (bf), border branca a 40% (66) e outline preta a 25% (40), ambas de 3 px. fillPressed: fundo a 90% (e6) com o botão pressionado; borderHighlight: borda a 60% (99) com hover/foco. O nó das quinas usa a cor da borda. frame.danger*: fundo vermelho escuro dos botões de ação destrutiva (Sair, confirmar abandono).",
-    "button.text / focusBorder: rótulo do botão e traço fino em volta do fundo com foco de teclado."
-  ],
-  "palette": {
-    "stone900": "#04090f",
-    "stone800": "#111923",
-    "stone700": "#1e2835",
-    "stone600": "#2c3847",
-    "stone500": "#3c4859",
-    "slate400": "#4c596b",
-    "slate300": "#6c798e",
-    "steel200": "#8c99af",
-    "steel100": "#aeb9cc",
-    "steel50": "#ced8e7",
-    "silver": "#e1e9f4",
-    "white": "#f1f7fd"
-  },
-  "roles": {
-    "text": {
-      "primary": "#e1e9f4",
-      "secondary": "#aeb9cc",
-      "muted": "#6c798e",
-      "title": "#f1f7fd",
-      "shadow": "#04090f"
-    },
-    "background": {
-      "menu": "#091119",
-      "language": "#091119",
-      "loading": "#091119",
-            "fog": "#1e2835",
-      "mist": "#b9bec7",
-      "overlay": "#04090fa0"
-    },
-    "border": {
-      "subtle": "#3c4859"
-    },
-    "frame": {
-      "fill": "#000000bf",
-      "fillPressed": "#000000e6",
-      "dangerFill": "#3a0d0fbf",
-      "dangerFillPressed": "#3a0d0fe6",
-      "border": "#ffffff66",
-      "borderHighlight": "#ffffff99",
-      "outline": "#00000040"
-    },
-    "panel": {
-      "border": "#8c99af",
-      "title": "#f1f7fd",
-      "label": "#aeb9cc",
-      "value": "#e1e9f4"
-    },
-    "button": {
-      "text": "#e1e9f4",
-      "focusBorder": "#e1e9f4"
-    },
-    "buttonText": {
-      "text": "#aeb9cc",
-      "highlight": "#f1f7fd"
-    },
-    "hud": {
-      "fieldName": "#f1f7fd",
-      "lifeLabel": "#e1e9f4",
-      "lifeValue": "#f1f7fd",
-      "lifeZero": "#d9655a",
-      "counterValue": "#e1e9f4",
-      "deckEmpty": "#d9655a"
-    },
-    "board": {
-      "slot": "#ced8e74d",
-      "slotHover": "#f2d35b",
-      "slotHoverField": "#ff5fae",
-      "status": "#ffffff",
-      "hint": "#e1e9f4bf",
-      "fieldArena": "#ffc94a",
-      "fieldMistGood": "#4f8dff",
-      "fieldMistEvil": "#a55cff",
-      "fieldFogGood": "#13254a",
-      "fieldFogEvil": "#2a1442"
-    },
-    "status": {
-      "buff": "#8fcf86",
-      "nerf": "#d9655a",
-      "victory": "#8fcf86",
-      "defeat": "#d9655a"
-    }
-  }
+  "black": "#000000",
+  "white": "#ffffff",
+  "ivory": "#fff7d9",
+  "silverLight": "#f1f7fd",
+  "silver": "#e1e9f4",
+  "silverDark": "#ced8e7",
+  "steelLight": "#aeb9cc",
+  "steel": "#8c99af",
+  "slate": "#6c798e",
+  "stone": "#3c4859",
+  "stoneDark": "#1e2835",
+  "stoneDarker": "#091119",
+  "stoneBlack": "#04090f",
+  "ink": "#141418",
+  "inkDark": "#0c0c10",
+  "grayLight": "#b9bec7",
+  "red": "#d9655a",
+  "redLight": "#f3a094",
+  "redDark": "#3a0d0f",
+  "redBright": "#ff5959",
+  "vermilion": "#ff5940",
+  "green": "#8fcf86",
+  "yellow": "#f2d35b",
+  "gold": "#ffc94a",
+  "goldLight": "#ffe073",
+  "goldDark": "#dbad42",
+  "brass": "#d1a847",
+  "brown": "#4d2e1a",
+  "pink": "#ff5fae",
+  "blue": "#4f8dff",
+  "blueMarine": "#13254a",
+  "purple": "#a55cff",
+  "purpleDark": "#2a1442",
+  "flagUsRed": "#b22234",
+  "flagUsBlue": "#3c3b6e",
+  "flagEsRed": "#aa151b",
+  "flagEsYellow": "#f1bf00",
+  "flagBrGreen": "#009c3b",
+  "flagBrYellow": "#ffdf00",
+  "flagBrBlue": "#002776"
 }

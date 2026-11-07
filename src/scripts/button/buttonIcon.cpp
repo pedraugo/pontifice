@@ -8,12 +8,15 @@
 
 ButtonIcon::ButtonIcon(Icon icon) : Button(""), icon_(icon) {}
 
+std::string ButtonIcon::VariantKey() const {
+  return Danger() ? "buttonIcon.danger" : std::string("buttonIcon.") + SizeName();
+}
+
 void ButtonIcon::RenderContent(SDL_Renderer* r) const {
-  const SDL_Color ink = colors::Get(active_ ? "button.text" : "text.muted");
+  const SDL_Color ink = colors::Get(active_ ? "silver" : "slate");
   const SDL_FRect& full = Rect();
   // Fraction of the button size kept clear between the frame and the icon, per side.
-  static const float padding = button::Number("icon.padding", 0.12f);
-  const float pad = std::min(full.w, full.h) * padding;
+  const float pad = std::min(full.w, full.h) * MeasureNumber("padding", 0.12f);
   const SDL_FRect rect{full.x + pad, full.y + pad, full.w - 2.0f * pad, full.h - 2.0f * pad};
   switch (icon_) {
     case Icon::kSound:
@@ -40,7 +43,7 @@ void ButtonIcon::RenderSound(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color i
     draw::Arc(r, c, rect.w * 0.12f, -0.9f, 0.9f, ink, 2.0f);
     draw::Arc(r, c, rect.w * 0.22f, -0.9f, 0.9f, ink, 2.0f);
   } else {
-    const SDL_Color x = colors::Get("status.nerf");
+    const SDL_Color x = colors::Get("red");
     draw::Line(r, P(0.60f, 0.38f), P(0.80f, 0.62f), x, 3.0f);
     draw::Line(r, P(0.80f, 0.38f), P(0.60f, 0.62f), x, 3.0f);
   }
@@ -52,7 +55,7 @@ void ButtonIcon::RenderHint(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color in
   text::DrawCentered(r, "?", rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f, scale, ink);
   if (!active_) {
     draw::Line(r, {rect.x + rect.w * 0.28f, rect.y + rect.h * 0.72f},
-               {rect.x + rect.w * 0.72f, rect.y + rect.h * 0.28f}, colors::Get("status.nerf"),
+               {rect.x + rect.w * 0.72f, rect.y + rect.h * 0.28f}, colors::Get("red"),
                3.0f);
   }
 }

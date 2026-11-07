@@ -8,6 +8,7 @@
 #include "scripts/i18n/i18n.h"
 #include "scripts/json/json.h"
 #include "scripts/log/log.h"
+#include "scripts/rules/rules.h"
 
 namespace {
 
@@ -105,7 +106,10 @@ std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,
   std::vector<std::string> deck;
   if (all.empty()) return deck;
   std::map<std::string, int> copies;
-  auto limit = [](const CardInfo& card) { return card.hierarchy == 1 ? 1 : 2; };
+  const rules::Settings& settings = rules::Get();
+  auto limit = [&settings](const CardInfo& card) {
+    return card.hierarchy == 1 ? settings.max_copies_rarest : settings.max_copies;
+  };
   auto w = [&weight](const CardInfo& card) { return weight ? weight(card) : card.odds; };
   while (static_cast<int>(deck.size()) < size) {
     long total = 0;

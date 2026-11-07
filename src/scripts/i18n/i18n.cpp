@@ -16,6 +16,27 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> g_
 std::vector<Language> g_languages;
 std::string g_language = kDefaultLanguage;
 
+bool IsLeaf(const json::Value& node) {
+  for (const auto& [code, text] : node.object) {
+    if (!text.IsString()) return false;
+  }
+  return true;
+}
+
+// Nested groups become dotted keys: menu.play -> "menu.play"; "languages" is an array, skipped.
+void Flatten(const json::Value& node, const std::string& prefix) {
+  for (const auto& [name, child] : node.object) {
+    if (!child.IsObject()) continue;
+    const std::string key = prefix.empty() ? name : prefix + "." + name;
+    if (!IsLeaf(child)) {
+      Flatten(child, key);
+      continue;
+    }
+    auto& by_language = g_strings[key];
+    for (const auto& [code, text] : child.object) by_language[code] = text.string;
+  }
+}
+
 const std::string* Lookup(const std::string& key, const std::string& code) {
   const auto entry = g_strings.find(key);
   if (entry == g_strings.end()) return nullptr;
@@ -41,15 +62,7 @@ bool Load(const std::string& path) {
       if (!language.code.empty()) g_languages.push_back(language);
     }
   }
-  if (const json::Value* strings = root.Find("strings"); strings && strings->IsObject()) {
-    for (const auto& [key, texts] : strings->object) {
-      if (!texts.IsObject()) continue;
-      auto& by_language = g_strings[key];
-      for (const auto& [code, text] : texts.object) {
-        if (text.IsString()) by_language[code] = text.string;
-      }
-    }
-  }
+  Flatten(root, "");
   LOG("Translations loaded: %zu keys, %zu languages", g_strings.size(), g_languages.size());
   return !g_strings.empty();
 }

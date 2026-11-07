@@ -3,21 +3,22 @@
 #include <algorithm>
 
 #include "scripts/colors/colors.h"
+#include "scripts/opacity/opacity.h"
 #include "scripts/frame/frame.h"
 #include "scripts/text/text.h"
 #include "scripts/ui/ui.h"
 
 namespace {
 
-// Window, padding and title gap from ui.json ("dialog"), buttons from button.json ("dialog")
-// in the bottom corners, title and question sizes from text.json.
+// Window, padding and title gap from ui.json ("dialog"), regular buttons from button.json in
+// the bottom corners, title ("xlarge") and question ("description") variants from text.json.
 struct Layout {
   float min_w = ui::Cells("dialog.minWidth", 48.0f);
   float h = ui::Cells("dialog.height", 16.0f);
   float padding = ui::Cells("dialog.padding", 3.0f);
   float title_gap = ui::Cells("dialog.titleGap", 1.5f);
-  float title_scale = ui::TextScale("dialog.title", 3.0f);
-  float question_scale = ui::TextScale("dialog.question", 2.0f);
+  text::Style title_style = text::Styles({"xlarge"});
+  text::Style question_style = text::Styles({"description"});
 };
 
 const Layout& L() {
@@ -38,12 +39,12 @@ void ConfirmDialog::Open(const std::string& title, const std::string& question,
   yes_.SetLabel(yes_label);
   yes_.SetDanger(yes_danger);
   const float text_w =
-      std::max(text::Width(title_.c_str(), L().title_scale, text::Face::kTitle),
-               text::Width(question_.c_str(), L().question_scale, text::Face::kBody));
+      std::max(text::Width(title_.c_str(), L().title_style),
+               text::Width(question_.c_str(), L().question_style));
   const float w = std::max(L().min_w, ui::SnapUp(text_w + 2 * L().padding));
   panel_ = SDL_FRect{(width - w) / 2.0f, (height - L().h) / 2.0f, w, L().h};
-  const float button_w = button::Cells("dialog.width", 14.0f);
-  const float button_h = button::Cells("dialog.height", 3.5f);
+  const float button_w = std::max(no_.PreferredWidth(), yes_.PreferredWidth());
+  const float button_h = no_.Height();
   const float button_y = panel_.y + panel_.h - L().padding - button_h;
   no_.SetRect(SDL_FRect{panel_.x + L().padding, button_y, button_w, button_h});
   yes_.SetRect(SDL_FRect{panel_.x + panel_.w - L().padding - button_w, button_y, button_w,
@@ -93,22 +94,21 @@ void ConfirmDialog::Render(SDL_Renderer* r, int width, int height) const {
   SDL_GetRenderDrawBlendMode(r, &previous);
   SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
 
-  SDL_Color c = colors::Get("background.overlay");
+  SDL_Color c = opacity::Apply(colors::Get("stoneBlack"), "overlay");
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   const SDL_FRect full{0, 0, static_cast<float>(width), static_cast<float>(height)};
   SDL_RenderFillRect(r, &full);
 
   frame::Draw(r, panel_, frame::Kind::kWindow);
   const float cx = panel_.x + panel_.w / 2.0f;
-  const float title_h = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * L().title_scale;
+  const float title_h = text::LineHeight(L().title_style);
   const float title_y = panel_.y + L().padding + title_h / 2.0f;
-  text::DrawCentered(r, title_.c_str(), cx, title_y, L().title_scale,
-                     colors::Get("panel.title"), text::Face::kTitle);
+  text::DrawCentered(r, title_.c_str(), cx, title_y, L().title_style, colors::Get("silverLight"));
   // Question centered between the title and the buttons.
   const float top = title_y + title_h / 2.0f + L().title_gap;
   const float bottom = no_.Rect().y;
-  text::DrawCentered(r, question_.c_str(), cx, (top + bottom) / 2.0f, L().question_scale,
-                     colors::Get("text.primary"), text::Face::kBody);
+  text::DrawCentered(r, question_.c_str(), cx, (top + bottom) / 2.0f, L().question_style,
+                     colors::Get("silver"));
   no_.Render(r);
   yes_.Render(r);
 

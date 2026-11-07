@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates src/icons/icon.ico (Windows) from src/assets/icon.png.
+"""Generates src/icons/icon.ico (Windows) from src/icons/icon.png.
 
 The .ico embeds PNGs at sizes 16 to 256 (format accepted since Windows Vista). Resizing
 uses macOS `sips`; on other systems, generate the PNGs externally and point to them with --sizes-dir.
@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "src" / "assets" / "icon.png"
+SOURCE = ROOT / "src" / "icons" / "icon.png"
 ICO = ROOT / "src" / "icons" / "icon.ico"
 SIZES = (256, 128, 64, 48, 32, 16)
 

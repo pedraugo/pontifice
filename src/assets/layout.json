@@ -1,0 +1,222 @@
+{
+  "menu": {"fadeOut": 0.5, "loadingFadeIn": 0.5},
+  "loading": {
+    "camera": {"z": 11.4, "fov": 35},
+    "torch": {
+      "y": -2.8,
+      "flicker": [
+        {"amplitude": 0.1, "frequency": 11.0, "phase": 0.0},
+        {"amplitude": 0.06, "frequency": 5.3, "phase": 2.0},
+        {"amplitude": 0.04, "frequency": 23.7, "phase": 0.7}
+      ]
+    },
+    "dotsPerSecond": 2,
+    "minSeconds": 2,
+    "fadeOut": 0.7,
+    "nextFadeIn": 1
+  },
+  "grimoire": {
+    "hoverLift": 0.05,
+    "slideSeconds": 0.8,
+    "slideShrink": 0.25,
+    "fadeOut": 0.4,
+    "menuFadeIn": 0.4
+  },
+  "battle": {
+    "reveal": {
+      "seconds": 2,
+      "travelSeconds": 0.5,
+      "fadeInSeconds": 0.2,
+      "fadeOutSeconds": 0.25,
+      "scaleIn": 0.85,
+      "scaleOut": 0.92,
+      "veilBehind": 1,
+      "sway": {
+        "seconds": 0.3,
+        "yaw": 0.42,
+        "yawFrequency": 3.1,
+        "pitch": 0.1,
+        "pitchFrequency": 2.3
+      },
+      "glow": {"pulseFrequency": 2.6, "hueSpeed": 0.12}
+    },
+    "arena": {
+      "scale": 4.2,
+      "baseY": -0.061,
+      "topY": 0.3,
+      "fieldGlowSpeed": 6,
+      "fieldGlowBoost": 1.5
+    },
+    "torch": {"x": 6.4, "z": -1, "scale": 2.6, "tilt": 0.1},
+    "camera": {
+      "fov": 35,
+      "orbitSeconds": 1,
+      "shake": {
+        "seconds": 0.45,
+        "amplitude": 0.16,
+        "targetFollow": 0.6,
+        "frequency": [57, 43, 67],
+        "ratio": [1, 0.8, 0.6],
+        "phase": [0, 1.3, 2.1]
+      },
+      "eye": [0, 10.5, 12.2],
+      "target": [0, -0.1, -0.3],
+      "introEye": [0, 16, 22]
+    },
+    "intro": {
+      "seconds": 1.6,
+      "drop": 3.2,
+      "torchStart": 1.1,
+      "torchSeconds": 1.2,
+      "torchDrop": 4.5,
+      "igniteSeconds": 0.6,
+      "matchStart": 3.2,
+      "dealDelay": 0.8
+    },
+    "opponent": {
+      "pauseSeconds": 0.7,
+      "afterOrbitSeconds": 0.2,
+      "positionSfxGapSeconds": 0.25,
+      "attackDelaySeconds": 0.3,
+      "attackGapSeconds": 0.9,
+      "handHiddenDrop": 0.35
+    },
+    "handHideSeconds": 0.5,
+    "attack": {
+      "hitSeconds": 0.25,
+      "arrow": {"pulseSpeed": 1.25}
+    },
+    "board": {
+      "tile": 0.356,
+      "channelHalf": 0.178,
+      "topY": 0.3,
+      "cardScale": 0.36,
+      "highlightInset": 0.88,
+      "frameThickness": 0.08,
+      "highlightLift": 0.012,
+      "placeSeconds": 0.45,
+      "placeTilt": -0.9,
+      "placeScale": 1.5,
+      "discardSeconds": 0.35,
+      "discardRise": 1.6,
+      "positionSpeed": 9,
+      "hoverScale": 1.45,
+      "hoverLift": 0.35,
+      "hoverSpeed": 12,
+      "lungeSeconds": 0.5,
+      "lungeReach": 0.7,
+      "lungeHeight": 0.6,
+      "flashSpeed": 5,
+      "spentScale": 0.82,
+      "spentDesaturate": 0.5,
+      "spentSpeed": 8,
+      "pulseSpeed": 3,
+      "placeFrom": [0, 2.4, 1.4]
+    },
+    "hand": {
+      "baseY": -1.85,
+      "baseZ": 0,
+      "depthStep": 0.03,
+      "spacing": 1.05,
+      "maxWidth": 9.5,
+      "arc": 0.045,
+      "tiltPerUnit": 0.06,
+      "scale": 0.5,
+      "hoverScale": 0.55,
+      "hoverLift": 0.85,
+      "hoverForward": 1,
+      "neighborPush": 0.2,
+      "animSpeed": 14,
+      "tiltMax": 0.3,
+      "tiltSpeed": 12,
+      "hiddenDrop": 1,
+      "awayDrop": 3.5,
+      "raiseSpeed": 10,
+      "dragZ": 1,
+      "dragScale": 0.32,
+      "dragSpeed": 16,
+      "inspectZ": 4.2,
+      "inspectY": -0.05,
+      "cameraZ": 10,
+      "fov": 35,
+      "zoomMin": 0.75,
+      "zoomMax": 1,
+      "zoomStart": 0.8,
+      "zoomStep": 0.05,
+      "inspectSpeed": 9,
+      "rotateSpeed": 0.01,
+      "tiltLimit": 0.35,
+      "flipSpeed": 9,
+      "dealFromX": -8.5,
+      "dealSpeed": 13,
+      "dealStagger": 0.12,
+      "unflipRatio": 0.5,
+      "awayRatio": 0.6
+    },
+    "shield": {
+      "scale": 0.85,
+      "height": 0.8,
+      "lean": 0.3,
+      "appear": 0.15,
+      "hold": 0.9,
+      "broken": 0.8,
+      "waveSeconds": 0.4,
+      "overshoot": 1.9,
+      "fadeSeconds": 0.25,
+      "recoil": 0.35,
+      "recoilDecay": 9,
+      "recoilPush": 0.25,
+      "flashBoost": 1.4,
+      "flashDecay": 7,
+      "breakSpin": 1.6,
+      "breakDrop": 0.7,
+      "waveStart": 0.55,
+      "waveGrow": 1.1,
+      "waveLift": 0.09
+    },
+    "sword": {
+      "scale": 1,
+      "seconds": 0.55,
+      "swingEnd": 0.35,
+      "pivotHeight": 1.15,
+      "pivotBack": 0.45,
+      "angleStart": -1.3,
+      "angleEnd": 2.75,
+      "slashLength": 1.5,
+      "slashWidth": 0.14,
+      "slashSeconds": 0.3,
+      "drop": 0.35,
+      "slashGrow": 4,
+      "slashAlpha": 0.9,
+      "slashLift": 0.03,
+      "slashAngle": 0.7
+    }
+  },
+  "hud": {
+    "life": {
+      "shake": {
+        "seconds": 0.4,
+        "amplitudePx": 9,
+        "frequencyX": 61,
+        "frequencyY": 47,
+        "ratioY": 0.5,
+        "phaseY": 1.1
+      },
+      "flash": {"seconds": 0.6, "blinkSeconds": 0.16}
+    },
+    "field": {
+      "zoom": {"seconds": 0.15}
+    },
+    "popup": {
+      "seconds": 1.2,
+      "fadeSeconds": 0.4,
+      "jumpSpeedPx": 230,
+      "gravityPx": 900,
+      "driftSpeedPx": 110,
+      "driftEven": -1,
+      "driftOdd": -0.35,
+      "popSeconds": 0.15,
+      "popGrow": 0.6
+    }
+  }
+}

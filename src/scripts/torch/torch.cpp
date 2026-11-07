@@ -1,6 +1,7 @@
 #include "scripts/torch/torch.h"
 
 #include "scripts/config/config.h"
+#include "scripts/opacity/opacity.h"
 
 #include <cmath>
 
@@ -37,7 +38,7 @@ void Torch::DrawFlame(Gpu& gpu, const math::Mat4& world, const math::Mat4& view_
            math::Mat4::Translate({0.0f, -kFlameBaseY, 0.0f});
   };
   const SDL_FColor light = LightColor();
-  const float glow_alpha = config::Float("light", "torch.glowAlpha", 0.22f);
+  const float glow_alpha = opacity::Get("torchGlow");
   for (const Model::Part& part : model_.Parts()) {
     if (part.name != "Flame") continue;
     gpu.Draw(part.mesh, nullptr, flame_matrix(2.1f, 1.3f, 0.04f), view_proj,

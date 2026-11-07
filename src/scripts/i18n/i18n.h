@@ -14,7 +14,7 @@ struct Language {
   std::string flag;
 };
 
-// Reads translate.json: "languages" list and "strings" {key: {code: text}}.
+// Reads translate.json: "languages" list plus nested text groups; leaves are {code: text}.
 bool Load(const std::string& path);
 const std::vector<Language>& Languages();
 

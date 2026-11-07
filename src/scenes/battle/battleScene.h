@@ -84,7 +84,7 @@ class BattleScene : public Scene {
   bool CanAct() const;
   bool CanSummon() const;
   bool DraggedIsField() const;
-  const char* HoverRole() const;
+  const char* HoverColor() const;
   void Summon(int slot);
   void PlayField(Side owner, const CardInfo& card);
 

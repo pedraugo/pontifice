@@ -1,14 +1,6 @@
 {
-  "notes": [
-    "Iluminação do jogo (scripts/config, nome \"light\"). Direções apontam PARA a luz e são normalizadas no envio.",
-    "Cores: #rrggbb, papel de colors.json ou [r, g, b] em 0..1. Intensidades em unidades do shader (1 = cheia).",
-    "torch: a tocha é a única fonte de luz da arena e do loading; color vale para a luz pontual e o halo da chama.",
-    "battle.arena: luz da mesa 3D. battle.hand: luz da mão de cartas (camada própria, sem névoa).",
-    "loading: uma tocha no vazio preto; só o ambiente mínimo além da chama."
-  ],
   "torch": {
     "color": "#fff5d1",
-    "glowAlpha": 0.22,
     "battle": { "intensity": 2.6 },
     "loading": { "intensity": 0.9 }
   },

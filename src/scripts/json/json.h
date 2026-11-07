@@ -24,7 +24,7 @@ class Value {
   bool IsNumber() const { return type == Type::kNumber; }
 
   const Value* Find(const std::string& key) const;
-  // Dotted path like "roles.panel.fill"; nullptr if any level is missing.
+  // Dotted path like "battle.fog.color"; nullptr if any level is missing.
   const Value* Path(const std::string& dotted) const;
 };
 

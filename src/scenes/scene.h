@@ -5,10 +5,11 @@
 #include <memory>
 #include <optional>
 
+#include "scripts/rules/rules.h"
+
 class Music;
 
 enum class SceneId { kLanguage, kMenu, kLoading, kBattle, kGrimoire };
-constexpr int kDefaultDifficulty = 1;
 
 class Scene;
 
@@ -16,7 +17,7 @@ struct PreloadInfo {
   SDL_GPUDevice* gpu_device = nullptr;
   int logical_width = 0;
   int logical_height = 0;
-  int difficulty = kDefaultDifficulty;
+  int difficulty = rules::Get().default_difficulty;
 };
 
 struct SceneContext {
@@ -26,7 +27,7 @@ struct SceneContext {
   int logical_width = 0;
   int logical_height = 0;
 
-  int difficulty = kDefaultDifficulty;
+  int difficulty = rules::Get().default_difficulty;
   PreloadInfo Preload() const {
     return {gpu_device, logical_width, logical_height, difficulty};
   }

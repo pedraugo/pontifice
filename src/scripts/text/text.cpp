@@ -9,11 +9,15 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #define STBTT_STATIC
 #include <stb_truetype.h>
+#include "scripts/config/config.h"
 #include "scripts/log/log.h"
+#include "scripts/ui/ui.h"
 
 namespace {
 
 constexpr float kCellPx = 8.0f;  // line height per scale unit (debug-font convention)
+constexpr float kBoldOffset = 0.035f;  // faux bold: second pass shifted by this em fraction
+constexpr float kItalicShear = 0.21f;  // faux italic: x shift per px above the baseline
 // Em per line height: PirataOne caps are small, so its em is enlarged to keep visual size.
 constexpr float kTitleEmBoost = 1.6f;
 constexpr float kBodyEmBoost = 1.0f;
@@ -148,7 +152,8 @@ int SizeIndex(float device_px) {
 
 bool IsBig(float device_px) { return device_px > kSizes[kNumSizes - 1]; }
 
-float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
+// Width in atlas px at size `s`; `spacing` is extra atlas px between glyphs.
+float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s, float spacing) {
   const float scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
   float w = 0.0f;
   for (size_t i = 0; i < cps.size(); ++i) {
@@ -156,13 +161,55 @@ float NativeWidth(const Font& f, const std::vector<Uint32>& cps, int s) {
     if (slot < 0) continue;
     w += f.chars[s][slot].xadvance;
     if (i + 1 < cps.size()) {
-      w += scale * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
-                                                 static_cast<int>(cps[i + 1]));
+      w += spacing + scale * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
+                                                           static_cast<int>(cps[i + 1]));
     }
   }
   return w;
 }
 
+// Textured quad; `shear` > 0 slants it to the right about `baseline` (faux italic).
+void Blit(SDL_Renderer* r, SDL_Texture* texture, int tex_w, int tex_h, const SDL_FRect& src,
+          const SDL_FRect& dst, float shear, float baseline, SDL_Color color) {
+  if (shear == 0.0f) {
+    SDL_RenderTexture(r, texture, &src, &dst);
+    return;
+  }
+  const SDL_FColor c{color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f};
+  const float u0 = src.x / tex_w, v0 = src.y / tex_h;
+  const float u1 = (src.x + src.w) / tex_w, v1 = (src.y + src.h) / tex_h;
+  const float top = (baseline - dst.y) * shear;
+  const float bottom = (baseline - dst.y - dst.h) * shear;
+  const SDL_Vertex v[4] = {{{dst.x + top, dst.y}, c, {u0, v0}},
+                           {{dst.x + dst.w + top, dst.y}, c, {u1, v0}},
+                           {{dst.x + dst.w + bottom, dst.y + dst.h}, c, {u1, v1}},
+                           {{dst.x + bottom, dst.y + dst.h}, c, {u0, v1}}};
+  const int idx[6] = {0, 1, 2, 0, 2, 3};
+  SDL_RenderGeometry(r, texture, v, 4, idx, 6);
+}
+
+}
+
+namespace text {
+namespace {
+
+struct Params {
+  float scale = 1.0f;  // logical px per 8 px cell, already times ui::TextScale()
+  Face face = Face::kTitle;
+  bool bold = false;
+  bool italic = false;
+  float spacing = 0.0f;  // em fraction
+};
+
+Params From(const Style& style) {
+  return Params{Scale(style), style.face, style.bold, style.italic, style.letter_spacing};
+}
+
+float WidthImpl(const char* str, const Params& p);
+void DrawImpl(SDL_Renderer* r, const char* str, float x, float y, const Params& p,
+              SDL_Color color);
+
+}
 }
 
 namespace text {
@@ -245,29 +292,88 @@ void Shutdown() {
   }
 }
 
-float Width(const char* str, float scale, Face face) {
-  const Font& f = Pick(face);
-  if (!f.ready) {
-    size_t count = 0;
-    while (SDL_StepUTF8(&str, nullptr) != 0) ++count;
-    return static_cast<float>(count) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * scale;
+namespace {
+
+Style Merge(const std::vector<const char*>& names) {
+  Style style;
+  for (const char* name : names) {
+    const json::Value* node = config::Node("text", name);
+    if (node == nullptr || !node->IsObject()) {
+      LOG("text.json: unknown variant \"%s\"", name);
+      continue;
+    }
+    style.size = config::Float(*node, "size", style.size);
+    const std::string face = config::String(*node, "face", "");
+    if (face == "body") style.face = Face::kBody;
+    if (face == "title") style.face = Face::kTitle;
+    if (const json::Value* v = node->Find("bold"); v != nullptr) style.bold = v->boolean;
+    if (const json::Value* v = node->Find("italic"); v != nullptr) style.italic = v->boolean;
+    style.letter_spacing = config::Float(*node, "letterSpacing", style.letter_spacing);
+    style.line_gap = config::Float(*node, "lineGap", style.line_gap);
   }
-  const float px = kCellPx * scale * f.em_boost;
-  const float device_px = px * PixelRatioRef();
-  if (IsBig(device_px)) return ImageWidth(str, px, face);
-  const int s = SizeIndex(device_px);
-  return NativeWidth(f, Codepoints(str, f.info), s) * (px / kSizes[s]);
+  return style;
 }
+
+}
+
+Style Styles(std::initializer_list<const char*> names) {
+  return Merge(std::vector<const char*>(names.begin(), names.end()));
+}
+
+Style StyleOf(const std::string& names) {
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= names.size()) {
+    const size_t end = names.find('+', start);
+    parts.push_back(names.substr(start, end == std::string::npos ? std::string::npos : end - start));
+    if (end == std::string::npos) break;
+    start = end + 1;
+  }
+  std::vector<const char*> raw;
+  for (const std::string& part : parts) {
+    if (!part.empty()) raw.push_back(part.c_str());
+  }
+  return Merge(raw);
+}
+
+float Scale(const Style& style) { return style.size * ui::TextScale(); }
+
+float LineHeight(const Style& style) { return kCellPx * Scale(style) * (1.0f + style.line_gap); }
+
+float Width(const char* str, float scale, Face face) {
+  return WidthImpl(str, Params{scale, face});
+}
+
+float Width(const char* str, const Style& style) { return WidthImpl(str, From(style)); }
 
 namespace {
 
-void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x, float y,
-             float scale, SDL_Color color) {
+float WidthImpl(const char* str, const Params& p) {
+  const Font& f = Pick(p.face);
+  if (!f.ready) {
+    size_t count = 0;
+    while (SDL_StepUTF8(&str, nullptr) != 0) ++count;
+    return static_cast<float>(count) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * p.scale;
+  }
+  const float px = kCellPx * p.scale * f.em_boost;
+  const float device_px = px * PixelRatioRef();
+  const float bold = p.bold ? px * kBoldOffset : 0.0f;
+  if (IsBig(device_px)) return text::ImageWidth(str, px, p.face, p.spacing * px) + bold;
+  const int s = SizeIndex(device_px);
+  const float k = px / kSizes[s];
+  return NativeWidth(f, Codepoints(str, f.info), s, p.spacing * px / k) * k + bold;
+}
+
+void DrawBig(SDL_Renderer* r, const Font& f, const Params& p, const char* str, float x, float y,
+             SDL_Color color) {
+  const Face face = p.face;
+  const float scale = p.scale;
   const float ratio = PixelRatioRef();
   const float px = kCellPx * scale * f.em_boost;
   const int device_px = static_cast<int>(px * ratio + 0.5f);
+  const float spacing = p.spacing * px * ratio;
   std::string key = std::to_string(face == Face::kBody ? 1 : 0) + ':' +
-                    std::to_string(device_px) + ':' + str;
+                    std::to_string(device_px) + ':' + std::to_string(spacing) + ':' + str;
 
   std::deque<BigText>& cache = BigCache();
   BigText* hit = nullptr;
@@ -283,14 +389,15 @@ void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x
     stbtt_GetFontVMetrics(&f.info, &ascent, &descent, &line_gap);
     constexpr int kPad = 2;  // margin so linear filtering does not clip the edge
     Image img;
-    img.width = static_cast<int>(std::ceil(ImageWidth(str, static_cast<float>(device_px), face))) +
+    img.width = static_cast<int>(std::ceil(
+                    ImageWidth(str, static_cast<float>(device_px), face, spacing))) +
                 2 * kPad;
     img.height = static_cast<int>(std::ceil((ascent - descent) * k)) + 2 * kPad;
     if (img.width <= 2 * kPad || img.height <= 2 * kPad) return;
     img.rgba.assign(static_cast<size_t>(img.width) * img.height * 4, 0);
     for (size_t i = 0; i < img.rgba.size(); i += 4) img.rgba[i] = img.rgba[i + 1] = img.rgba[i + 2] = 255;
     DrawOnImage(img, str, static_cast<float>(kPad), static_cast<float>(kPad),
-                static_cast<float>(device_px), SDL_Color{255, 255, 255, 255}, face);
+                static_cast<float>(device_px), SDL_Color{255, 255, 255, 255}, face, spacing);
     SDL_Texture* texture = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC,
                                              img.width, img.height);
     if (texture == nullptr) return;
@@ -314,16 +421,24 @@ void DrawBig(SDL_Renderer* r, const Font& f, Face face, const char* str, float x
   const SDL_FRect dst{x - 2.0f / ratio, baseline - hit->ascent / ratio,
                       static_cast<float>(hit->width) / ratio,
                       static_cast<float>(hit->height) / ratio};
-  SDL_SetTextureColorMod(hit->texture, color.r, color.g, color.b);
-  SDL_SetTextureAlphaMod(hit->texture, color.a);
-  SDL_RenderTexture(r, hit->texture, nullptr, &dst);
+  const float shear = p.italic ? kItalicShear : 0.0f;
+  const SDL_Color mod = p.italic ? SDL_Color{255, 255, 255, 255} : color;
+  SDL_SetTextureColorMod(hit->texture, mod.r, mod.g, mod.b);
+  SDL_SetTextureAlphaMod(hit->texture, mod.a);
+  const SDL_FRect src{0.0f, 0.0f, static_cast<float>(hit->width),
+                      static_cast<float>(hit->height)};
+  Blit(r, hit->texture, hit->width, hit->height, src, dst, shear, baseline, color);
+  if (p.bold) {
+    SDL_FRect again = dst;
+    again.x += px * kBoldOffset;
+    Blit(r, hit->texture, hit->width, hit->height, src, again, shear, baseline, color);
+  }
 }
 
-}
-
-void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color,
-          Face face) {
-  const Font& f = Pick(face);
+void DrawImpl(SDL_Renderer* r, const char* str, float x, float y, const Params& p,
+              SDL_Color color) {
+  const float scale = p.scale;
+  const Font& f = Pick(p.face);
   if (!f.ready) {
     float prev_x = 1.0f, prev_y = 1.0f;
     SDL_GetRenderScale(r, &prev_x, &prev_y);
@@ -336,7 +451,7 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
   UpdatePixelRatio(r);
   const float px = kCellPx * scale * f.em_boost;
   if (IsBig(px * PixelRatioRef())) {
-    DrawBig(r, f, face, str, x, y, scale, color);
+    DrawBig(r, f, p, str, x, y, color);
     return;
   }
   const std::vector<Uint32> cps = Codepoints(str, f.info);
@@ -344,32 +459,57 @@ void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_C
   const int s = SizeIndex(px * PixelRatioRef());
   const float k = px / kSizes[s];
   const float kern_scale = stbtt_ScaleForPixelHeight(&f.info, kSizes[s]);
-  SDL_SetTextureColorMod(f.atlas, color.r, color.g, color.b);
-  SDL_SetTextureAlphaMod(f.atlas, color.a);
+  const float shear = p.italic ? kItalicShear : 0.0f;
+  const SDL_Color mod = p.italic ? SDL_Color{255, 255, 255, 255} : color;  // geometry tints
+  SDL_SetTextureColorMod(f.atlas, mod.r, mod.g, mod.b);
+  SDL_SetTextureAlphaMod(f.atlas, mod.a);
 
-  float pen_x = 0.0f;
   const float cell = kCellPx * scale;
   const float font_box = (f.ascent[s] - f.descent[s]) * k;
   // Font box (ascent..descent) centered in the cell, matching the old debug-font layout.
   const float baseline = y + (cell - font_box) / 2.0f + f.ascent[s] * k;
-  for (size_t i = 0; i < cps.size(); ++i) {
-    const int slot = GlyphSlot(cps[i]);
-    if (slot < 0) continue;
-    const stbtt_packedchar& pc = f.chars[s][slot];
-    const SDL_FRect src{static_cast<float>(pc.x0), static_cast<float>(pc.y0),
-                        static_cast<float>(pc.x1 - pc.x0), static_cast<float>(pc.y1 - pc.y0)};
-    const SDL_FRect dst{x + (pen_x + pc.xoff) * k, baseline + pc.yoff * k,
-                        (pc.xoff2 - pc.xoff) * k, (pc.yoff2 - pc.yoff) * k};
-    SDL_RenderTexture(r, f.atlas, &src, &dst);
-    pen_x += pc.xadvance;
-    if (i + 1 < cps.size()) {
-      pen_x += kern_scale * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
-                                                          static_cast<int>(cps[i + 1]));
+  const float spacing = p.spacing * px / k;  // atlas px between glyphs
+  const int passes = p.bold ? 2 : 1;
+  for (int pass = 0; pass < passes; ++pass) {
+    float pen_x = pass == 0 ? 0.0f : px * kBoldOffset / k;
+    for (size_t i = 0; i < cps.size(); ++i) {
+      const int slot = GlyphSlot(cps[i]);
+      if (slot < 0) continue;
+      const stbtt_packedchar& pc = f.chars[s][slot];
+      const SDL_FRect src{static_cast<float>(pc.x0), static_cast<float>(pc.y0),
+                          static_cast<float>(pc.x1 - pc.x0), static_cast<float>(pc.y1 - pc.y0)};
+      const SDL_FRect dst{x + (pen_x + pc.xoff) * k, baseline + pc.yoff * k,
+                          (pc.xoff2 - pc.xoff) * k, (pc.yoff2 - pc.yoff) * k};
+      Blit(r, f.atlas, kAtlasSize, kAtlasSize, src, dst, shear, baseline, color);
+      pen_x += pc.xadvance;
+      if (i + 1 < cps.size()) {
+        pen_x += spacing + kern_scale * stbtt_GetCodepointKernAdvance(
+                               &f.info, static_cast<int>(cps[i]), static_cast<int>(cps[i + 1]));
+      }
     }
   }
 }
 
-float ImageWidth(const char* str, float px, Face face) {
+}
+
+void Draw(SDL_Renderer* r, const char* str, float x, float y, float scale, SDL_Color color,
+          Face face) {
+  DrawImpl(r, str, x, y, Params{scale, face}, color);
+}
+
+void Draw(SDL_Renderer* r, const char* str, float x, float y, const Style& style,
+          SDL_Color color) {
+  DrawImpl(r, str, x, y, From(style), color);
+}
+
+void DrawCentered(SDL_Renderer* r, const char* str, float center_x, float center_y,
+                  const Style& style, SDL_Color color) {
+  const float w = Width(str, style);
+  const float h = kCellPx * Scale(style);
+  Draw(r, str, center_x - w / 2.0f, center_y - h / 2.0f, style, color);
+}
+
+float ImageWidth(const char* str, float px, Face face, float spacing) {
   const Font& f = Pick(face);
   if (!f.ready) return 0.0f;
   const float k = stbtt_ScaleForPixelHeight(&f.info, px);
@@ -380,15 +520,15 @@ float ImageWidth(const char* str, float px, Face face) {
     stbtt_GetCodepointHMetrics(&f.info, static_cast<int>(cps[i]), &advance, &lsb);
     w += advance * k;
     if (i + 1 < cps.size()) {
-      w += k * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
-                                             static_cast<int>(cps[i + 1]));
+      w += spacing + k * stbtt_GetCodepointKernAdvance(&f.info, static_cast<int>(cps[i]),
+                                                       static_cast<int>(cps[i + 1]));
     }
   }
   return w;
 }
 
 void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Color color,
-                 Face face) {
+                 Face face, float spacing) {
   const Font& f = Pick(face);
   if (!f.ready || !img.Valid()) return;
   const float k = stbtt_ScaleForPixelHeight(&f.info, px);
@@ -431,7 +571,7 @@ void DrawOnImage(Image& img, const char* str, float x, float y, float px, SDL_Co
     }
     pen += advance * k;
     if (i + 1 < cps.size()) {
-      pen += k * stbtt_GetCodepointKernAdvance(&f.info, cp, static_cast<int>(cps[i + 1]));
+      pen += spacing + k * stbtt_GetCodepointKernAdvance(&f.info, cp, static_cast<int>(cps[i + 1]));
     }
   }
 }

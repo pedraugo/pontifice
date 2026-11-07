@@ -7,6 +7,8 @@
 
 #include "scripts/cards/cards.h"
 #include "scripts/math/math.h"
+#include "scripts/layout/layout.h"
+#include "scripts/ui/ui.h"
 #include "scripts/model/model.h"
 
 class CardAura;
@@ -31,44 +33,52 @@ class Hand {
   };
 
   struct Layout {
-    float base_y = -1.85f;
-    float base_z = 0.0f;
-    float depth_step = 0.03f;  // each card a bit closer, avoids z-fighting
-    float spacing = 1.05f;
-    float max_width = 9.5f;
-    float arc = 0.045f;
-    float tilt_per_unit = 0.06f;
-    float scale = 0.5f;
-    float hover_scale = 0.55f;
-    float hover_lift = 0.85f;
-    float hover_forward = 1.0f;
-    float neighbor_push = 0.2f;
-    float anim_speed = 14.0f;
-    float tilt_max = 0.3f;
-    float tilt_speed = 12.0f;
-    float hidden_drop = 1.0f;
-    float away_drop = 3.5f;
-    float raise_speed = 10.0f;
-    float drag_threshold = 12.0f;  // logical px (1920x1080) before a press becomes a drag
-    float drag_z = 1.0f;
-    float drag_scale = 0.32f;
-    float drag_speed = 16.0f;
-    float inspect_z = 4.2f;
-    float inspect_y = -0.05f;
-    // Must match the hand camera in BattleScene: z = 10 looking at the origin, 35 degree fov.
-    float camera_z = 10.0f;
-    float fov_y = 0.6108652f;
-    float zoom_min = 0.75f;
-    float zoom_max = 1.0f;
-    float zoom_start = 0.8f;
-    float zoom_step = 0.05f;
-    float inspect_speed = 9.0f;
-    float rotate_speed = 0.010f;
-    float tilt_limit = 0.35f;
-    float flip_speed = 9.0f;
-    float deal_from_x = -8.5f;
-    float deal_speed = 13.0f;
-    float deal_stagger = 0.12f;
+    float base_y = layout::Number("battle.hand.baseY", -1.85f);
+    float base_z = layout::Number("battle.hand.baseZ", 0.0f);
+    // each card a bit closer, avoids z-fighting
+    float depth_step = layout::Number("battle.hand.depthStep", 0.03f);
+    float spacing = layout::Number("battle.hand.spacing", 1.05f);
+    float max_width = layout::Number("battle.hand.maxWidth", 9.5f);
+    float arc = layout::Number("battle.hand.arc", 0.045f);
+    float tilt_per_unit = layout::Number("battle.hand.tiltPerUnit", 0.06f);
+    float scale = layout::Number("battle.hand.scale", 0.5f);
+    float hover_scale = layout::Number("battle.hand.hoverScale", 0.55f);
+    float hover_lift = layout::Number("battle.hand.hoverLift", 0.85f);
+    float hover_forward = layout::Number("battle.hand.hoverForward", 1.0f);
+    float neighbor_push = layout::Number("battle.hand.neighborPush", 0.2f);
+    float anim_speed = layout::Number("battle.hand.animSpeed", 14.0f);
+    float tilt_max = layout::Number("battle.hand.tiltMax", 0.3f);
+    float tilt_speed = layout::Number("battle.hand.tiltSpeed", 12.0f);
+    float hidden_drop = layout::Number("battle.hand.hiddenDrop", 1.0f);
+    float away_drop = layout::Number("battle.hand.awayDrop", 3.5f);
+    float raise_speed = layout::Number("battle.hand.raiseSpeed", 10.0f);
+    // logical px (1920x1080) before a press becomes a drag
+    float drag_threshold = ui::Number("battle.input.handDragPx", 12.0f);
+    float drag_z = layout::Number("battle.hand.dragZ", 1.0f);
+    float drag_scale = layout::Number("battle.hand.dragScale", 0.32f);
+    float drag_speed = layout::Number("battle.hand.dragSpeed", 16.0f);
+    float inspect_z = layout::Number("battle.hand.inspectZ", 4.2f);
+    float inspect_y = layout::Number("battle.hand.inspectY", -0.05f);
+    // Hand camera, shared by BattleScene and GrimoireScene; fov in degrees in layout.json.
+    float camera_z = layout::Number("battle.hand.cameraZ", 10.0f);
+    float fov_y = math::Radians(layout::Number("battle.hand.fov", 35.0f));
+    float zoom_min = layout::Number("battle.hand.zoomMin", 0.75f);
+    float zoom_max = layout::Number("battle.hand.zoomMax", 1.0f);
+    float zoom_start = layout::Number("battle.hand.zoomStart", 0.8f);
+    float zoom_step = layout::Number("battle.hand.zoomStep", 0.05f);
+    float inspect_speed = layout::Number("battle.hand.inspectSpeed", 9.0f);
+    float rotate_speed = layout::Number("battle.hand.rotateSpeed", 0.010f);
+    float tilt_limit = layout::Number("battle.hand.tiltLimit", 0.35f);
+    float flip_speed = layout::Number("battle.hand.flipSpeed", 9.0f);
+    float deal_from_x = layout::Number("battle.hand.dealFromX", -8.5f);
+    float deal_speed = layout::Number("battle.hand.dealSpeed", 13.0f);
+    float deal_stagger = layout::Number("battle.hand.dealStagger", 0.12f);
+    // logical px; less movement than this is a click
+    float click_slop = ui::Number("battle.input.inspectClickPx", 6.0f);
+    // inspect pitch returns at this fraction of flip_speed
+    float unflip_ratio = layout::Number("battle.hand.unflipRatio", 0.5f);
+    // hiding the hand runs at this fraction of raise_speed
+    float away_ratio = layout::Number("battle.hand.awayRatio", 0.6f);
   };
 
   void SetModel(const Model* model) { model_ = model; }

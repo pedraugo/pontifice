@@ -9,12 +9,14 @@
 #include "scripts/i18n/i18n.h"
 #include "scripts/audios/music.h"
 #include "scripts/text/text.h"
+#include "scripts/layout/layout.h"
 #include "scripts/ui/ui.h"
 
 namespace {
 
-constexpr float kMenuFadeOut = 0.5f;
-constexpr float kLoadingFadeIn = 0.5f;
+// Transition into the loading screen, from assets/layout.json ("menu").
+float FadeOut() { return layout::Number("menu.fadeOut", 0.5f); }
+float LoadingFadeIn() { return layout::Number("menu.loadingFadeIn", 0.5f); }
 
 std::string DifficultyLabel(int level) {
   const auto difficulty = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
@@ -26,12 +28,12 @@ std::string DifficultyLabel(int level) {
 MenuScene::MenuScene() {
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.play"), [](SceneContext& ctx) {
     ctx.loading_target = SceneId::kBattle;
-    ctx.fade_out_seconds = kMenuFadeOut;
-    ctx.fade_in_seconds = kLoadingFadeIn;
+    ctx.fade_out_seconds = FadeOut();
+    ctx.fade_in_seconds = LoadingFadeIn();
     ctx.next_scene = SceneId::kLoading;
   }));
   auto difficulty = std::make_unique<ButtonText>(
-      DifficultyLabel(kDefaultDifficulty), [this](SceneContext& ctx) {
+      DifficultyLabel(rules::Get().default_difficulty), [this](SceneContext& ctx) {
         ctx.difficulty = static_cast<int>(
             ai::NextDifficulty(static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3))));
         difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
@@ -41,19 +43,20 @@ MenuScene::MenuScene() {
   buttons_.push_back(std::move(difficulty));
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.grimoire"), [](SceneContext& ctx) {
     ctx.loading_target = SceneId::kGrimoire;
-    ctx.fade_out_seconds = kMenuFadeOut;
-    ctx.fade_in_seconds = kLoadingFadeIn;
+    ctx.fade_out_seconds = FadeOut();
+    ctx.fade_in_seconds = LoadingFadeIn();
     ctx.next_scene = SceneId::kLoading;
   }));
   buttons_.push_back(std::make_unique<ButtonText>(i18n::Get("menu.exit"),
                                                   [](SceneContext& ctx) { ctx.quit = true; }));
+  buttons_.back()->SetDanger(true);
 }
 
 void MenuScene::OnEnter(SceneContext& ctx) {
   difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
   LayoutButtons(ctx);
-  const float icon_size = button::Cells("icon.size", 3.0f);
-  const float icon_margin = button::Cells("icon.margin", 1.0f);
+  const float icon_size = sound_button_.Side();
+  const float icon_margin = sound_button_.Margin();
   sound_button_.SetRect(SDL_FRect{icon_margin, ctx.logical_height - icon_margin - icon_size,
                                   icon_size, icon_size});
   focused_ = -1;
@@ -61,8 +64,8 @@ void MenuScene::OnEnter(SceneContext& ctx) {
 }
 
 void MenuScene::LayoutButtons(const SceneContext& ctx) {
-  const float row_h = button::Cells("menu.rowHeight", 4.0f);
-  const float row_gap = button::Cells("menu.rowGap", 2.0f);
+  const float row_h = buttons_.front()->Measure("rowHeight", 4.0f);
+  const float row_gap = buttons_.front()->Measure("rowGap", 2.0f);
   const float total = buttons_.size() * row_h + (buttons_.size() - 1) * row_gap;
   float y = ui::SnapUp((ctx.logical_height - total) / 2.0f);
   for (auto& button : buttons_) {
@@ -125,21 +128,21 @@ void MenuScene::Update(SceneContext&, float) {}
 
 void MenuScene::Render(SceneContext& ctx) {
   SDL_Renderer* r = ctx.renderer;
-  const SDL_Color background = colors::Get("background.menu");
+  const SDL_Color background = colors::Get("stoneDarker");
   SDL_SetRenderDrawColor(r, background.r, background.g, background.b, background.a);
   SDL_RenderClear(r);
 
   const float center_x = ctx.logical_width / 2.0f;
-  text::DrawCentered(r, "PONTIFICE", center_x, ui::Cells("menu.titleCenterY", 12.0f),
-                     ui::TextScale("menu.title", 8.0f),
-                     colors::Get("text.title"));
+  static const text::Style title = text::Styles({"display"});
+  static const text::Style footer = text::Styles({"regular"});
+  text::DrawCentered(r, "Pontifice", center_x, ui::Cells("menu.titleCenterY", 12.0f), title,
+                     colors::Get("silverLight"));
 
   for (auto& button : buttons_) button->Render(r);
   sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,
-                     ctx.logical_height - ui::Cells("menu.footerBottom", 3.0f),
-                     ui::TextScale("menu.footer", 2.0f),
-                     colors::Get("text.secondary"));
+                     ctx.logical_height - ui::Cells("menu.footerBottom", 3.0f), footer,
+                     colors::Get("steelLight"));
 }

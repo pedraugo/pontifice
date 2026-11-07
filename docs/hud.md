@@ -34,7 +34,7 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 
 ## Tela de resultado
 
-- Com a vida de um lado em `0`, a tela escurece e uma **janela central** (`Hud::RenderResult`, medidas em `ui.json` `hud.result`) mostra **VITÓRIA** ou **DERROTA** (verde/vermelho, `text.json` `hud.result`), a linha `Tempo jogado mm:ss   Turnos n` e uma tabela com as colunas **Você** e **Oponente**: cartas compradas (monte usado), cartas usadas (invocações e cartas de campo), cartas no cemitério, ataques, ataques diretos, cartas destruídas do outro lado, dano causado ao outro lado e maior golpe. Por fim, `Esc volta ao menu`.
+- Com a vida de um lado em `0`, a tela escurece e uma **janela central** (`Hud::RenderResult`, medidas em `ui.json` `hud.result`) mostra **VITÓRIA** ou **DERROTA** (verde/vermelho, variante `heading` de `text.json`), a linha `Tempo jogado mm:ss   Turnos n` e uma tabela com as colunas **Você** e **Oponente**: cartas compradas (monte usado), cartas usadas (invocações e cartas de campo), cartas no cemitério, ataques, ataques diretos, cartas destruídas do outro lado, dano causado ao outro lado e maior golpe. Por fim, `Esc volta ao menu`.
 - Os números vêm de `MatchStats` (`scripts/hud/hud.h`), preenchido pela `BattleScene` a cada ataque resolvido (`ResolveAttack`), invocação, carta de campo e descarte; o tempo conta do início da partida (depois da abertura) até o fim. Carta destruída ao atacar uma carta mais forte conta para quem defendeu. As teclas de depuração de dano não entram na conta.
 
 ## Canto inferior esquerdo: som, dica e sair
