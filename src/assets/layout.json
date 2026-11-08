@@ -202,7 +202,8 @@
         "ratioY": 0.5,
         "phaseY": 1.1
       },
-      "flash": {"seconds": 0.6, "blinkSeconds": 0.16}
+      "flash": {"seconds": 0.6, "blinkSeconds": 0.16},
+      "tiers": {"warning": 2500, "danger": 1000, "critical": 500}
     },
     "field": {
       "zoom": {"seconds": 0.15}

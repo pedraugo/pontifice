@@ -1528,8 +1528,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   sword_.Update(dt_seconds);
   shield_.Update(dt_seconds);
   tooltip_slot_ = -1;
-  if (intro_ >= 1.0f && hand_.Hovered() < 0 && hand_.Dragging() < 0 && !hand_.Inspecting() &&
-      mouse_.x >= 0) {
+  if (intro_ >= 1.0f && !hud_.Over() && hand_.Hovered() < 0 && hand_.Dragging() < 0 &&
+      !hand_.Inspecting() && mouse_.x >= 0) {
     for (Side side : {Side::kPlayer, Side::kOpponent}) {
       const Board& board = side == Side::kPlayer ? board_ : opponent_board_;
       const int slot =

@@ -43,6 +43,9 @@ struct Layout {
   float shake_phase_y = layout::Number("hud.life.shake.phaseY", 1.1f);
   float flash_seconds = layout::Number("hud.life.flash.seconds", 0.6f);
   float flash_blink = layout::Number("hud.life.flash.blinkSeconds", 0.16f);
+  float life_warning = layout::Number("hud.life.tiers.warning", 2500.0f);
+  float life_danger = layout::Number("hud.life.tiers.danger", 1000.0f);
+  float life_critical = layout::Number("hud.life.tiers.critical", 500.0f);
   float field_text_gap = ui::Cells("hud.field.textGap", 0.25f);
   float zoom_gap = ui::Cells("hud.field.zoom.gap", 1.0f);
   float zoom_w = ui::Number("hud.field.zoom.widthPx", 668.0f);
@@ -282,19 +285,24 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   const SDL_Color value = colors::Get("silverLight");
   const SDL_Color zero = colors::Get("red");
   const SDL_Color hit = colors::Get("red");
-  auto value_color = [&](int life, float flash) {
-    if (life <= 0) return zero;
+  auto blink_color = [&](float flash, SDL_Color base) {
     // Blink: half of each period red, half normal, while the flash lasts.
     const float blink = L().flash_blink;
-    return flash > 0.0f && std::fmod(flash, blink) > blink / 2.0f ? hit : value;
+    return flash > 0.0f && std::fmod(flash, blink) > blink / 2.0f ? hit : base;
+  };
+  auto player_color = [&](int life) {
+    if (life <= L().life_critical) return colors::Get("crimson");
+    if (life <= L().life_danger) return colors::Get("red");
+    if (life <= L().life_warning) return colors::Get("yellow");
+    return colors::Get("green");
   };
   text::Draw(r, i18n::Get("general.opponent").c_str(), left, y, L().line_style, label);
   DrawRight(r, LifeText(opponent_life_, rules::Get().max_life).c_str(), right, y, L().line_style,
-            value_color(opponent_life_, life_flash_[0]));
+            opponent_life_ <= 0 ? zero : blink_color(life_flash_[0], value));
   y += L().line_h + L().line_gap;
   text::Draw(r, i18n::Get("general.player").c_str(), left, y, L().line_style, label);
   DrawRight(r, LifeText(player_life_, rules::Get().max_life).c_str(), right, y, L().line_style,
-            value_color(player_life_, life_flash_[1]));
+            blink_color(life_flash_[1], player_color(player_life_)));
 }
 
 void Hud::RenderDamagePopups(SDL_Renderer* r, int width) const {
