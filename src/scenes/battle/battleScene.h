@@ -29,6 +29,7 @@
 #include "scripts/shield/shield.h"
 #include "scripts/sword/sword.h"
 #include "scripts/torch/torch.h"
+#include "scripts/tutorial/tutorialPanel.h"
 
 class BattleScene : public Scene {
  public:
@@ -184,6 +185,52 @@ class BattleScene : public Scene {
   bool paused_ = false;
   void Pause(SceneContext& ctx);
   void Resume(SceneContext& ctx);
+
+  // First battle of a save (save::Data::tutorial): guided steps, passive opponent, sure win.
+  enum class TutorialStep {
+    kWelcome,
+    kLife,
+    kHand,
+    kInspect,
+    kCategory,
+    kHierarchy,
+    kStats,
+    kSummon,
+    kDefense,
+    kAttackMode,
+    kField,
+    kEndTurn,
+    kOpponentTurn,
+    kCombat,
+    kAttack,
+    kFinish,
+    kDone
+  };
+  bool tutorial_ = false;
+  TutorialStep tutorial_step_ = TutorialStep::kDone;
+  int tutorial_fields_ = 0;  // field cards in hand when the field step opened
+  bool tutorial_inspected_ = false;  // a card was opened during the inspect step
+  TutorialPanel tutorial_panel_;
+  void ArrangeTutorialHand();
+  void UpdateTutorial(int width, int height);
+  void AdvanceTutorial();
+  bool TutorialModal() const { return tutorial_panel_.Modal(); }
+  // While guided, only the action of the current step is allowed.
+  bool TutorialGuided() const { return tutorial_ && tutorial_step_ != TutorialStep::kDone; }
+  bool TutorialLocksCard(const CardInfo* info) const;
+  bool TutorialAllowsToggle() const {
+    return !TutorialGuided() || tutorial_step_ == TutorialStep::kDefense ||
+           tutorial_step_ == TutorialStep::kAttackMode;
+  }
+  bool TutorialAllowsAttack() const {
+    return !TutorialGuided() || tutorial_step_ == TutorialStep::kAttack;
+  }
+  bool EndTurnLocked() const {
+    return TutorialGuided() && tutorial_step_ != TutorialStep::kEndTurn;
+  }
+  void UpdateTutorialFocus();
+  SDL_FRect TutorialSpotlight(int width, int height) const;
+  std::vector<std::string> TutorialOpponentDeck() const;
 
   bool started_ = false;  // coin toss done, first turn started
   bool open_played_ = false;

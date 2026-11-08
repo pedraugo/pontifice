@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <utility>
 #include <vector>
 
 #include "scripts/cards/cards.h"
@@ -112,6 +113,8 @@ class Board {
   // `role` must outlive the Board (string literal).
   void SetHoverColor(const char* color) { hover_color_ = color; }
   void SetHoverCard(int slot) { hover_card_ = slot; }
+  // Slots marked with a pulsing gold frame (tutorial emphasis).
+  void SetFocus(std::vector<int> slots) { focus_ = std::move(slots); }
 
   void Update(float dt);
   void Render(Gpu& gpu, const math::Mat4& view_proj) const;
@@ -145,5 +148,6 @@ class Board {
   int hover_slot_ = -1;
   const char* hover_color_ = "yellow";
   int hover_card_ = -1;
+  std::vector<int> focus_;
   float time_ = 0.0f;
 };

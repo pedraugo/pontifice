@@ -61,7 +61,7 @@ O menu tem três páginas, todas na mesma cena, com o título `Pontifice` no top
 +------------------------------------------------------------+
 ```
 
-- **Batalha**: o menu escurece (fade out de 0,5 s) e abre a tela de loading (docs/loading.md), que carrega a batalha com o seu deck do save. Só funciona com o deck completo (40 cartas, `deckSize`); fora disso o item aparece como `Batalha (deck 38/40)`, com 75% de opacidade, e não faz nada. O deck é montado no grimório.
+- **Batalha**: com `tutorial` verdadeiro no save, a batalha é o tutorial guiado (docs/tutorial.md). O menu escurece (fade out de 0,5 s) e abre a tela de loading (docs/loading.md), que carrega a batalha com o seu deck do save. Só funciona com o deck completo (40 cartas, `deckSize`); fora disso o item aparece como `Batalha (deck 38/40)`, com 75% de opacidade, e não faz nada. O deck é montado no grimório.
 - **Nível**: escolhe a força do oponente (Vs PC) para a próxima batalha, relativa ao seu deck: o monte dele espelha as hierarquias das suas cartas, uma mais fraca no Fácil, iguais no Médio, metade uma mais forte no Difícil e todas uma mais forte no Impossível. Fica salvo no save; o save novo começa em Médio (`defaultDifficulty`). Cada clique passa ao próximo: Fácil, Médio, Difícil, Impossível. Detalhes em docs/detalhesTecnicos.md ("Níveis").
 - **Grimório**: fade out e tela de loading, que abre o grimório (docs/grimorio.md), onde você vê as cartas liberadas e monta o deck.
 - **Sair**: encerra o jogo.
@@ -78,6 +78,7 @@ Arquivo `pontifice.json` na pasta do usuário logado (`SDL_GetUserFolder(SDL_FOL
   "name": "Pedro",
   "language": "pt",
   "difficulty": 1,
+  "tutorial": true,
   "unlocked": [
     {"code": "G401", "date": "2026-11-07 12:53:01"},
     {"code": "N403", "date": "2026-11-07 12:53:01"},
@@ -94,6 +95,7 @@ Arquivo `pontifice.json` na pasta do usuário logado (`SDL_GetUserFolder(SDL_FOL
 - `name`: nome digitado.
 - `language`: idioma da sessão; na próxima abertura o jogo usa esse idioma e pula a cena de idioma. Escolher outro idioma na cena de idioma (`PONTIFICE_SCENE=language`) atualiza o save.
 - `difficulty`: nível do oponente escolhido em **Nível** (0 Fácil, 1 Médio, 2 Difícil, 3 Impossível). Cada clique em Nível grava o save; ao abrir o jogo o menu já mostra o nível salvo. Sem a chave, vale `defaultDifficulty` de `assets/rules.json`.
+- `tutorial`: `true` enquanto a primeira batalha, com o tutorial guiado (docs/tutorial.md), não terminou. Save novo começa em `true`, e save sem a chave também vale `true`; ao fim dessa partida vira `false`.
 - `unlocked`: **histórico** das cartas liberadas, uma entrada por cópia, na ordem em que você ganhou, com a data e hora local (`date`). As 40 do deck inicial entram com a data da criação do save; cada recompensa acrescenta uma. `save::Data::Available()` agrupa o histórico em cópias disponíveis por código (ex.: `G401` → 2).
 - `deck`: as cartas que você usa na batalha, um código por cópia, com repetições; até `deckSize` (40) entradas e nunca mais cópias de uma carta do que as disponíveis. Ao ler o save, entradas além disso são descartadas.
 - **Deck inicial** (`cards::StarterDeck`), sorteio uniforme com no máximo 2 cópias por carta: 26 cartas de hierarquia 4 (benévolas, malignas e neutras), 10 de hierarquia 3 (benévolas, malignas e neutras) e o resto até `deckSize` (40) em cartas de campo, ou seja, 4. As mesmas 40 vão para `unlocked` e para `deck`. As quantidades ficam em `assets/rules.json` (`starterHierarchy4`, `starterHierarchy3`, `deckSize`).

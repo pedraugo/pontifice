@@ -90,24 +90,33 @@ int Hand::PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int
   const math::Vec3 corners[4] = {
       {mn.x, mn.y, 0}, {mx.x, mn.y, 0}, {mx.x, mx.y, 0}, {mn.x, mx.y, 0}};
 
-  int best = -1;
-  float best_dist = 1e9f;
-  for (size_t i = 0; i < cards_.size(); ++i) {
-    const math::Mat4 mvp = view_proj * cards_[i].pick;
+  auto hit = [&](const math::Mat4& pick, float& cx) {
+    const math::Mat4 mvp = view_proj * pick;
     math::Vec2 screen[4];
-    float cx = 0.0f;
-    bool behind = false;
+    cx = 0.0f;
     for (int c = 0; c < 4; ++c) {
       const math::Vec4 clip = mvp * math::Vec4{corners[c].x, corners[c].y, corners[c].z, 1.0f};
-      if (clip.w <= 0.0f) {
-        behind = true;
-        break;
-      }
+      if (clip.w <= 0.0f) return false;
       screen[c].x = (clip.x / clip.w * 0.5f + 0.5f) * width;
       screen[c].y = (1.0f - (clip.y / clip.w * 0.5f + 0.5f)) * height;
       cx += screen[c].x * 0.25f;
     }
-    if (behind || !math::PointInConvexQuad(mouse, screen)) continue;
+    return math::PointInConvexQuad(mouse, screen);
+  };
+
+  int best = -1;
+  float best_dist = 1e9f;
+  for (size_t i = 0; i < cards_.size(); ++i) {
+    if (Locked(cards_[i])) continue;
+    float cx = 0.0f;
+    bool inside = hit(cards_[i].pick, cx);
+    if (!inside && static_cast<int>(i) == hovered_) {
+      // Lifting moves the card off the cursor; its resting spot keeps the hover.
+      Card rest = cards_[i];
+      rest.hover = 0.0f;
+      inside = hit(CardMatrix(rest, static_cast<int>(i), false), cx);
+    }
+    if (!inside) continue;
     const float dist = std::fabs(cx - mouse.x);
     if (dist < best_dist) {
       best_dist = dist;
@@ -245,8 +254,8 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
   last_width_ = width;
   last_height_ = height;
 
-  if (press_card_ >= 0 && press_card_ < static_cast<int>(cards_.size()) && !press_consumed_ &&
-      mouse.x >= 0) {
+  if (draggable_ && press_card_ >= 0 && press_card_ < static_cast<int>(cards_.size()) &&
+      !press_consumed_ && mouse.x >= 0) {
     const float moved = std::fabs(mouse.x - press_pos_.x) + std::fabs(mouse.y - press_pos_.y);
     if (moved >= layout_.drag_threshold) {
       dragging_ = press_card_;
@@ -280,8 +289,15 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
 
   away_t_ = Approach(away_t_, away_ ? 1.0f : 0.0f, layout_.raise_speed * layout_.away_ratio, dt);
   const bool interactive = !Inspecting() && !away_ && dragging_ < 0;
-  hovered_ = interactive ? PickCard(mouse, view_proj, width, height) : -1;
-  raised_ = interactive ? MouseOverHand(mouse, view_proj, height) : false;
+  const int picked = interactive ? PickCard(mouse, view_proj, width, height) : -1;
+  if (picked >= 0 || !interactive) {
+    hovered_ = picked;
+    hover_leave_ = layout_.hover_leave_delay;
+  } else if (hovered_ >= 0) {
+    hover_leave_ -= dt;
+    if (hover_leave_ <= 0.0f) hovered_ = -1;
+  }
+  raised_ = force_raised_ || (interactive && MouseOverHand(mouse, view_proj, height));
   raise_ = Approach(raise_, raised_ ? 1.0f : 0.0f, layout_.raise_speed, dt);
   pending_delay_ = std::max(0.0f, pending_delay_ - dt);
 
@@ -312,6 +328,7 @@ void Hand::Update(float dt, math::Vec2 mouse, const math::Mat4& view_proj, int w
     }
 
     card.hover = Approach(card.hover, hover_target, layout_.anim_speed, dt);
+    card.dim = Approach(card.dim, Locked(card) ? 1.0f : 0.0f, layout_.anim_speed, dt);
     card.shift = Approach(card.shift, shift_target, layout_.anim_speed, dt);
     card.tilt_x = Approach(card.tilt_x, tilt_x_target, layout_.tilt_speed, dt);
     card.tilt_y = Approach(card.tilt_y, tilt_y_target, layout_.tilt_speed, dt);
@@ -380,8 +397,37 @@ Model::Skin Hand::SkinFor(const Card& card) const {
 }
 
 void Hand::DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const {
-  if (card.foil && aura_ != nullptr) aura_->Draw(gpu, card.world, view_proj);
-  model_->Draw(gpu, card.world, view_proj, SDL_FColor{1, 1, 1, 1}, SkinFor(card));
+  if (card.foil && aura_ != nullptr) aura_->Draw(gpu, card.world, view_proj, 1.0f - card.dim);
+  const float tint = math::Lerp(1.0f, layout_.locked_tint, card.dim);
+  gpu.SetDesaturate(card.dim * layout_.locked_desaturate);
+  model_->Draw(gpu, card.world, view_proj, SDL_FColor{tint, tint, tint, 1}, SkinFor(card));
+  gpu.SetDesaturate(0.0f);
+}
+
+SDL_FRect Hand::ScreenBounds(const math::Mat4& view_proj, int width, int height) const {
+  if (model_ == nullptr || cards_.empty()) return SDL_FRect{};
+  const math::Vec3 mn = model_->BoundsMin();
+  const math::Vec3 mx = model_->BoundsMax();
+  const math::Vec3 corners[4] = {
+      {mn.x, mn.y, 0}, {mx.x, mn.y, 0}, {mx.x, mx.y, 0}, {mn.x, mx.y, 0}};
+  float left = 1e9f, top = 1e9f, right = -1e9f, bottom = -1e9f;
+  for (const Card& card : cards_) {
+    const math::Mat4 mvp = view_proj * card.pick;
+    for (const math::Vec3& corner : corners) {
+      const math::Vec4 clip = mvp * math::Vec4{corner.x, corner.y, corner.z, 1.0f};
+      if (clip.w <= 0.0f) continue;
+      const float x = (clip.x / clip.w * 0.5f + 0.5f) * width;
+      const float y = (1.0f - (clip.y / clip.w * 0.5f + 0.5f)) * height;
+      left = std::min(left, x);
+      right = std::max(right, x);
+      top = std::min(top, y);
+      bottom = std::max(bottom, y);
+    }
+  }
+  if (right < left) return SDL_FRect{};
+  top = std::max(top, 0.0f);
+  bottom = std::min(bottom, static_cast<float>(height));
+  return SDL_FRect{left, top, right - left, bottom - top};
 }
 
 void Hand::Render(Gpu& gpu, const math::Mat4& view_proj) const {

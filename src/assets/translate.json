@@ -392,6 +392,227 @@
         "en": "In defense position",
         "es": "En defensa"
       }
+    },
+    "tutorial": {
+      "counter": {
+        "pt": "Dica {0} de {1}",
+        "en": "Tip {0} of {1}",
+        "es": "Consejo {0} de {1}"
+      },
+      "next": {
+        "pt": "Próximo",
+        "en": "Next",
+        "es": "Siguiente"
+      },
+      "start": {
+        "pt": "Jogar",
+        "en": "Play",
+        "es": "Jugar"
+      },
+      "welcome": {
+        "title": {
+          "pt": "Bem-vindo ao Pontifice!",
+          "en": "Welcome to Pontifice!",
+          "es": "¡Bienvenido a Pontifice!"
+        },
+        "text": {
+          "pt": "Comece agora a sua primeira batalha. Para vencer, reduza a vida do oponente de 5000 a 0.",
+          "en": "Start your first battle now. To win, bring the opponent's life from 5000 down to 0.",
+          "es": "Empieza ahora tu primera batalla. Para ganar, reduce la vida del oponente de 5000 a 0."
+        }
+      },
+      "life": {
+        "title": {
+          "pt": "Pontos de vida",
+          "en": "Life points",
+          "es": "Puntos de vida"
+        },
+        "text": {
+          "pt": "No canto superior direito está a vida do jogador e do oponente. Conforme os pontos de vida vão caindo, a cor da vida vai mudando.",
+          "en": "The player's and the opponent's life are in the top right corner. As life points drop, the color of the life changes.",
+          "es": "En la esquina superior derecha está la vida del jugador y del oponente. A medida que los puntos de vida bajan, el color de la vida va cambiando."
+        }
+      },
+      "hand": {
+        "title": {
+          "pt": "Sua mão",
+          "en": "Your hand",
+          "es": "Tu mano"
+        },
+        "text": {
+          "pt": "Suas cartas ficam embaixo. Passe o mouse sobre uma para destacá-la e ver melhor.",
+          "en": "Your cards sit at the bottom. Hover over one to raise it and take a closer look.",
+          "es": "Tus cartas están abajo. Pasa el ratón sobre una para destacarla y verla mejor."
+        }
+      },
+      "inspect": {
+        "title": {
+          "pt": "Inspecionando",
+          "en": "Inspecting",
+          "es": "Inspeccionando"
+        },
+        "text": {
+          "pt": "Clique duas vezes numa carta da mão para abri-la no centro. Arraste para girar, use a roda do mouse para o zoom e clique fora para sair.",
+          "en": "Double-click a card in your hand to open it in the middle. Drag to rotate it, use the mouse wheel to zoom and click outside to leave.",
+          "es": "Haz doble clic en una carta de tu mano para abrirla en el centro. Arrastra para girarla, usa la rueda del ratón para el zoom y haz clic fuera para salir."
+        }
+      },
+      "category": {
+        "title": {
+          "pt": "Categorias",
+          "en": "Categories",
+          "es": "Categorías"
+        },
+        "text": {
+          "pt": "As cartas são categorizadas entre Benévola, Maligna ou Neutra, representando de que lado estão nessa batalha.",
+          "en": "Cards are categorized as Benevolent, Malign or Neutral, showing which side they are on in this battle.",
+          "es": "Las cartas se clasifican como Benévola, Maligna o Neutral, lo que representa de qué lado están en esta batalla."
+        }
+      },
+      "hierarchy": {
+        "title": {
+          "pt": "Hierarquia",
+          "en": "Hierarchy",
+          "es": "Jerarquía"
+        },
+        "text": {
+          "pt": "As hierarquias representam a raridade e o poder das cartas. As de hierarquia 1 são as mais potentes em ataque e defesa, e as de hierarquia 4 são as mais comuns.",
+          "en": "Hierarchies represent the rarity and power of the cards. Hierarchy 1 cards are the strongest in attack and defense, and hierarchy 4 cards are the most common.",
+          "es": "Las jerarquías representan la rareza y el poder de las cartas. Las de jerarquía 1 son las más potentes en ataque y defensa, y las de jerarquía 4 son las más comunes."
+        }
+      },
+      "stats": {
+        "title": {
+          "pt": "Ataque e defesa",
+          "en": "Attack and defense",
+          "es": "Ataque y defensa"
+        },
+        "text": {
+          "pt": "Cada carta possui pontos de ataque (ATK) e defesa (DEF). Quando em modo de ataque usa o valor de ATK, quando em modo de defesa usa o valor de DEF.",
+          "en": "Every card has attack (ATK) and defense (DEF) points. In attack mode it uses the ATK value, in defense mode it uses the DEF value.",
+          "es": "Cada carta tiene puntos de ataque (ATK) y defensa (DEF). En modo de ataque usa el valor de ATK, en modo de defensa usa el valor de DEF."
+        }
+      },
+      "summon": {
+        "title": {
+          "pt": "Em prática",
+          "en": "In practice",
+          "es": "A la práctica"
+        },
+        "text": {
+          "pt": "Você tem uma invocação de carta por turno. Arraste uma carta da mão para o campo de batalha, onde entra em modo de ataque.",
+          "en": "You get one card summon per turn. Drag a card from your hand to the battlefield, where it enters in attack mode.",
+          "es": "Tienes una invocación de carta por turno. Arrastra una carta de tu mano al campo de batalla, donde entra en modo de ataque."
+        }
+      },
+      "defense": {
+        "title": {
+          "pt": "Modo de defesa",
+          "en": "Defense mode",
+          "es": "Modo de defensa"
+        },
+        "text": {
+          "pt": "A carta que está em campo pode ser colocada em modo de defesa clicando sobre ela.",
+          "en": "The card on the field can be switched to defense mode by clicking on it.",
+          "es": "La carta que está en el campo puede pasar a modo de defensa haciendo clic sobre ella."
+        }
+      },
+      "attackMode": {
+        "title": {
+          "pt": "Voltar ao ataque",
+          "en": "Back to attack",
+          "es": "Volver al ataque"
+        },
+        "text": {
+          "pt": "Ao clicar novamente sobre a carta, volta para o modo de ataque.",
+          "en": "Clicking the card again switches it back to attack mode.",
+          "es": "Al hacer clic de nuevo sobre la carta, vuelve al modo de ataque."
+        }
+      },
+      "field": {
+        "title": {
+          "pt": "Cartas de campo",
+          "en": "Field cards",
+          "es": "Cartas de campo"
+        },
+        "text": {
+          "pt": "Arraste a carta de campo da sua mão e solte na arena. Ela dá buff a uma categoria e nerf à outra até outra carta de campo substituí-la, e não gasta sua invocação.",
+          "en": "Drag the field card from your hand and drop it on the arena. It buffs one category and nerfs the other until another field card replaces it, and it does not use up your summon.",
+          "es": "Arrastra la carta de campo de tu mano y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación."
+        }
+      },
+      "fieldInfo": {
+        "title": {
+          "pt": "Cartas de campo",
+          "en": "Field cards",
+          "es": "Cartas de campo"
+        },
+        "text": {
+          "pt": "Quando tiver uma carta de campo, arraste e solte na arena. Ela dá buff a uma categoria e nerf à outra até outra carta de campo substituí-la, e não gasta sua invocação.",
+          "en": "When you have a field card, drag it and drop it on the arena. It buffs one category and nerfs the other until another field card replaces it, and it does not use up your summon.",
+          "es": "Cuando tengas una carta de campo, arrástrala y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación."
+        }
+      },
+      "endTurn": {
+        "title": {
+          "pt": "Passar o turno",
+          "en": "End the turn",
+          "es": "Pasar el turno"
+        },
+        "text": {
+          "pt": "Quem começa não ataca no primeiro turno. Clique em {0} para passar a vez ao oponente.",
+          "en": "Whoever starts cannot attack on the first turn. Click {0} to hand the turn to the opponent.",
+          "es": "Quien empieza no ataca en el primer turno. Haz clic en {0} para pasar el turno al oponente."
+        }
+      },
+      "opponentTurn": {
+        "title": {
+          "pt": "Vez do oponente",
+          "en": "Opponent's turn",
+          "es": "Turno del oponente"
+        },
+        "text": {
+          "pt": "Agora o oponente joga. Toda carta que ele joga aparece no centro da tela. Passe o mouse nas cartas da arena para ver os detalhes.",
+          "en": "Now the opponent plays. Every card they play shows up in the middle of the screen. Hover the cards in the arena to see their details.",
+          "es": "Ahora juega el oponente. Cada carta que juega aparece en el centro de la pantalla. Pasa el ratón por las cartas de la arena para ver sus datos."
+        }
+      },
+      "combat": {
+        "title": {
+          "pt": "Como o ataque funciona",
+          "en": "How attacks work",
+          "es": "Cómo funciona el ataque"
+        },
+        "text": {
+          "pt": "Contra uma carta em ataque, o maior ATK destrói a outra e o dono da mais fraca perde a diferença. Contra defesa, ATK maior destrói sem causar dano e ATK menor faz você perder a diferença. Sem cartas do oponente, o ataque é direto e tira todo o ATK da vida dele.",
+          "en": "Against a card in attack, the higher ATK destroys the other and the weaker card's owner loses the difference. Against defense, a higher ATK destroys it without damage and a lower ATK makes you lose the difference. With no opponent cards, the attack is direct and takes the full ATK from their life.",
+          "es": "Contra una carta en ataque, el mayor ATK destruye a la otra y el dueño de la más débil pierde la diferencia. Contra defensa, un ATK mayor la destruye sin daño y un ATK menor te hace perder la diferencia. Sin cartas del oponente, el ataque es directo y quita todo el ATK de su vida."
+        }
+      },
+      "attack": {
+        "title": {
+          "pt": "Atacar o oponente",
+          "en": "Attack the opponent",
+          "es": "Atacar al oponente"
+        },
+        "text": {
+          "pt": "Arraste a sua carta em modo de ataque e solte sobre uma carta do oponente. Se o lado dele estiver vazio, solte no lado dele para um ataque direto. O texto no topo mostra o resultado antes de você soltar.",
+          "en": "Drag your attack-mode card and drop it onto an opponent's card. If their side is empty, drop it on their side for a direct attack. The text at the top shows the outcome before you let go.",
+          "es": "Arrastra tu carta en modo de ataque y suéltala sobre una carta del oponente. Si su lado está vacío, suéltala en su lado para un ataque directo. El texto de arriba muestra el resultado antes de soltar."
+        }
+      },
+      "finish": {
+        "title": {
+          "pt": "Agora é com você",
+          "en": "Now it's up to you",
+          "es": "Ahora te toca"
+        },
+        "text": {
+          "pt": "Invoque, ataque e passe o turno até zerar a vida do oponente. O botão de dica no canto inferior esquerdo liga e desliga as dicas do topo. Boa batalha!",
+          "en": "Summon, attack and end your turns until the opponent's life hits 0. The hint button in the bottom left corner turns the tips at the top on and off. Good battle!",
+          "es": "Invoca, ataca y pasa el turno hasta dejar la vida del oponente en 0. El botón de pista de la esquina inferior izquierda activa y desactiva las pistas de arriba. ¡Buena batalla!"
+        }
+      }
     }
   },
   "hud": {

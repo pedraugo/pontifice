@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
+#include <functional>
 #include <vector>
 
 #include "scripts/cards/cards.h"
@@ -28,6 +29,7 @@ class Hand {
     float tilt_y = 0.0f;
     float enter = 0.0f;  // 0 = off screen left, 1 = in place
     float enter_delay = 0.0f;
+    float dim = 0.0f;  // 0 = normal, 1 = locked look
     math::Mat4 world;
     math::Mat4 pick;  // world without tilt, so hover does not jitter
   };
@@ -45,6 +47,10 @@ class Hand {
     float hover_scale = layout::Number("battle.hand.hoverScale", 0.55f);
     float hover_lift = layout::Number("battle.hand.hoverLift", 0.85f);
     float hover_forward = layout::Number("battle.hand.hoverForward", 1.0f);
+    float locked_tint = layout::Number("battle.hand.lockedTint", 0.4f);
+    float locked_desaturate = layout::Number("battle.hand.lockedDesaturate", 0.8f);
+    // seconds the hovered card stays up after the cursor leaves it
+    float hover_leave_delay = layout::Number("battle.hand.hoverLeaveDelay", 0.15f);
     float neighbor_push = layout::Number("battle.hand.neighborPush", 0.2f);
     float anim_speed = layout::Number("battle.hand.animSpeed", 14.0f);
     float tilt_max = layout::Number("battle.hand.tiltMax", 0.3f);
@@ -83,6 +89,13 @@ class Hand {
 
   void SetModel(const Model* model) { model_ = model; }
   void SetAura(const CardAura* aura) { aura_ = aura; }
+  // Locked cards ignore the mouse (no hover, drag or inspect) and are drawn dimmed.
+  using Lock = std::function<bool(const Card&)>;
+  void SetLock(Lock lock) { lock_ = std::move(lock); }
+  void SetRaised(bool raised) { force_raised_ = raised; }  // stays up without the mouse
+  void SetDraggable(bool draggable) { draggable_ = draggable; }  // inspect still works
+  // Screen rectangle around every card, in logical px; empty when there are none.
+  SDL_FRect ScreenBounds(const math::Mat4& view_proj, int width, int height) const;
 
   void CenterPose(float height_fraction, math::Vec3& pos, float& scale) const;
   static math::Mat4 PoseMatrix(const math::Vec3& pos, float scale, float yaw, float pitch,
@@ -108,6 +121,7 @@ class Hand {
   float DealDelay() const { return pending_delay_; }
   void Clear() {
     cards_.clear();
+    hovered_ = -1;
     has_origin_ = false;
   }
   size_t Size() const { return cards_.size(); }
@@ -137,6 +151,7 @@ class Hand {
 
  private:
   int PickCard(math::Vec2 mouse, const math::Mat4& view_proj, int width, int height) const;
+  bool Locked(const Card& card) const { return lock_ && lock_(card); }
   bool MouseOverHand(math::Vec2 mouse, const math::Mat4& view_proj, int height) const;
   float CenterOffset(int index) const;
   Model::Skin SkinFor(const Card& card) const;
@@ -146,6 +161,7 @@ class Hand {
 
   const Model* model_ = nullptr;
   const CardAura* aura_ = nullptr;
+  Lock lock_;
   void DrawCard(Gpu& gpu, const math::Mat4& view_proj, const Card& card) const;
   SDL_GPUTexture* back_ = nullptr;
   SDL_GPUTexture* front_normal_ = nullptr;
@@ -153,7 +169,10 @@ class Hand {
   Layout layout_;
   std::vector<Card> cards_;
   int hovered_ = -1;
+  float hover_leave_ = 0.0f;
   bool raised_ = false;
+  bool force_raised_ = false;
+  bool draggable_ = true;
   float raise_ = 0.0f;
   bool away_ = false;  // off screen (opponent turn)
   float away_t_ = 0.0f;

@@ -128,5 +128,6 @@ Apague `build/` e rode o script de build do sistema de novo.
 - [Batalha](docs/batalha.md): fases do turno, invocação, posições, ataque e cálculo de dano.
 - [HUD](docs/hud.md): carta de campo ativa e pontos de vida na tela.
 - [Idioma](docs/idioma.md): primeira cena, escolha entre inglês, espanhol e português; textos em `assets/translate.json`.
+- [Tutorial](docs/tutorial.md): primeira batalha guiada, passo a passo, com vitória garantida; campo `tutorial` do save.
 - [Menu](docs/menu.md): páginas principal, novo save e save (Batalha, Nível, Grimório, Sair); save em `{home}/pontifice.json`.
 - [Detalhes técnicos](docs/detalhesTecnicos.md): stack, estrutura do projeto, formato das cartas e renderização 3D.

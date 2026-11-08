@@ -278,6 +278,19 @@ void Board::Render(Gpu& gpu, const math::Mat4& view_proj) const {
                view_proj, slot_color, Gpu::DrawMode::kEmissive);
     }
   }
+  if (!focus_.empty()) {
+    const float low = opacity::Get("boardSlotPulse");
+    SDL_FColor gold = colors::GetF("gold");
+    gold.a *= low + (1.0f - low) * (0.5f + 0.5f * std::sin(time_ * layout_.pulse_speed * 2.0f));
+    for (int slot : focus_) {
+      if (slot < 0 || slot >= kSlots || slot == hover_slot_) continue;
+      const math::Vec3 p = SlotPosition(slot);
+      gpu.Draw(frame_quad_, nullptr,
+               math::Mat4::Translate({p.x, p.y + y * 1.5f, p.z}) *
+                   math::Mat4::Scale({side, 1.0f, side}),
+               view_proj, gold, Gpu::DrawMode::kEmissive);
+    }
+  }
   if (hover_slot_ >= 0 && hover_slot_ < kSlots) {
     const math::Vec3 p = SlotPosition(hover_slot_);
     gpu.Draw(frame_quad_, nullptr,

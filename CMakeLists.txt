@@ -178,6 +178,7 @@ add_executable(pontifice
   src/scripts/save/save.cpp
   src/scripts/vignette/vignette.cpp
   src/scripts/dialog/confirmDialog.cpp
+  src/scripts/tutorial/tutorialPanel.cpp
   src/scripts/board/board.cpp
   src/scripts/sword/sword.cpp
   src/scripts/shield/shield.cpp

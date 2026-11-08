@@ -16,6 +16,8 @@ struct Settings {
   // New save deck: hierarchy 4 and 3 cards (good, evil, neutral); field cards fill the rest.
   int starter_hierarchy4 = 26;
   int starter_hierarchy3 = 10;
+  // Tutorial battle: the opponent deck repeats only this many of the weakest battle cards.
+  int tutorial_opponent_cards = 10;
 };
 
 const Settings& Get();

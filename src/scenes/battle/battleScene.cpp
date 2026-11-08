@@ -310,6 +310,31 @@ const char* SlotName(int slot, char* buffer) {
   return buffer;
 }
 
+// Same order as BattleScene::TutorialStep; texts in translate.json under "battle.tutorial.<key>".
+struct TutorialStepInfo {
+  const char* key;
+  bool modal;
+};
+constexpr TutorialStepInfo kTutorialSteps[] = {
+    {"welcome", true},
+    {"life", true},
+    {"hand", true},
+    {"inspect", false},
+    {"category", true},
+    {"hierarchy", true},
+    {"stats", true},
+    {"summon", false},
+    {"defense", false},
+    {"attackMode", false},
+    {"field", false},
+    {"endTurn", false},
+    {"opponentTurn", false},
+    {"combat", true},
+    {"attack", false},
+    {"finish", true},
+};
+constexpr int kTutorialCount = static_cast<int>(sizeof(kTutorialSteps) / sizeof(kTutorialSteps[0]));
+
 }
 
 BattleScene::~BattleScene() {
@@ -426,6 +451,8 @@ void BattleScene::Preload(const PreloadInfo& info) {
                                    : std::move(owned));
   deck_total_ = static_cast<int>(deck_.Size());
   deck_.Shuffle();
+  tutorial_ = info.save && info.save->tutorial;
+  if (tutorial_) ArrangeTutorialHand();
   int level = info.difficulty;
   if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
     if (std::strcmp(env, "easy") == 0) level = 0;
@@ -434,9 +461,13 @@ void BattleScene::Preload(const PreloadInfo& info) {
     if (std::strcmp(env, "impossible") == 0) level = 3;
   }
   difficulty_ = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
+  if (tutorial_) {
+    LOG("Tutorial battle: guided steps, opponent with the weakest cards that never attacks");
+  }
   const cards::Tiers player_tiers = cards::CountTiers(cards_, deck_.Cards());
   const cards::Tiers opponent_tiers = ai::OpponentTiers(player_tiers, difficulty_);
-  opponent_deck_ = deck::Deck(cards::BuildDeck(cards_, opponent_tiers, rng_));
+  opponent_deck_ = deck::Deck(tutorial_ ? TutorialOpponentDeck()
+                                    : cards::BuildDeck(cards_, opponent_tiers, rng_));
   opponent_deck_.Shuffle();
   const cards::Tiers built = cards::CountTiers(cards_, opponent_deck_.Cards());
   LOG("Opponent level %s; hierarchy 1-4 and field: player %d/%d/%d/%d/%d, opponent %d/%d/%d/%d/%d",
@@ -592,7 +623,6 @@ void BattleScene::GrantReward(SceneContext& ctx) {
   if (card == nullptr) return;
   const bool repeated = ctx.save->Available(card->code) > 0;
   ctx.save->UnlockCard(card->code);
-  save::Write(*ctx.save);
   hud_.SetReward(i18n::Get(repeated ? "hud.reward.repeated" : "hud.reward.new"), HudFace(*card));
   LOG("Reward: %s (%s), %s", card->name.c_str(), card->code.c_str(),
       repeated ? "repeated" : "new");
@@ -728,7 +758,7 @@ void BattleScene::BeginPlayerTurn() {
 }
 
 void BattleScene::EndTurn() {
-  if (!player_turn_ || Busy() || hud_.Over()) return;
+  if (!player_turn_ || Busy() || hud_.Over() || EndTurnLocked()) return;
   player_turn_ = false;
   ++turns_played_[0];
   hand_.CancelDrag();
@@ -808,7 +838,11 @@ void BattleScene::RunOpponentTurn() {
       OpponentSummon(card, defense, face.texture != nullptr ? &face : nullptr);
     });
   });
-  Schedule(S().opponent_pause + S().attack_delay, [this] { OpponentAttackStep(); });
+  if (tutorial_) {
+    Schedule(S().opponent_pause, [this] { FinishOpponentTurn(); });
+  } else {
+    Schedule(S().opponent_pause + S().attack_delay, [this] { OpponentAttackStep(); });
+  }
 }
 
 void BattleScene::OpponentAttackStep() {
@@ -894,7 +928,8 @@ void BattleScene::OpponentSummon(const CardInfo* info, bool defense, const Face*
 }
 
 bool BattleScene::CanAct() const {
-  return ready_ && started_ && player_turn_ && !hud_.Over() && !hand_.Inspecting() && !Busy();
+  return ready_ && started_ && player_turn_ && !hud_.Over() && !hand_.Inspecting() && !Busy() &&
+         !TutorialModal();
 }
 
 bool BattleScene::CanSummon() const {
@@ -1034,10 +1069,209 @@ void BattleScene::Destroy(Side owner, int slot) {
 
 void BattleScene::ApplyDamage(Side side, int damage) {
   if (side == Side::kPlayer) {
-    hud_.SetLife(hud_.OpponentLife(), hud_.PlayerLife() - damage);
+    int life = hud_.PlayerLife() - damage;
+    // The tutorial battle is always won: the player keeps at least 1 life.
+    if (tutorial_) life = std::max(life, 1);
+    hud_.SetLife(hud_.OpponentLife(), life);
   } else {
     hud_.SetLife(hud_.OpponentLife() - damage, hud_.PlayerLife());
   }
+}
+
+void BattleScene::ArrangeTutorialHand() {
+  std::vector<std::string> cards = deck_.Cards();
+  const size_t hand = std::min(static_cast<size_t>(rules::Get().initial_hand), cards.size());
+  // Top of the deck is the back, so the opening hand is the last `hand` cards.
+  const auto top = cards.end() - static_cast<long>(hand);
+  auto is_field = [this](const std::string& code) {
+    const CardInfo* info = cards::Find(cards_, code);
+    return info != nullptr && info->IsField();
+  };
+  auto bring = [&](bool field) {
+    const auto below = std::find_if(cards.begin(), top, [&](const std::string& c) {
+      return is_field(c) == field;
+    });
+    const auto in_hand = std::find_if(top, cards.end(), [&](const std::string& c) {
+      return is_field(c) != field;
+    });
+    if (below == top || in_hand == cards.end()) return false;
+    std::iter_swap(below, in_hand);
+    return true;
+  };
+  auto fields_in_hand = [&] { return std::count_if(top, cards.end(), is_field); };
+  // One field card for the field step, battle cards for the rest.
+  if (fields_in_hand() == 0) bring(true);
+  while (fields_in_hand() > 1 && bring(false)) {}
+  deck_ = deck::Deck(std::move(cards));
+}
+
+bool BattleScene::TutorialLocksCard(const CardInfo* info) const {
+  if (!TutorialGuided()) return false;
+  const bool field = info != nullptr && info->IsField();
+  switch (tutorial_step_) {
+    case TutorialStep::kSummon:
+      return field;
+    case TutorialStep::kField:
+      return !field;
+    case TutorialStep::kDefense:
+    case TutorialStep::kAttackMode:
+    case TutorialStep::kEndTurn:
+    case TutorialStep::kAttack:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void BattleScene::UpdateTutorialFocus() {
+  std::vector<int> mine;
+  std::vector<int> theirs;
+  bool direct = false;
+  if (TutorialGuided() && CanAct()) {
+    for (int slot : board_.Occupied()) {
+      const Board::Card* card = board_.At(slot);
+      const bool wanted =
+          (tutorial_step_ == TutorialStep::kDefense && !card->defense) ||
+          (tutorial_step_ == TutorialStep::kAttackMode && card->defense) ||
+          (tutorial_step_ == TutorialStep::kAttack && !card->defense && !card->attacked);
+      if (wanted) mine.push_back(slot);
+    }
+    if (tutorial_step_ == TutorialStep::kAttack && !mine.empty()) {
+      theirs = opponent_board_.Occupied();
+      direct = theirs.empty();
+    }
+  }
+  board_.SetFocus(std::move(mine));
+  opponent_board_.SetFocus(std::move(theirs));
+  opponent_board_.SetHighlight(direct);
+  end_turn_->SetFocused(TutorialGuided() && tutorial_step_ == TutorialStep::kEndTurn);
+}
+
+SDL_FRect BattleScene::TutorialSpotlight(int width, int height) const {
+  switch (tutorial_step_) {
+    case TutorialStep::kLife:
+      return hud_.LifePanelRect(width);
+    case TutorialStep::kHand:
+    case TutorialStep::kCategory:
+    case TutorialStep::kHierarchy:
+    case TutorialStep::kStats:
+      return hand_.ScreenBounds(hand_view_proj_, width, height);
+    case TutorialStep::kField:
+      return hud_.FieldPanelRect();
+    default:
+      return SDL_FRect{};
+  }
+}
+
+std::vector<std::string> BattleScene::TutorialOpponentDeck() const {
+  std::vector<const CardInfo*> weakest;
+  for (const CardInfo& card : cards_) {
+    if (!card.IsField() && card.hierarchy > 0) weakest.push_back(&card);
+  }
+  std::sort(weakest.begin(), weakest.end(), [](const CardInfo* a, const CardInfo* b) {
+    return a->attack != b->attack ? a->attack < b->attack : a->defense < b->defense;
+  });
+  weakest.resize(std::min(weakest.size(),
+                          static_cast<size_t>(rules::Get().tutorial_opponent_cards)));
+  std::vector<std::string> deck;
+  for (int i = 0; i < rules::Get().deck_size && !weakest.empty(); ++i) {
+    deck.push_back(weakest[static_cast<size_t>(i) % weakest.size()]->code);
+  }
+  return deck;
+}
+
+void BattleScene::AdvanceTutorial() {
+  tutorial_panel_.Hide();
+  if (tutorial_step_ != TutorialStep::kDone) {
+    tutorial_step_ = static_cast<TutorialStep>(static_cast<int>(tutorial_step_) + 1);
+  }
+}
+
+void BattleScene::UpdateTutorial(int width, int height) {
+  static_assert(kTutorialCount == static_cast<int>(TutorialStep::kDone));
+  if (!tutorial_) return;
+  // Also runs once the tutorial is done, which gives the hand back.
+  hand_.SetDraggable(!TutorialGuided() || tutorial_step_ == TutorialStep::kSummon ||
+                     tutorial_step_ == TutorialStep::kField);
+  hand_.SetRaised(tutorial_step_ == TutorialStep::kHand ||
+                  tutorial_step_ == TutorialStep::kCategory ||
+                  tutorial_step_ == TutorialStep::kHierarchy ||
+                  tutorial_step_ == TutorialStep::kStats);
+  if (tutorial_step_ == TutorialStep::kDone) return;
+  if (hud_.Over()) tutorial_step_ = TutorialStep::kFinish;
+  int defending = 0;
+  for (int slot : board_.Occupied()) defending += board_.At(slot)->defense ? 1 : 0;
+  int fields_in_hand = 0;
+  for (size_t i = 0; i < hand_.Size(); ++i) {
+    const CardInfo* info = hand_.CardAt(i).info;
+    fields_in_hand += info != nullptr && info->IsField() ? 1 : 0;
+  }
+  // Steps without a button end when the player does what they ask.
+  bool done = false;
+  switch (tutorial_step_) {
+    case TutorialStep::kInspect:
+      tutorial_inspected_ = tutorial_inspected_ || hand_.Inspecting();
+      done = tutorial_inspected_ && !hand_.InspectShown();
+      break;
+    case TutorialStep::kSummon:
+      done = summoned_;
+      break;
+    case TutorialStep::kDefense:
+      done = defending > 0;
+      break;
+    case TutorialStep::kAttackMode:
+      done = defending == 0;
+      break;
+    case TutorialStep::kField:
+      done = tutorial_panel_.Open() && !tutorial_panel_.Modal() &&
+             fields_in_hand < tutorial_fields_;
+      break;
+    case TutorialStep::kEndTurn:
+      done = !player_turn_;
+      break;
+    case TutorialStep::kOpponentTurn:
+      done = player_turn_;
+      break;
+    case TutorialStep::kAttack:
+      done = stats_.attacks[0] > 0;
+      break;
+    default:
+      break;
+  }
+  if (done || hud_.Over()) AdvanceTutorial();
+  if (tutorial_panel_.Modal()) {
+    tutorial_panel_.SetSpotlight(TutorialSpotlight(width, height), width, height);
+  }
+  if (tutorial_panel_.Open() || tutorial_step_ == TutorialStep::kDone) return;
+
+  bool ready = CanAct();
+  if (tutorial_step_ == TutorialStep::kOpponentTurn) ready = turn_side_ == Side::kOpponent;
+  if (tutorial_step_ == TutorialStep::kAttack) ready = ready && AttacksAllowed(Side::kPlayer);
+  if (!ready) return;
+
+  const int index = static_cast<int>(tutorial_step_);
+  const TutorialStepInfo& step = kTutorialSteps[index];
+  std::string key = step.key;
+  bool modal = step.modal;
+  // Without a field card in hand the field step only explains, with a button.
+  if (tutorial_step_ == TutorialStep::kField && fields_in_hand == 0) {
+    key = "fieldInfo";
+    modal = true;
+  }
+  // A modal panel takes every event, so it waits for drags to end.
+  if (modal && (hand_.Dragging() >= 0 || attack_from_ >= 0)) return;
+  tutorial_fields_ = fields_in_hand;
+  const std::string base = "battle.tutorial." + key;
+  const std::string button =
+      !modal ? std::string()
+             : i18n::Get(tutorial_step_ == TutorialStep::kFinish ? "battle.tutorial.start"
+                                                         : "battle.tutorial.next");
+  tutorial_panel_.Show(
+      i18n::Format("battle.tutorial.counter",
+                   {std::to_string(index + 1), std::to_string(kTutorialCount)}),
+      i18n::Get(base + ".title"), i18n::Format(base + ".text", {i18n::Get("battle.endTurn")}),
+      button, modal, width, height, TutorialSpotlight(width, height));
+  LOG("Tutorial step %d/%d: %s", index + 1, kTutorialCount, key.c_str());
 }
 
 math::Vec2 BattleScene::ScreenOf(const math::Vec3& world, int width, int height) const {
@@ -1106,6 +1340,13 @@ void BattleScene::OnEnter(SceneContext& ctx) {
     if (std::strcmp(env, "player") == 0) starter_ = Side::kPlayer;
     if (std::strcmp(env, "opponent") == 0) starter_ = Side::kOpponent;
   }
+  if (tutorial_) starter_ = Side::kPlayer;
+  tutorial_step_ = tutorial_ ? TutorialStep::kWelcome : TutorialStep::kDone;
+  tutorial_inspected_ = false;
+  tutorial_panel_.Hide();
+  Hand::Lock lock;
+  if (tutorial_) lock = [this](const Hand::Card& card) { return TutorialLocksCard(card.info); };
+  hand_.SetLock(std::move(lock));
   if (starter_ == Side::kOpponent) {
     hand_.SetAwayNow(true);
     orbit_ = orbit_target_ = 1.0f;
@@ -1279,6 +1520,15 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
     }
     return;
   }
+  if (TutorialModal()) {
+    if (event.type == SDL_EVENT_MOUSE_MOTION) mouse_ = {event.motion.x, event.motion.y};
+    if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
+      Pause(ctx);
+    } else if (tutorial_panel_.HandleEvent(event)) {
+      AdvanceTutorial();
+    }
+    return;
+  }
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_ESCAPE:
@@ -1356,7 +1606,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       exit_button_.Contains(event.button.x, event.button.y)) {
     return;
   }
-  if (CanAct()) {
+  if (CanAct() && !EndTurnLocked()) {
     if (end_turn_->HandleEvent(event)) {
       end_turn_->OnClick(ctx);
       return;
@@ -1372,7 +1622,8 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
       press_ = pos;
       attack_from_ = -1;
       attack_drag_ = false;
-      if (CanAct() && AttacksAllowed(Side::kPlayer) && hand_.Hovered() < 0) {
+      if (CanAct() && AttacksAllowed(Side::kPlayer) && TutorialAllowsAttack() &&
+          hand_.Hovered() < 0) {
         const int slot = board_.PickSlot(pos, arena_view_proj_, ctx.logical_width,
                                          ctx.logical_height);
         const Board::Card* card = board_.At(slot);
@@ -1409,7 +1660,7 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
         }
       }
     } else if (!inspecting && press_.x >= 0 && moved < S().click_slop && hand_.Hovered() < 0 &&
-               CanAct()) {
+               CanAct() && TutorialAllowsToggle()) {
       const int slot =
           board_.PickSlot(pos, arena_view_proj_, ctx.logical_width, ctx.logical_height);
       if (slot >= 0 && board_.TogglePosition(slot)) {
@@ -1451,7 +1702,13 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   }
   if (hud_.Over() && !reward_done_) {
     reward_done_ = true;
-    if (hud_.PlayerLife() > 0 && hud_.OpponentLife() <= 0) GrantReward(ctx);
+    const bool won = hud_.PlayerLife() > 0 && hud_.OpponentLife() <= 0;
+    if (won) GrantReward(ctx);
+    if (tutorial_ && ctx.save) {
+      ctx.save->tutorial = false;
+      LOG("Tutorial finished");
+    }
+    if (ctx.save && (won || tutorial_)) save::Write(*ctx.save);
   }
   if (hud_.Over()) {
     const SDL_FRect area = hud_.ResultButtonArea(ctx.logical_width, ctx.logical_height);
@@ -1487,8 +1744,10 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   } else {
     step_timer_ = 0.0f;
   }
+  UpdateTutorial(ctx.logical_width, ctx.logical_height);
 
-  hand_.Update(dt_seconds, mouse_, hand_view_proj_, ctx.logical_width, ctx.logical_height);
+  hand_.Update(dt_seconds, TutorialModal() ? math::Vec2{-1.0f, -1.0f} : mouse_, hand_view_proj_,
+               ctx.logical_width, ctx.logical_height);
   // Mouse off screen: the opponent hand ignores it.
   opponent_hand_view_.Update(dt_seconds, math::Vec2{-1.0f, -1.0f}, hand_view_proj_,
                              ctx.logical_width, ctx.logical_height);
@@ -1505,7 +1764,8 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
                  std::min(1.0f, dt_seconds * S().field_glow_speed);
   arena_atmosphere_.fog_color = LerpColor(fog_color_, field_fog_color_, field_glow_);
   const bool summoning = CanSummon();
-  board_.SetHighlight(summoning);
+  board_.SetHighlight(summoning ||
+                      (TutorialGuided() && tutorial_step_ == TutorialStep::kSummon && CanAct()));
   int hover = -1;
   int opponent_hover = -1;
   if (attack_from_ >= 0 && attack_drag_) {
@@ -1523,13 +1783,14 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   opponent_board_.SetHoverSlot(opponent_hover);
   board_.SetHoverColor(HoverColor());
   opponent_board_.SetHoverColor(HoverColor());
+  UpdateTutorialFocus();
   board_.Update(dt_seconds);
   opponent_board_.Update(dt_seconds);
   sword_.Update(dt_seconds);
   shield_.Update(dt_seconds);
   tooltip_slot_ = -1;
-  if (intro_ >= 1.0f && !hud_.Over() && hand_.Hovered() < 0 && hand_.Dragging() < 0 &&
-      !hand_.Inspecting() && mouse_.x >= 0) {
+  if (intro_ >= 1.0f && !hud_.Over() && !TutorialModal() && hand_.Hovered() < 0 &&
+      hand_.Dragging() < 0 && !hand_.Inspecting() && mouse_.x >= 0) {
     for (Side side : {Side::kPlayer, Side::kOpponent}) {
       const Board& board = side == Side::kPlayer ? board_ : opponent_board_;
       const int slot =
@@ -1697,13 +1958,13 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
     float gap_after;
   };
   std::vector<Line> lines;
-  const SDL_Color title = colors::Get("silverLight");
-  const SDL_Color label = colors::Get("steelLight");
-  const SDL_Color value = colors::Get("silver");
+  const float alpha = opacity::Get("cardTooltip");
+  auto faded = [](const char* name) { return opacity::Apply(colors::Get(name), "cardTooltip"); };
+  const SDL_Color title = faded("silverLight");
+  const SDL_Color label = faded("steelLight");
+  const SDL_Color value = faded("silver");
   auto stat_color = [&](int effective, int base) {
-    return effective > base ? colors::Get("green")
-           : effective < base ? colors::Get("red")
-                              : value;
+    return effective > base ? faded("green") : effective < base ? faded("red") : value;
   };
   lines.push_back({info.name, L().tip_style, title, L().tip_gap * 2});
   lines.push_back({i18n::Get("cardface.atk") + " " + std::to_string(attack),
@@ -1741,19 +2002,24 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   if (x + w > width) x = mouse_.x - L().tip_offset - w;
   if (y + h > height) y = std::max(0.0f, mouse_.y - L().tip_offset - h);
   const SDL_FRect panel{x, y, w, h};
-  frame::Draw(r, panel, frame::Kind::kWindow);
+  frame::Draw(r, panel, frame::Kind::kWindow, frame::State::kNormal, alpha);
+  SDL_BlendMode previous = SDL_BLENDMODE_NONE;
+  SDL_GetRenderDrawBlendMode(r, &previous);
+  SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
   SDL_Color c;
 
   const SDL_FRect image{x + L().tip_padding, y + L().tip_padding, image_w, L().tip_image_h};
   SDL_Texture* face = const_cast<BattleScene*>(this)->HudFace(info);  // only fills the cache
   if (face != nullptr) {
+    SDL_SetTextureAlphaMod(face, static_cast<Uint8>(alpha * 255.0f));
     SDL_RenderTexture(r, face, nullptr, &image);
+    SDL_SetTextureAlphaMod(face, 255);
   } else {
-    c = colors::Get("stone");
+    c = faded("stone");
     SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
     SDL_RenderFillRect(r, &image);
   }
-  c = colors::Get("steel");
+  c = faded("steel");
   SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
   SDL_RenderRect(r, &image);
 
@@ -1763,6 +2029,7 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
     text::Draw(r, line.text.c_str(), tx, ty, line.style, line.color);
     ty += text::LineHeight(line.style) + line.gap_after;
   }
+  SDL_SetRenderDrawBlendMode(r, previous);
 }
 
 std::string BattleScene::Hint(int width, int height) const {
@@ -1818,6 +2085,8 @@ std::string BattleScene::Hint(int width, int height) const {
     return i18n::Get(board_.Count() >= Board::kSlots ? "battle.hint.boardFull"
                                                      : "battle.hint.summon");
   }
+  // The tutorial panel gives the instructions; only drag previews stay.
+  if (TutorialGuided()) return {};
 
   if (hand_.Hovered() >= 0) return i18n::Get("battle.hint.handCard");
 
@@ -1969,7 +2238,7 @@ void BattleScene::RenderHud(SceneContext& ctx) {
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (hud_.Over()) result_menu_->Render(r);
-  if (CanAct()) end_turn_->Render(r);
+  if (CanAct() && !EndTurnLocked()) end_turn_->Render(r);
   sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
   hint_button_.SetActive(hints_enabled_);
@@ -1977,5 +2246,6 @@ void BattleScene::RenderHud(SceneContext& ctx) {
   exit_button_.Render(r);
   RenderReveal(r, ctx.logical_width, ctx.logical_height);
   if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
+  tutorial_panel_.Render(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);
 }

@@ -18,6 +18,7 @@ class Value {
   std::vector<Value> array;
   std::vector<std::pair<std::string, Value>> object;  // File order; Find returns the first match.
 
+  bool IsBool() const { return type == Type::kBool; }
   bool IsObject() const { return type == Type::kObject; }
   bool IsArray() const { return type == Type::kArray; }
   bool IsString() const { return type == Type::kString; }

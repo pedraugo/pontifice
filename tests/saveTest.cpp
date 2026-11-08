@@ -119,6 +119,7 @@ void TestJson() {
   data.name = "Jo\xC3\xA3o \"Pedro\" \\ \t";
   data.language = "es";
   data.difficulty = 3;
+  data.tutorial = false;
   for (const char* code : {"G401", "N301", "FE01", "G401", "G401"}) data.UnlockCard(code);
   data.deck = {"G401", "N301", "FE01", "G401"};
   save::Data back;
@@ -126,6 +127,7 @@ void TestJson() {
   Check(back.name == data.name, "round trip keeps the name");
   Check(back.language == data.language, "round trip keeps the language");
   Check(back.difficulty == 3, "round trip keeps the difficulty");
+  Check(!back.tutorial, "round trip keeps the finished tutorial");
   Check(back.unlocked.size() == 5 && back.unlocked[3].code == "G401", "round trip keeps history");
   Check(!back.unlocked[0].date.empty() && back.unlocked[0].date == data.unlocked[0].date,
         "round trip keeps the unlock dates");
@@ -146,6 +148,8 @@ void TestJson() {
   Check(clamped.deck == std::vector<std::string>{"G401"}, "deck keeps only unlocked copies");
   Check(clamped.difficulty == rules::Get().default_difficulty,
         "missing difficulty falls back to defaultDifficulty");
+  Check(clamped.tutorial, "missing tutorial starts the tutorial");
+  Check(save::Data{}.tutorial, "new save starts with the tutorial");
 }
 
 void TestSetInDeck() {

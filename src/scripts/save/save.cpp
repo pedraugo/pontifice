@@ -101,6 +101,7 @@ std::string ToJson(const Data& data) {
   out += "  \"name\": " + Quoted(data.name) + ",\n";
   out += "  \"language\": " + Quoted(data.language) + ",\n";
   out += "  \"difficulty\": " + std::to_string(data.difficulty) + ",\n";
+  out += "  \"tutorial\": " + std::string(data.tutorial ? "true" : "false") + ",\n";
   out += "  \"unlocked\": [";
   for (size_t i = 0; i < data.unlocked.size(); ++i) {
     const Unlock& unlock = data.unlocked[i];
@@ -138,6 +139,8 @@ bool FromJson(const std::string& text, Data& out) {
                                    ? static_cast<int>(difficulty->number)
                                    : rules::Get().default_difficulty,
                                0, 3);
+  const json::Value* tutorial = root.Find("tutorial");
+  data.tutorial = tutorial == nullptr || !tutorial->IsBool() || tutorial->boolean;
   for (const json::Value& item : unlocked->array) {
     const std::string code = Str(item.Find("code"));
     if (!code.empty()) data.unlocked.push_back({code, Str(item.Find("date"))});

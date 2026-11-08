@@ -60,6 +60,9 @@ class Hud {
   void Update(float dt, float mouse_x, float mouse_y);  // mouse in logical px
 
   void Render(SDL_Renderer* r, int width, int height) const;
+  // Resting rectangles of the life and field panels (tutorial spotlight).
+  SDL_FRect LifePanelRect(int width) const;
+  SDL_FRect FieldPanelRect() const { return LayoutField().panel; }
   // Bottom strip of the result window, where the battle places its Menu button.
   SDL_FRect ResultButtonArea(int width, int height) const;
 

@@ -24,6 +24,7 @@ void Set(const Settings& settings) {
   g_settings.starter_hierarchy4 = std::clamp(settings.starter_hierarchy4, 0, g_settings.deck_size);
   g_settings.starter_hierarchy3 = std::clamp(settings.starter_hierarchy3, 0,
                                              g_settings.deck_size - g_settings.starter_hierarchy4);
+  g_settings.tutorial_opponent_cards = std::max(1, settings.tutorial_opponent_cards);
 }
 
 Field Field::From(const CardInfo& card) {

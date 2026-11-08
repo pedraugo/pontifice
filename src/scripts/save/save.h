@@ -18,6 +18,7 @@ struct Data {
   std::string name;
   std::string language;
   int difficulty = 1;  // ai::Difficulty: 0 easy to 3 impossible
+  bool tutorial = true;  // first battle still to play with the tutorial guide
   std::vector<Unlock> unlocked;  // history, oldest first
   std::vector<std::string> deck;  // battle deck: up to deckSize codes, repeats allowed
 

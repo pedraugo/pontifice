@@ -19,7 +19,7 @@ namespace {
 struct Layout {
   float margin = ui::Cells("hud.margin", 1.0f);
   float padding = ui::Cells("hud.padding", 1.0f);
-  float panel_w = ui::Cells("hud.life.width", 34.0f);
+  float panel_w = ui::Cells("hud.life.width", 16.0f);
   float panel_h = ui::Cells("hud.life.height", 6.0f);
   float field_panel_w = ui::Cells("hud.field.width", 24.0f);
   float field_panel_h = ui::Cells("hud.field.height", 6.0f);
@@ -102,9 +102,7 @@ void DrawRight(SDL_Renderer* r, const char* str, float right_x, float y, const t
   text::Draw(r, str, right_x - text::Width(str, style), y, style, color);
 }
 
-std::string LifeText(int life, int max) {
-  return std::to_string(std::max(life, 0)) + " / " + std::to_string(max);
-}
+std::string LifeText(int life) { return std::to_string(std::max(life, 0)); }
 
 std::string ClockText(float seconds) {
   const int total = std::max(0, static_cast<int>(seconds));
@@ -265,6 +263,10 @@ void Hud::RenderFieldPanel(SDL_Renderer* r) const {
   text::Draw(r, nerf.c_str(), text_x, y, L().detail_style, colors::Get("red"));
 }
 
+SDL_FRect Hud::LifePanelRect(int width) const {
+  return SDL_FRect{width - L().margin - L().panel_w, L().margin, L().panel_w, L().panel_h};
+}
+
 void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
   float dx = 0.0f, dy = 0.0f;
   if (life_shake_ > 0.0f) {
@@ -297,11 +299,11 @@ void Hud::RenderLifePanel(SDL_Renderer* r, int width) const {
     return colors::Get("green");
   };
   text::Draw(r, i18n::Get("general.opponent").c_str(), left, y, L().line_style, label);
-  DrawRight(r, LifeText(opponent_life_, rules::Get().max_life).c_str(), right, y, L().line_style,
+  DrawRight(r, LifeText(opponent_life_).c_str(), right, y, L().line_style,
             opponent_life_ <= 0 ? zero : blink_color(life_flash_[0], value));
   y += L().line_h + L().line_gap;
   text::Draw(r, i18n::Get("general.player").c_str(), left, y, L().line_style, label);
-  DrawRight(r, LifeText(player_life_, rules::Get().max_life).c_str(), right, y, L().line_style,
+  DrawRight(r, LifeText(player_life_).c_str(), right, y, L().line_style,
             blink_color(life_flash_[1], player_color(player_life_)));
 }
 

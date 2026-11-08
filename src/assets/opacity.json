@@ -9,6 +9,7 @@
   "boardSlot": 0.3,
   "boardSlotPulse": 0.5,
   "boardHint": 0.75,
+  "cardTooltip": 0.85,
   "cardSpent": 0.75,
   "cardSpentAura": 0.2,
   "fieldZoomArtStart": 0.4,

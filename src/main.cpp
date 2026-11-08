@@ -192,6 +192,8 @@ int main(int /*argc*/, char** /*argv*/) {
         config::Int("rules", "starterHierarchy4", settings.starter_hierarchy4);
     settings.starter_hierarchy3 =
         config::Int("rules", "starterHierarchy3", settings.starter_hierarchy3);
+    settings.tutorial_opponent_cards =
+        config::Int("rules", "tutorialOpponentCards", settings.tutorial_opponent_cards);
     rules::Set(settings);
   }
   {

@@ -76,7 +76,7 @@
   "hud": {
     "margin": 1,
     "padding": 1,
-    "life": {"width": 34, "height": 6, "lineGap": 0.75},
+    "life": {"width": 16, "height": 6, "lineGap": 0.75},
     "field": {
       "width": 24,
       "height": 6,
@@ -87,5 +87,16 @@
     "result": {"width": 44, "padding": 2, "titleGap": 1, "rowGap": 0.5, "columnWidth": 9, "cardGap": 2},
     "popup": {"offsetX": 4, "shadowOffsetPx": 3}
   },
-  "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5}
+  "dialog": {"minWidth": 48, "height": 16, "padding": 3, "titleGap": 1.5},
+  "tutorial": {
+    "width": 40,
+    "padding": 2,
+    "margin": 2,
+    "counterGap": 0.5,
+    "titleGap": 1,
+    "buttonGap": 1.5,
+    "spotlightMargin": 0.5,
+    "spotlightLinePx": 3,
+    "spotlightPulseSpeed": 4
+  }
 }

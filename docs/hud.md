@@ -3,10 +3,10 @@
 O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a batalha. Ele fica por cima do campo e não ocupa slots.
 
 ```
-+----------------+----------------------------+----------------------+
-| [img] Nome     |                            | Oponente  4200 / 5000|
-| +300 Benévolas |                            | Jogador   5000 / 5000|
-| -300 Malignas  |                            +----------------------+
++----------------+------------------------------------+--------------+
+| [img] Nome     |                                    |Oponente  4200|
+| +300 Benévolas |                                    |Jogador   5000|
+| -300 Malignas  |                                    +--------------+
 +----------------+                                                    |
 |                              CAMPO                                   |
 |                                                                      |
@@ -28,7 +28,8 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 - Ao **perder vida**, o painel inteiro **treme** (0,4 s, forte no golpe e sumindo), o valor de quem levou o dano **pisca em vermelho** e um **número de dano** (`-2750`, vermelho com sombra, grande) **salta** do valor: estoura, sobe um pouco, cai em arco para dentro da tela e some em 1,2 s. Danos seguidos saem para lados alternados. O número é o dano do golpe, mesmo que a vida pare em 0.
 
 - Mostra os **pontos de vida do oponente** e os **seus**, rotulados `Oponente` e `Jogador`, nesta ordem, de cima para baixo.
-- Formato: `vida atual / vida máxima`. Ambos começam em `5000 / 5000`.
+- Formato: rótulo à esquerda e só a vida atual alinhada à direita (`Oponente      5000`). Ambos começam em `5000`.
+- Painel estreito: 16 células de largura (`ui.json` `hud.life.width`).
 - O valor é atualizado logo após cada cálculo de dano.
 - Ao chegar a `0`, a batalha termina e o resultado é exibido.
 
