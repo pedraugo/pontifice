@@ -32,7 +32,7 @@ class MenuScene : public Scene {
   void CreateSave(SceneContext& ctx);
 
   MenuPage page_ = MenuPage::kMain;
-  Buttons main_buttons_;  // Play, Exit
+  Buttons main_buttons_;  // Play, Language, Exit
   Buttons form_buttons_;  // Menu, Save
   Buttons save_buttons_;  // Battle, Level, Grimoire, Exit
   Button* battle_button_ = nullptr;

@@ -7,7 +7,7 @@
 namespace flag {
 
 // Simplified to read at ~48 px: no coat of arms, no motto band, stars as a dot grid.
-enum class Country { kUnitedStates, kSpain, kBrazil };
+enum class Country { kUnitedStates, kSpain, kFrance, kBrazil };
 
 Country FromCode(const std::string& code);  // translate.json codes; unknown -> Brazil
 

@@ -63,6 +63,11 @@ MenuScene::MenuScene() {
       std::make_unique<ButtonText>(i18n::Get("menu.play"), [this](SceneContext& ctx) {
         ShowPage(ctx, ctx.save ? MenuPage::kSave : MenuPage::kNewSave);
       }));
+  main_buttons_.push_back(
+      std::make_unique<ButtonText>(i18n::Get("menu.language"), [](SceneContext& ctx) {
+        ctx.language_from_menu = true;
+        ctx.next_scene = SceneId::kLanguage;
+      }));
   main_buttons_.push_back(std::make_unique<ButtonText>(
       i18n::Get("menu.exit"), [](SceneContext& ctx) { ctx.quit = true; }));
   main_buttons_.back()->SetDanger(true);

@@ -202,7 +202,7 @@ int main(int /*argc*/, char** /*argv*/) {
       LOG("Translations not loaded (%s); texts fall back to keys", translate.c_str());
     }
   }
-  // Debug: PONTIFICE_LANG=en|es|pt sets the language and skips the language scene.
+  // Debug: PONTIFICE_LANG=en|es|fr|pt sets the language and skips the language scene.
   const char* env_lang = std::getenv("PONTIFICE_LANG");
   // A save brings back the player's language, so the language scene is skipped too.
   std::optional<save::Data> saved = save::Load();

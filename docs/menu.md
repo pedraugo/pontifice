@@ -1,6 +1,6 @@
 # Menu
 
-O menu abre depois da escolha de idioma (docs/idioma.md) ou, quando já existe um save, direto na abertura do jogo. É o único caminho para a batalha, para o grimório e para sair. Os textos vêm de `assets/translate.json` no idioma escolhido; abaixo estão em português.
+O menu abre depois da escolha de idioma (docs/idioma.md) ou, quando já existe um save, direto na abertura do jogo. É o único caminho para a batalha, para o grimório, para trocar de idioma e para sair. Os textos vêm de `assets/translate.json` no idioma escolhido; abaixo estão em português.
 
 O menu tem três páginas, todas na mesma cena, com o título `Pontifice` no topo e o rodapé `Criado por pedraugo`.
 
@@ -11,7 +11,7 @@ O menu tem três páginas, todas na mesma cena, com o título `Pontifice` no top
 |                        Pontifice                           |
 |                                                            |
 |                          Jogar                             |
-|                                                            |
+|                          Idioma                            |
 |                          Sair                              |
 |                                                            |
 |                   Criado por pedraugo                      |
@@ -19,6 +19,7 @@ O menu tem três páginas, todas na mesma cena, com o título `Pontifice` no top
 ```
 
 - **Jogar**: sem save, abre a página de novo save; com save, abre a página do save.
+- **Idioma**: abre a cena de idioma (docs/idioma.md). Escolher um idioma volta ao menu já traduzido e, com save, grava o novo idioma nele; `Esc` volta ao menu sem trocar.
 - **Sair**: encerra o jogo.
 
 ## Página de novo save (Jogar sem save)
@@ -93,7 +94,7 @@ Arquivo `pontifice.json` na pasta do usuário logado (`SDL_GetUserFolder(SDL_FOL
 ```
 
 - `name`: nome digitado.
-- `language`: idioma da sessão; na próxima abertura o jogo usa esse idioma e pula a cena de idioma. Escolher outro idioma na cena de idioma (`PONTIFICE_SCENE=language`) atualiza o save.
+- `language`: idioma da sessão; na próxima abertura o jogo usa esse idioma e pula a cena de idioma. Escolher outro idioma na cena de idioma (item **Idioma** da página principal ou `PONTIFICE_SCENE=language`) atualiza o save.
 - `difficulty`: nível do oponente escolhido em **Nível** (0 Fácil, 1 Médio, 2 Difícil, 3 Impossível). Cada clique em Nível grava o save; ao abrir o jogo o menu já mostra o nível salvo. Sem a chave, vale `defaultDifficulty` de `assets/rules.json`.
 - `tutorial`: `true` enquanto a primeira batalha, com o tutorial guiado (docs/tutorial.md), não terminou. Save novo começa em `true`, e save sem a chave também vale `true`; ao fim dessa partida vira `false`.
 - `unlocked`: **histórico** das cartas liberadas, uma entrada por cópia, na ordem em que você ganhou, com a data e hora local (`date`). As 40 do deck inicial entram com a data da criação do save; cada recompensa acrescenta uma. `save::Data::Available()` agrupa o histórico em cópias disponíveis por código (ex.: `G401` → 2).
@@ -128,5 +129,5 @@ Arquivo `pontifice.json` na pasta do usuário logado (`SDL_GetUserFolder(SDL_FOL
 - Cena: `src/scenes/menu/menuScene.*`; a página atual fica em `SceneContext::menu_page` para o menu reabrir nela.
 - Campo de texto: `src/scripts/input/textInput.*`.
 - Save: `src/scripts/save/save.*` (`Data` com `Available`, `InDeck`, `UnlockCard`, `SetInDeck`; `Path`, `Load`, `Write`, `ToJson`, `FromJson`); carregado em `main.cpp` antes da primeira cena e guardado em `SceneContext::save`. `PreloadInfo::save` leva uma cópia para o `Preload` da batalha e do grimório (outra thread).
-- Textos: `menu.play`, `menu.exit`, `menu.battle`, `menu.battleIncomplete`, `menu.level`, `menu.grimoire`, `menu.namePlaceholder`, `menu.save`, `general.menu`.
+- Textos: `menu.play`, `menu.language`, `menu.exit`, `menu.battle`, `menu.battleIncomplete`, `menu.level`, `menu.grimoire`, `menu.namePlaceholder`, `menu.save`, `general.menu`.
 - Testes: `tests/saveTest.cpp` (deck inicial, sorteio por `odds`, ida e volta do JSON, edição do deck com limites).

@@ -11,6 +11,11 @@
       "flag": "es"
     },
     {
+      "code": "fr",
+      "name": "Français",
+      "flag": "fr"
+    },
+    {
       "code": "pt",
       "name": "Português",
       "flag": "br"
@@ -20,42 +25,50 @@
     "opponent": {
       "pt": "Oponente",
       "en": "Opponent",
-      "es": "Oponente"
+      "es": "Oponente",
+      "fr": "Adversaire"
     },
     "player": {
       "pt": "Jogador",
       "en": "Player",
-      "es": "Jugador"
+      "es": "Jugador",
+      "fr": "Joueur"
     },
     "you": {
       "pt": "Você",
       "en": "You",
-      "es": "Tú"
+      "es": "Tú",
+      "fr": "Vous"
     },
     "back": {
       "pt": "Voltar",
       "en": "Back",
-      "es": "Atrás"
+      "es": "Atrás",
+      "fr": "Retour"
     },
     "forward": {
       "pt": "Avançar",
       "en": "Forward",
-      "es": "Avanzar"
+      "es": "Avanzar",
+      "fr": "Suivant"
     },
     "menu": {
       "pt": "Menu",
       "en": "Menu",
-      "es": "Menú"
+      "es": "Menú",
+      "fr": "Menu"
     },
     "attack": {
       "pt": "Ataque",
       "en": "Attack",
-      "es": "Ataque"
+      "es": "Ataque",
+      "fr": "Attaque"
     },
     "defense": {
       "pt": "Defesa",
       "en": "Defense",
-      "es": "Defensa"
+      "es": "Defensa",
+      "fr": "Défense"
     }
   },
   "ui": {
@@ -63,12 +76,14 @@
       "no": {
         "pt": "Não",
         "en": "No",
-        "es": "No"
+        "es": "No",
+        "fr": "Non"
       },
       "yes": {
         "pt": "Sim",
         "en": "Yes",
-        "es": "Sí"
+        "es": "Sí",
+        "fr": "Oui"
       }
     }
   },
@@ -76,75 +91,95 @@
     "label": {
       "pt": "Carregando",
       "en": "Loading",
-      "es": "Cargando"
+      "es": "Cargando",
+      "fr": "Chargement"
     }
   },
   "menu": {
     "play": {
       "pt": "Jogar",
       "en": "Play",
-      "es": "Jugar"
+      "es": "Jugar",
+      "fr": "Jouer"
     },
     "grimoire": {
       "pt": "Grimório",
       "en": "Grimoire",
-      "es": "Grimorio"
+      "es": "Grimorio",
+      "fr": "Grimoire"
     },
     "exit": {
       "pt": "Sair",
       "en": "Exit",
-      "es": "Salir"
+      "es": "Salir",
+      "fr": "Quitter"
+    },
+    "language": {
+      "pt": "Idioma",
+      "en": "Language",
+      "es": "Idioma",
+      "fr": "Langue"
     },
     "level": {
       "pt": "Nível: {0}",
       "en": "Level: {0}",
-      "es": "Nivel: {0}"
+      "es": "Nivel: {0}",
+      "fr": "Niveau : {0}"
     },
     "credits": {
       "pt": "Criado por pedraugo",
       "en": "Created by pedraugo",
-      "es": "Creado por pedraugo"
+      "es": "Creado por pedraugo",
+      "fr": "Créé par pedraugo"
     },
     "battle": {
       "pt": "Batalha",
       "en": "Battle",
-      "es": "Batalla"
+      "es": "Batalla",
+      "fr": "Bataille"
     },
     "battleIncomplete": {
       "pt": "Batalha (deck {0}/{1})",
       "en": "Battle (deck {0}/{1})",
-      "es": "Batalla (mazo {0}/{1})"
+      "es": "Batalla (mazo {0}/{1})",
+      "fr": "Bataille (deck {0}/{1})"
     },
     "namePlaceholder": {
       "pt": "Seu nome",
       "en": "Your name",
-      "es": "Tu nombre"
+      "es": "Tu nombre",
+      "fr": "Votre nom"
     },
     "save": {
       "pt": "Salvar",
       "en": "Save",
-      "es": "Guardar"
+      "es": "Guardar",
+      "fr": "Enregistrer"
     },
     "difficulty": {
       "easy": {
         "pt": "Fácil",
         "en": "Easy",
-        "es": "Fácil"
+        "es": "Fácil",
+        "fr": "Facile"
       },
       "medium": {
         "pt": "Médio",
         "en": "Medium",
-        "es": "Medio"
+        "es": "Medio",
+        "fr": "Moyen"
       },
       "hard": {
         "pt": "Difícil",
         "en": "Hard",
-        "es": "Difícil"
+        "es": "Difícil",
+        "fr": "Difficile"
       },
       "impossible": {
         "pt": "Impossível",
         "en": "Impossible",
-        "es": "Imposible"
+        "es": "Imposible",
+        "fr": "Impossible"
       }
     }
   },
@@ -152,465 +187,548 @@
     "title": {
       "pt": "Grimório",
       "en": "Grimoire",
-      "es": "Grimorio"
+      "es": "Grimorio",
+      "fr": "Grimoire"
     },
     "page": {
       "pt": "Página {0} de {1}",
       "en": "Page {0} of {1}",
-      "es": "Página {0} de {1}"
+      "es": "Página {0} de {1}",
+      "fr": "Page {0} sur {1}"
     },
     "empty": {
       "pt": "Nenhuma categoria selecionada",
       "en": "No category selected",
-      "es": "Ninguna categoría seleccionada"
+      "es": "Ninguna categoría seleccionada",
+      "fr": "Aucune catégorie sélectionnée"
     },
     "unlocked": {
       "pt": "Total: {0}",
       "en": "Total: {0}",
-      "es": "Total: {0}"
+      "es": "Total: {0}",
+      "fr": "Total : {0}"
     },
     "deck": {
       "pt": "Deck: {0}/{1}",
       "en": "Deck: {0}/{1}",
-      "es": "Mazo: {0}/{1}"
+      "es": "Mazo: {0}/{1}",
+      "fr": "Deck : {0}/{1}"
     }
   },
   "battle": {
     "endTurn": {
       "pt": "Passar turno",
       "en": "End turn",
-      "es": "Pasar turno"
+      "es": "Pasar turno",
+      "fr": "Fin du tour"
     },
     "noRender": {
       "pt": "Render 3D indisponível. Veja o log.",
       "en": "3D rendering unavailable. See the log.",
-      "es": "Render 3D no disponible. Mira el log."
+      "es": "Render 3D no disponible. Mira el log.",
+      "fr": "Rendu 3D indisponible. Consultez le journal."
     },
     "status": {
       "turn": {
         "pt": "Turno {0} - {1}",
         "en": "Turn {0} - {1}",
-        "es": "Turno {0} - {1}"
+        "es": "Turno {0} - {1}",
+        "fr": "Tour {0} - {1}"
       },
       "yourTurn": {
         "pt": "Sua vez",
         "en": "Your turn",
-        "es": "Tu turno"
+        "es": "Tu turno",
+        "fr": "Votre tour"
       }
     },
     "hint": {
       "inspect": {
         "pt": "Arraste: gira - Clique: vira - Roda: zoom - Esc: volta",
         "en": "Drag: rotate - Click: flip - Wheel: zoom - Esc: back",
-        "es": "Arrastra: gira - Clic: voltea - Rueda: zoom - Esc: vuelve"
+        "es": "Arrastra: gira - Clic: voltea - Rueda: zoom - Esc: vuelve",
+        "fr": "Glisser : pivoter - Clic : retourner - Molette : zoom - Échap : retour"
       },
       "opponentTurn": {
         "pt": "Vez do oponente: passe o mouse nas cartas para ver detalhes",
         "en": "Opponent's turn: hover over cards to see their details",
-        "es": "Turno del oponente: pasa el ratón por las cartas para ver datos"
+        "es": "Turno del oponente: pasa el ratón por las cartas para ver datos",
+        "fr": "Tour de l'adversaire : survolez les cartes pour voir leurs détails"
       },
       "directAttack": {
         "pt": "Solte no lado do oponente: ele perde {0} de vida",
         "en": "Drop on the opponent's side: they lose {0} life",
-        "es": "Suelta en el lado del oponente: pierde {0} de vida"
+        "es": "Suelta en el lado del oponente: pierde {0} de vida",
+        "fr": "Déposez du côté de l'adversaire : il perd {0} PV"
       },
       "attackCard": {
         "pt": "Solte sobre uma carta do oponente para atacá-la",
         "en": "Drop onto an opponent's card to attack it",
-        "es": "Suelta sobre una carta del oponente para atacarla"
+        "es": "Suelta sobre una carta del oponente para atacarla",
+        "fr": "Déposez sur une carte de l'adversaire pour l'attaquer"
       },
       "preview": {
         "win": {
           "pt": "Sua carta vence: a dele é destruída e ele perde {0} de vida",
           "en": "Your card wins: theirs is destroyed and they lose {0} life",
-          "es": "Tu carta gana: la suya es destruida y pierde {0} de vida"
+          "es": "Tu carta gana: la suya es destruida y pierde {0} de vida",
+          "fr": "Votre carte gagne : la sienne est détruite et il perd {0} PV"
         },
         "winDefense": {
           "pt": "Sua carta vence: a dele é destruída, sem dano (está em defesa)",
           "en": "Your card wins: theirs is destroyed, no damage (it's in defense)",
-          "es": "Tu carta gana: la suya es destruida, sin daño (está en defensa)"
+          "es": "Tu carta gana: la suya es destruida, sin daño (está en defensa)",
+          "fr": "Votre carte gagne : la sienne est détruite, sans dégâts (en défense)"
         },
         "lose": {
           "pt": "Sua carta perde: ela é destruída e você perde {0} de vida",
           "en": "Your card loses: it is destroyed and you lose {0} life",
-          "es": "Tu carta pierde: es destruida y pierdes {0} de vida"
+          "es": "Tu carta pierde: es destruida y pierdes {0} de vida",
+          "fr": "Votre carte perd : elle est détruite et vous perdez {0} PV"
         },
         "tie": {
           "pt": "Empate: as duas cartas são destruídas, sem dano",
           "en": "Tie: both cards are destroyed, no damage",
-          "es": "Empate: ambas cartas son destruidas, sin daño"
+          "es": "Empate: ambas cartas son destruidas, sin daño",
+          "fr": "Égalité : les deux cartes sont détruites, sans dégâts"
         },
         "blocked": {
           "pt": "A defesa aguenta: nada é destruído e você perde {0} de vida",
           "en": "The defense holds: nothing is destroyed and you lose {0} life",
-          "es": "La defensa resiste: nada se destruye y pierdes {0} de vida"
+          "es": "La defensa resiste: nada se destruye y pierdes {0} de vida",
+          "fr": "La défense tient : rien n'est détruit et vous perdez {0} PV"
         },
         "even": {
           "pt": "Ataque igual à defesa: nada acontece",
           "en": "Attack equals defense: nothing happens",
-          "es": "Ataque igual a la defensa: no pasa nada"
+          "es": "Ataque igual a la defensa: no pasa nada",
+          "fr": "Attaque égale à la défense : rien ne se passe"
         }
       },
       "playField": {
         "pt": "Solte na arena para ativar a carta de campo",
         "en": "Drop on the arena to activate the field card",
-        "es": "Suelta en la arena para activar la carta de campo"
+        "es": "Suelta en la arena para activar la carta de campo",
+        "fr": "Déposez dans l'arène pour activer la carte de terrain"
       },
       "replaceField": {
         "pt": "Solte na arena: esta carta de campo substitui a atual",
         "en": "Drop on the arena: this field card replaces the current one",
-        "es": "Suelta en la arena: esta carta de campo reemplaza a la actual"
+        "es": "Suelta en la arena: esta carta de campo reemplaza a la actual",
+        "fr": "Déposez dans l'arène : cette carte de terrain remplace l'actuelle"
       },
       "summon": {
         "pt": "Solte num slot do seu lado para invocar a carta em ataque",
         "en": "Drop on a slot on your side to summon the card in attack",
-        "es": "Suelta en una casilla de tu lado para invocarla en ataque"
+        "es": "Suelta en una casilla de tu lado para invocarla en ataque",
+        "fr": "Déposez sur un emplacement de votre côté pour invoquer en attaque"
       },
       "summonReplace": {
         "pt": "Invocar aqui manda a carta deste slot para o cemitério",
         "en": "Summoning here sends this slot's card to the graveyard",
-        "es": "Invocar aquí envía la carta de esta casilla al cementerio"
+        "es": "Invocar aquí envía la carta de esta casilla al cementerio",
+        "fr": "Invoquer ici envoie la carte de cet emplacement au cimetière"
       },
       "boardFull": {
         "pt": "Seu lado está cheio: solte sobre uma carta sua para trocá-la",
         "en": "Your side is full: drop onto one of your cards to replace it",
-        "es": "Tu lado está lleno: suelta sobre una carta tuya para cambiarla"
+        "es": "Tu lado está lleno: suelta sobre una carta tuya para cambiarla",
+        "fr": "Votre côté est plein : déposez sur une de vos cartes pour la remplacer"
       },
       "alreadySummoned": {
         "pt": "Só uma invocação por turno: solte para devolver a carta à mão",
         "en": "One summon per turn: release to return the card to your hand",
-        "es": "Una invocación por turno: suelta para devolver la carta a la mano"
+        "es": "Una invocación por turno: suelta para devolver la carta a la mano",
+        "fr": "Une invocation par tour : relâchez pour la remettre en main"
       },
       "handCard": {
         "pt": "Arraste até a arena para jogar ou dê dois cliques para ver de perto",
         "en": "Drag to the arena to play it or double-click for a closer look",
-        "es": "Arrastra a la arena para jugarla o haz doble clic para verla"
+        "es": "Arrastra a la arena para jugarla o haz doble clic para verla",
+        "fr": "Glissez vers l'arène pour la jouer ou double-cliquez pour la voir de près"
       },
       "cardAttack": {
         "pt": "Arraste ao oponente para atacar ou clique para pôr em defesa",
         "en": "Drag to the opponent to attack or click to switch to defense",
-        "es": "Arrástrala al oponente para atacar o haz clic para defender"
+        "es": "Arrástrala al oponente para atacar o haz clic para defender",
+        "fr": "Glissez vers l'adversaire pour attaquer ou cliquez pour passer en défense"
       },
       "cardAttacked": {
         "pt": "Esta carta já atacou neste turno. Clique para pôr em defesa",
         "en": "This card already attacked this turn. Click to switch to defense",
-        "es": "Esta carta ya atacó en este turno. Haz clic para defender"
+        "es": "Esta carta ya atacó en este turno. Haz clic para defender",
+        "fr": "Cette carte a déjà attaqué ce tour-ci. Cliquez pour passer en défense"
       },
       "cardFirstTurn": {
         "pt": "Quem começa não ataca no 1º turno. Clique para pôr em defesa",
         "en": "The first player can't attack on turn 1. Click to defend",
-        "es": "Quien empieza no ataca en el primer turno. Clic para defender"
+        "es": "Quien empieza no ataca en el primer turno. Clic para defender",
+        "fr": "Qui commence n'attaque pas au 1er tour. Cliquez pour défendre"
       },
       "cardDefense": {
         "pt": "Em defesa a carta não ataca. Clique para voltar ao ataque",
         "en": "Cards in defense can't attack. Click to switch to attack",
-        "es": "En defensa la carta no ataca. Haz clic para volver al ataque"
+        "es": "En defensa la carta no ataca. Haz clic para volver al ataque",
+        "fr": "En défense, la carte n'attaque pas. Cliquez pour repasser en attaque"
       },
       "attack": {
         "pt": "Para atacar, arraste uma carta sua até uma carta do oponente",
         "en": "To attack, drag one of your cards onto an opponent's card",
-        "es": "Para atacar, arrastra una carta tuya hasta una del oponente"
+        "es": "Para atacar, arrastra una carta tuya hasta una del oponente",
+        "fr": "Pour attaquer, glissez une de vos cartes sur une carte de l'adversaire"
       },
       "attackDirect": {
         "pt": "O oponente está sem cartas: arraste uma sua até o lado dele",
         "en": "The opponent has no cards: drag one of yours to their side",
-        "es": "El oponente no tiene cartas: arrastra una tuya hasta su lado"
+        "es": "El oponente no tiene cartas: arrastra una tuya hasta su lado",
+        "fr": "L'adversaire n'a plus de cartes : glissez-en une de son côté"
       },
       "select": {
         "pt": "Para invocar, arraste uma carta da mão até a arena",
         "en": "To summon, drag a card from your hand onto the arena",
-        "es": "Para invocar, arrastra una carta de la mano a la arena"
+        "es": "Para invocar, arrastra una carta de la mano a la arena",
+        "fr": "Pour invoquer, glissez une carte de votre main vers l'arène"
       },
       "fieldLeft": {
         "pt": "Carta de campo não gasta a invocação: arraste uma até a arena",
         "en": "Field cards don't use your summon: drag one onto the arena",
-        "es": "La carta de campo no gasta la invocación: arrastra una a la arena"
+        "es": "La carta de campo no gasta la invocación: arrastra una a la arena",
+        "fr": "Une carte de terrain ne coûte pas l'invocation : glissez-la dans l'arène"
       },
       "handLimit": {
         "pt": "Mais de 6 cartas: ao passar, as mais fracas são descartadas",
         "en": "Over 6 cards: ending the turn discards the weakest ones",
-        "es": "Más de 6 cartas: al pasar, se descartan las más débiles"
+        "es": "Más de 6 cartas: al pasar, se descartan las más débiles",
+        "fr": "Plus de 6 cartes : en fin de tour, les plus faibles sont défaussées"
       },
       "firstTurn": {
         "pt": "Quem começa não ataca no 1º turno. Clique em {0}",
         "en": "The first player can't attack on turn 1. Click {0}",
-        "es": "Quien empieza no ataca en el primer turno. Pulsa {0}"
+        "es": "Quien empieza no ataca en el primer turno. Pulsa {0}",
+        "fr": "Qui commence n'attaque pas au 1er tour. Cliquez sur {0}"
       },
       "endTurn": {
         "pt": "Quando terminar, clique em {0}",
         "en": "When you're done, click {0}",
-        "es": "Cuando termines, pulsa {0}"
+        "es": "Cuando termines, pulsa {0}",
+        "fr": "Quand vous avez terminé, cliquez sur {0}"
       }
     },
     "tooltip": {
       "mode": {
         "pt": "Modo",
         "en": "Mode",
-        "es": "Modo"
+        "es": "Modo",
+        "fr": "Mode"
       },
       "category": {
         "pt": "Categoria",
         "en": "Category",
-        "es": "Categoría"
+        "es": "Categoría",
+        "fr": "Catégorie"
       },
       "hierarchy": {
         "pt": "Hierarquia",
         "en": "Hierarchy",
-        "es": "Jerarquía"
+        "es": "Jerarquía",
+        "fr": "Hiérarchie"
       }
     },
     "abandon": {
       "title": {
         "pt": "Abandonar batalha",
         "en": "Abandon battle",
-        "es": "Abandonar batalla"
+        "es": "Abandonar batalla",
+        "fr": "Abandonner la bataille"
       },
       "question": {
         "pt": "Deseja realmente abandonar essa batalha?",
         "en": "Do you really want to abandon this battle?",
-        "es": "¿Realmente deseas abandonar esta batalla?"
+        "es": "¿Realmente deseas abandonar esta batalla?",
+        "fr": "Voulez-vous vraiment abandonner cette bataille ?"
       }
     },
     "reveal": {
       "summon": {
         "pt": "O oponente invoca",
         "en": "The opponent summons",
-        "es": "El oponente invoca"
+        "es": "El oponente invoca",
+        "fr": "L'adversaire invoque"
       },
       "field": {
         "pt": "O oponente ativa a carta de campo",
         "en": "The opponent activates a field card",
-        "es": "El oponente activa la carta de campo"
+        "es": "El oponente activa la carta de campo",
+        "fr": "L'adversaire active une carte de terrain"
       },
       "attack": {
         "pt": "Em ataque",
         "en": "In attack position",
-        "es": "En ataque"
+        "es": "En ataque",
+        "fr": "En position d'attaque"
       },
       "defense": {
         "pt": "Em defesa",
         "en": "In defense position",
-        "es": "En defensa"
+        "es": "En defensa",
+        "fr": "En position de défense"
       }
     },
     "tutorial": {
       "counter": {
         "pt": "Dica {0} de {1}",
         "en": "Tip {0} of {1}",
-        "es": "Consejo {0} de {1}"
+        "es": "Consejo {0} de {1}",
+        "fr": "Astuce {0} sur {1}"
       },
       "next": {
         "pt": "Próximo",
         "en": "Next",
-        "es": "Siguiente"
+        "es": "Siguiente",
+        "fr": "Suivant"
       },
       "start": {
         "pt": "Jogar",
         "en": "Play",
-        "es": "Jugar"
+        "es": "Jugar",
+        "fr": "Jouer"
       },
       "welcome": {
         "title": {
           "pt": "Bem-vindo ao Pontifice!",
           "en": "Welcome to Pontifice!",
-          "es": "¡Bienvenido a Pontifice!"
+          "es": "¡Bienvenido a Pontifice!",
+          "fr": "Bienvenue dans Pontifice !"
         },
         "text": {
           "pt": "Comece agora a sua primeira batalha. Para vencer, reduza a vida do oponente de 5000 a 0.",
           "en": "Start your first battle now. To win, bring the opponent's life from 5000 down to 0.",
-          "es": "Empieza ahora tu primera batalla. Para ganar, reduce la vida del oponente de 5000 a 0."
+          "es": "Empieza ahora tu primera batalla. Para ganar, reduce la vida del oponente de 5000 a 0.",
+          "fr": "Commencez dès maintenant votre première bataille. Pour gagner, faites passer la vie de l'adversaire de 5000 à 0."
         }
       },
       "life": {
         "title": {
           "pt": "Pontos de vida",
           "en": "Life points",
-          "es": "Puntos de vida"
+          "es": "Puntos de vida",
+          "fr": "Points de vie"
         },
         "text": {
           "pt": "No canto superior direito está a vida do jogador e do oponente. Conforme os pontos de vida vão caindo, a cor da vida vai mudando.",
           "en": "The player's and the opponent's life are in the top right corner. As life points drop, the color of the life changes.",
-          "es": "En la esquina superior derecha está la vida del jugador y del oponente. A medida que los puntos de vida bajan, el color de la vida va cambiando."
+          "es": "En la esquina superior derecha está la vida del jugador y del oponente. A medida que los puntos de vida bajan, el color de la vida va cambiando.",
+          "fr": "Dans le coin supérieur droit se trouvent la vie du joueur et celle de l'adversaire. À mesure que les points de vie baissent, la couleur de la vie change."
         }
       },
       "hand": {
         "title": {
           "pt": "Sua mão",
           "en": "Your hand",
-          "es": "Tu mano"
+          "es": "Tu mano",
+          "fr": "Votre main"
         },
         "text": {
           "pt": "Suas cartas ficam embaixo. Passe o mouse sobre uma para destacá-la e ver melhor.",
           "en": "Your cards sit at the bottom. Hover over one to raise it and take a closer look.",
-          "es": "Tus cartas están abajo. Pasa el ratón sobre una para destacarla y verla mejor."
+          "es": "Tus cartas están abajo. Pasa el ratón sobre una para destacarla y verla mejor.",
+          "fr": "Vos cartes sont en bas. Survolez-en une avec la souris pour la mettre en avant et mieux la voir."
         }
       },
       "inspect": {
         "title": {
           "pt": "Inspecionando",
           "en": "Inspecting",
-          "es": "Inspeccionando"
+          "es": "Inspeccionando",
+          "fr": "Inspection"
         },
         "text": {
           "pt": "Clique duas vezes numa carta da mão para abri-la no centro. Arraste para girar, use a roda do mouse para o zoom e clique fora para sair.",
           "en": "Double-click a card in your hand to open it in the middle. Drag to rotate it, use the mouse wheel to zoom and click outside to leave.",
-          "es": "Haz doble clic en una carta de tu mano para abrirla en el centro. Arrastra para girarla, usa la rueda del ratón para el zoom y haz clic fuera para salir."
+          "es": "Haz doble clic en una carta de tu mano para abrirla en el centro. Arrastra para girarla, usa la rueda del ratón para el zoom y haz clic fuera para salir.",
+          "fr": "Double-cliquez sur une carte de votre main pour l'ouvrir au centre. Faites-la glisser pour la faire pivoter, utilisez la molette pour zoomer et cliquez à l'extérieur pour quitter."
         }
       },
       "category": {
         "title": {
           "pt": "Categorias",
           "en": "Categories",
-          "es": "Categorías"
+          "es": "Categorías",
+          "fr": "Catégories"
         },
         "text": {
           "pt": "As cartas são categorizadas entre Benévola, Maligna ou Neutra, representando de que lado estão nessa batalha.",
           "en": "Cards are categorized as Benevolent, Malign or Neutral, showing which side they are on in this battle.",
-          "es": "Las cartas se clasifican como Benévola, Maligna o Neutral, lo que representa de qué lado están en esta batalla."
+          "es": "Las cartas se clasifican como Benévola, Maligna o Neutral, lo que representa de qué lado están en esta batalla.",
+          "fr": "Les cartes sont classées en Bienveillante, Maléfique ou Neutre, selon le camp qu'elles servent dans cette bataille."
         }
       },
       "hierarchy": {
         "title": {
           "pt": "Hierarquia",
           "en": "Hierarchy",
-          "es": "Jerarquía"
+          "es": "Jerarquía",
+          "fr": "Hiérarchie"
         },
         "text": {
           "pt": "As hierarquias representam a raridade e o poder das cartas. As de hierarquia 1 são as mais potentes em ataque e defesa, e as de hierarquia 4 são as mais comuns.",
           "en": "Hierarchies represent the rarity and power of the cards. Hierarchy 1 cards are the strongest in attack and defense, and hierarchy 4 cards are the most common.",
-          "es": "Las jerarquías representan la rareza y el poder de las cartas. Las de jerarquía 1 son las más potentes en ataque y defensa, y las de jerarquía 4 son las más comunes."
+          "es": "Las jerarquías representan la rareza y el poder de las cartas. Las de jerarquía 1 son las más potentes en ataque y defensa, y las de jerarquía 4 son las más comunes.",
+          "fr": "Les hiérarchies représentent la rareté et la puissance des cartes. Celles de hiérarchie 1 sont les plus puissantes en attaque et en défense, et celles de hiérarchie 4 sont les plus courantes."
         }
       },
       "stats": {
         "title": {
           "pt": "Ataque e defesa",
           "en": "Attack and defense",
-          "es": "Ataque y defensa"
+          "es": "Ataque y defensa",
+          "fr": "Attaque et défense"
         },
         "text": {
           "pt": "Cada carta possui pontos de ataque (ATK) e defesa (DEF). Quando em modo de ataque usa o valor de ATK, quando em modo de defesa usa o valor de DEF.",
           "en": "Every card has attack (ATK) and defense (DEF) points. In attack mode it uses the ATK value, in defense mode it uses the DEF value.",
-          "es": "Cada carta tiene puntos de ataque (ATK) y defensa (DEF). En modo de ataque usa el valor de ATK, en modo de defensa usa el valor de DEF."
+          "es": "Cada carta tiene puntos de ataque (ATK) y defensa (DEF). En modo de ataque usa el valor de ATK, en modo de defensa usa el valor de DEF.",
+          "fr": "Chaque carte possède des points d'attaque (ATK) et de défense (DEF). En mode attaque, elle utilise la valeur d'ATK ; en mode défense, la valeur de DEF."
         }
       },
       "summon": {
         "title": {
           "pt": "Em prática",
           "en": "In practice",
-          "es": "A la práctica"
+          "es": "A la práctica",
+          "fr": "En pratique"
         },
         "text": {
           "pt": "Você tem uma invocação de carta por turno. Arraste uma carta da mão para o campo de batalha, onde entra em modo de ataque.",
           "en": "You get one card summon per turn. Drag a card from your hand to the battlefield, where it enters in attack mode.",
-          "es": "Tienes una invocación de carta por turno. Arrastra una carta de tu mano al campo de batalla, donde entra en modo de ataque."
+          "es": "Tienes una invocación de carta por turno. Arrastra una carta de tu mano al campo de batalla, donde entra en modo de ataque.",
+          "fr": "Vous avez une invocation de carte par tour. Faites glisser une carte de votre main vers le champ de bataille, où elle entre en mode attaque."
         }
       },
       "defense": {
         "title": {
           "pt": "Modo de defesa",
           "en": "Defense mode",
-          "es": "Modo de defensa"
+          "es": "Modo de defensa",
+          "fr": "Mode défense"
         },
         "text": {
           "pt": "A carta que está em campo pode ser colocada em modo de defesa clicando sobre ela.",
           "en": "The card on the field can be switched to defense mode by clicking on it.",
-          "es": "La carta que está en el campo puede pasar a modo de defensa haciendo clic sobre ella."
+          "es": "La carta que está en el campo puede pasar a modo de defensa haciendo clic sobre ella.",
+          "fr": "La carte en jeu peut passer en mode défense si vous cliquez dessus."
         }
       },
       "attackMode": {
         "title": {
           "pt": "Voltar ao ataque",
           "en": "Back to attack",
-          "es": "Volver al ataque"
+          "es": "Volver al ataque",
+          "fr": "Retour à l'attaque"
         },
         "text": {
           "pt": "Ao clicar novamente sobre a carta, volta para o modo de ataque.",
           "en": "Clicking the card again switches it back to attack mode.",
-          "es": "Al hacer clic de nuevo sobre la carta, vuelve al modo de ataque."
+          "es": "Al hacer clic de nuevo sobre la carta, vuelve al modo de ataque.",
+          "fr": "Cliquez de nouveau sur la carte pour la remettre en mode attaque."
         }
       },
       "field": {
         "title": {
           "pt": "Cartas de campo",
           "en": "Field cards",
-          "es": "Cartas de campo"
+          "es": "Cartas de campo",
+          "fr": "Cartes de terrain"
         },
         "text": {
           "pt": "Arraste a carta de campo da sua mão e solte na arena. Ela dá buff a uma categoria e nerf à outra até outra carta de campo substituí-la, e não gasta sua invocação.",
           "en": "Drag the field card from your hand and drop it on the arena. It buffs one category and nerfs the other until another field card replaces it, and it does not use up your summon.",
-          "es": "Arrastra la carta de campo de tu mano y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación."
+          "es": "Arrastra la carta de campo de tu mano y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación.",
+          "fr": "Faites glisser la carte de terrain de votre main et déposez-la dans l'arène. Elle donne un buff à une catégorie et un nerf à l'autre jusqu'à ce qu'une autre carte de terrain la remplace, et elle ne consomme pas votre invocation."
         }
       },
       "fieldInfo": {
         "title": {
           "pt": "Cartas de campo",
           "en": "Field cards",
-          "es": "Cartas de campo"
+          "es": "Cartas de campo",
+          "fr": "Cartes de terrain"
         },
         "text": {
           "pt": "Quando tiver uma carta de campo, arraste e solte na arena. Ela dá buff a uma categoria e nerf à outra até outra carta de campo substituí-la, e não gasta sua invocação.",
           "en": "When you have a field card, drag it and drop it on the arena. It buffs one category and nerfs the other until another field card replaces it, and it does not use up your summon.",
-          "es": "Cuando tengas una carta de campo, arrástrala y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación."
+          "es": "Cuando tengas una carta de campo, arrástrala y suéltala en la arena. Da buff a una categoría y nerf a la otra hasta que otra carta de campo la reemplace, y no gasta tu invocación.",
+          "fr": "Quand vous avez une carte de terrain, faites-la glisser et déposez-la dans l'arène. Elle donne un buff à une catégorie et un nerf à l'autre jusqu'à ce qu'une autre carte de terrain la remplace, et elle ne consomme pas votre invocation."
         }
       },
       "endTurn": {
         "title": {
           "pt": "Passar o turno",
           "en": "End the turn",
-          "es": "Pasar el turno"
+          "es": "Pasar el turno",
+          "fr": "Finir le tour"
         },
         "text": {
           "pt": "Quem começa não ataca no primeiro turno. Clique em {0} para passar a vez ao oponente.",
           "en": "Whoever starts cannot attack on the first turn. Click {0} to hand the turn to the opponent.",
-          "es": "Quien empieza no ataca en el primer turno. Haz clic en {0} para pasar el turno al oponente."
+          "es": "Quien empieza no ataca en el primer turno. Haz clic en {0} para pasar el turno al oponente.",
+          "fr": "Qui commence n'attaque pas au premier tour. Cliquez sur {0} pour laisser jouer l'adversaire."
         }
       },
       "opponentTurn": {
         "title": {
           "pt": "Vez do oponente",
           "en": "Opponent's turn",
-          "es": "Turno del oponente"
+          "es": "Turno del oponente",
+          "fr": "Tour de l'adversaire"
         },
         "text": {
           "pt": "Agora o oponente joga. Toda carta que ele joga aparece no centro da tela. Passe o mouse nas cartas da arena para ver os detalhes.",
           "en": "Now the opponent plays. Every card they play shows up in the middle of the screen. Hover the cards in the arena to see their details.",
-          "es": "Ahora juega el oponente. Cada carta que juega aparece en el centro de la pantalla. Pasa el ratón por las cartas de la arena para ver sus datos."
+          "es": "Ahora juega el oponente. Cada carta que juega aparece en el centro de la pantalla. Pasa el ratón por las cartas de la arena para ver sus datos.",
+          "fr": "C'est maintenant à l'adversaire de jouer. Chaque carte qu'il joue apparaît au centre de l'écran. Survolez les cartes de l'arène pour voir leurs détails."
         }
       },
       "combat": {
         "title": {
           "pt": "Como o ataque funciona",
           "en": "How attacks work",
-          "es": "Cómo funciona el ataque"
+          "es": "Cómo funciona el ataque",
+          "fr": "Comment fonctionne l'attaque"
         },
         "text": {
           "pt": "Contra uma carta em ataque, o maior ATK destrói a outra e o dono da mais fraca perde a diferença. Contra defesa, ATK maior destrói sem causar dano e ATK menor faz você perder a diferença. Sem cartas do oponente, o ataque é direto e tira todo o ATK da vida dele.",
           "en": "Against a card in attack, the higher ATK destroys the other and the weaker card's owner loses the difference. Against defense, a higher ATK destroys it without damage and a lower ATK makes you lose the difference. With no opponent cards, the attack is direct and takes the full ATK from their life.",
-          "es": "Contra una carta en ataque, el mayor ATK destruye a la otra y el dueño de la más débil pierde la diferencia. Contra defensa, un ATK mayor la destruye sin daño y un ATK menor te hace perder la diferencia. Sin cartas del oponente, el ataque es directo y quita todo el ATK de su vida."
+          "es": "Contra una carta en ataque, el mayor ATK destruye a la otra y el dueño de la más débil pierde la diferencia. Contra defensa, un ATK mayor la destruye sin daño y un ATK menor te hace perder la diferencia. Sin cartas del oponente, el ataque es directo y quita todo el ATK de su vida.",
+          "fr": "Contre une carte en attaque, l'ATK la plus élevée détruit l'autre et le propriétaire de la plus faible perd la différence. Contre une défense, une ATK supérieure la détruit sans infliger de dégâts et une ATK inférieure vous fait perdre la différence. Si l'adversaire n'a aucune carte, l'attaque est directe et retire toute l'ATK de sa vie."
         }
       },
       "attack": {
         "title": {
           "pt": "Atacar o oponente",
           "en": "Attack the opponent",
-          "es": "Atacar al oponente"
+          "es": "Atacar al oponente",
+          "fr": "Attaquer l'adversaire"
         },
         "text": {
           "pt": "Arraste a sua carta em modo de ataque e solte sobre uma carta do oponente. Se o lado dele estiver vazio, solte no lado dele para um ataque direto. O texto no topo mostra o resultado antes de você soltar.",
           "en": "Drag your attack-mode card and drop it onto an opponent's card. If their side is empty, drop it on their side for a direct attack. The text at the top shows the outcome before you let go.",
-          "es": "Arrastra tu carta en modo de ataque y suéltala sobre una carta del oponente. Si su lado está vacío, suéltala en su lado para un ataque directo. El texto de arriba muestra el resultado antes de soltar."
+          "es": "Arrastra tu carta en modo de ataque y suéltala sobre una carta del oponente. Si su lado está vacío, suéltala en su lado para un ataque directo. El texto de arriba muestra el resultado antes de soltar.",
+          "fr": "Faites glisser votre carte en mode attaque et déposez-la sur une carte de l'adversaire. Si son côté est vide, déposez-la de son côté pour une attaque directe. Le texte en haut montre le résultat avant que vous la lâchiez."
         }
       },
       "finish": {
         "title": {
           "pt": "Agora é com você",
           "en": "Now it's up to you",
-          "es": "Ahora te toca"
+          "es": "Ahora te toca",
+          "fr": "À vous de jouer"
         },
         "text": {
           "pt": "Invoque, ataque e passe o turno até zerar a vida do oponente. O botão de dica no canto inferior esquerdo liga e desliga as dicas do topo. Boa batalha!",
           "en": "Summon, attack and end your turns until the opponent's life hits 0. The hint button in the bottom left corner turns the tips at the top on and off. Good battle!",
-          "es": "Invoca, ataca y pasa el turno hasta dejar la vida del oponente en 0. El botón de pista de la esquina inferior izquierda activa y desactiva las pistas de arriba. ¡Buena batalla!"
+          "es": "Invoca, ataca y pasa el turno hasta dejar la vida del oponente en 0. El botón de pista de la esquina inferior izquierda activa y desactiva las pistas de arriba. ¡Buena batalla!",
+          "fr": "Invoquez, attaquez et finissez vos tours jusqu'à ce que la vie de l'adversaire tombe à 0. Le bouton d'astuce du coin inférieur gauche active et désactive les astuces du haut. Bonne bataille !"
         }
       }
     }
@@ -619,90 +737,107 @@
     "noField": {
       "pt": "Sem campo",
       "en": "No field",
-      "es": "Sin campo"
+      "es": "Sin campo",
+      "fr": "Aucun terrain"
     },
     "deck": {
       "pt": "Monte",
       "en": "Deck",
-      "es": "Mazo"
+      "es": "Mazo",
+      "fr": "Pioche"
     },
     "graveyard": {
       "pt": "Cemitério",
       "en": "Graveyard",
-      "es": "Cementerio"
+      "es": "Cementerio",
+      "fr": "Cimetière"
     },
     "victory": {
       "pt": "VITÓRIA",
       "en": "VICTORY",
-      "es": "VICTORIA"
+      "es": "VICTORIA",
+      "fr": "VICTOIRE"
     },
     "defeat": {
       "pt": "DERROTA",
       "en": "DEFEAT",
-      "es": "DERROTA"
+      "es": "DERROTA",
+      "fr": "DÉFAITE"
     },
     "reward": {
       "new": {
         "pt": "Nova carta",
         "en": "New card",
-        "es": "Nueva carta"
+        "es": "Nueva carta",
+        "fr": "Nouvelle carte"
       },
       "repeated": {
         "pt": "Carta repetida",
         "en": "Repeated card",
-        "es": "Carta repetida"
+        "es": "Carta repetida",
+        "fr": "Carte en double"
       }
     },
     "stats": {
       "time": {
         "pt": "Tempo jogado",
         "en": "Time played",
-        "es": "Tiempo jugado"
+        "es": "Tiempo jugado",
+        "fr": "Temps de jeu"
       },
       "rounds": {
         "pt": "Turnos",
         "en": "Rounds",
-        "es": "Turnos"
+        "es": "Turnos",
+        "fr": "Tours"
       },
       "drawn": {
         "pt": "Cartas compradas",
         "en": "Cards drawn",
-        "es": "Cartas robadas"
+        "es": "Cartas robadas",
+        "fr": "Cartes piochées"
       },
       "played": {
         "pt": "Cartas usadas",
         "en": "Cards played",
-        "es": "Cartas usadas"
+        "es": "Cartas usadas",
+        "fr": "Cartes jouées"
       },
       "graveyard": {
         "pt": "Cartas no cemitério",
         "en": "Cards in the graveyard",
-        "es": "Cartas en el cementerio"
+        "es": "Cartas en el cementerio",
+        "fr": "Cartes au cimetière"
       },
       "attacks": {
         "pt": "Ataques",
         "en": "Attacks",
-        "es": "Ataques"
+        "es": "Ataques",
+        "fr": "Attaques"
       },
       "direct": {
         "pt": "Ataques diretos",
         "en": "Direct attacks",
-        "es": "Ataques directos"
+        "es": "Ataques directos",
+        "fr": "Attaques directes"
       },
       "destroyed": {
         "pt": "Cartas destruídas do outro lado",
         "en": "Cards destroyed on the other side",
-        "es": "Cartas destruidas del otro lado"
+        "es": "Cartas destruidas del otro lado",
+        "fr": "Cartes détruites dans l'autre camp"
       },
       "damage": {
         "pt": "Dano causado ao outro lado",
         "en": "Damage dealt to the other side",
-        "es": "Daño causado al otro lado"
+        "es": "Daño causado al otro lado",
+        "fr": "Dégâts infligés à l'autre camp"
       },
       "biggest": {
         "pt": "Maior golpe",
         "en": "Biggest hit",
-        "es": "Mayor golpe"
+        "es": "Mayor golpe",
+        "fr": "Plus gros coup"
       }
     }
   },
@@ -710,60 +845,71 @@
     "atk": {
       "pt": "ATK",
       "en": "ATK",
-      "es": "ATQ"
+      "es": "ATQ",
+      "fr": "ATK"
     },
     "def": {
       "pt": "DEF",
       "en": "DEF",
-      "es": "DEF"
+      "es": "DEF",
+      "fr": "DEF"
     },
     "buff": {
       "pt": "BUFF",
       "en": "BUFF",
-      "es": "BUFF"
+      "es": "BUFF",
+      "fr": "BUFF"
     },
     "nerf": {
       "pt": "NERF",
       "en": "NERF",
-      "es": "NERF"
+      "es": "NERF",
+      "fr": "NERF"
     },
     "favors": {
       "pt": "Favorece: {0}",
       "en": "Favors: {0}",
-      "es": "Favorece: {0}"
+      "es": "Favorece: {0}",
+      "fr": "Favorise : {0}"
     }
   },
   "category": {
     "good": {
       "pt": "Benévola",
       "en": "Good",
-      "es": "Bondadosa"
+      "es": "Bondadosa",
+      "fr": "Bienveillante"
     },
     "evil": {
       "pt": "Maligna",
       "en": "Evil",
-      "es": "Maligna"
+      "es": "Maligna",
+      "fr": "Maléfique"
     },
     "neutral": {
       "pt": "Neutra",
       "en": "Neutral",
-      "es": "Neutral"
+      "es": "Neutral",
+      "fr": "Neutre"
     },
     "field": {
       "pt": "Campo",
       "en": "Field",
-      "es": "Campo"
+      "es": "Campo",
+      "fr": "Terrain"
     },
     "plural": {
       "good": {
         "pt": "Benévolas",
         "en": "Good",
-        "es": "Bondadosas"
+        "es": "Bondadosas",
+        "fr": "Bienveillantes"
       },
       "evil": {
         "pt": "Malignas",
         "en": "Evil",
-        "es": "Malignas"
+        "es": "Malignas",
+        "fr": "Maléfiques"
       }
     }
   },
@@ -772,56 +918,66 @@
       "1": {
         "pt": "Soberanos",
         "en": "Sovereigns",
-        "es": "Soberanos"
+        "es": "Soberanos",
+        "fr": "Souverains"
       },
       "2": {
         "pt": "Bestas",
         "en": "Beasts",
-        "es": "Bestias"
+        "es": "Bestias",
+        "fr": "Bêtes"
       },
       "3": {
         "pt": "Criaturas",
         "en": "Creatures",
-        "es": "Criaturas"
+        "es": "Criaturas",
+        "fr": "Créatures"
       },
       "4": {
         "pt": "Impuros",
         "en": "Unclean",
-        "es": "Impuros"
+        "es": "Impuros",
+        "fr": "Impurs"
       }
     },
     "good": {
       "1": {
         "pt": "Divindades",
         "en": "Deities",
-        "es": "Divinidades"
+        "es": "Divinidades",
+        "fr": "Divinités"
       },
       "2": {
         "pt": "Arcanjos",
         "en": "Archangels",
-        "es": "Arcángeles"
+        "es": "Arcángeles",
+        "fr": "Archanges"
       },
       "3": {
         "pt": "Anjos",
         "en": "Angels",
-        "es": "Ángeles"
+        "es": "Ángeles",
+        "fr": "Anges"
       },
       "4": {
         "pt": "Santos",
         "en": "Saints",
-        "es": "Santos"
+        "es": "Santos",
+        "fr": "Saints"
       }
     },
     "neutral": {
       "3": {
         "pt": "Líderes",
         "en": "Leaders",
-        "es": "Líderes"
+        "es": "Líderes",
+        "fr": "Chefs"
       },
       "4": {
         "pt": "Mortais",
         "en": "Mortals",
-        "es": "Mortales"
+        "es": "Mortales",
+        "fr": "Mortels"
       }
     }
   },
@@ -830,780 +986,910 @@
       "name": {
         "pt": "Deus",
         "en": "God",
-        "es": "Dios"
+        "es": "Dios",
+        "fr": "Dieu"
       },
       "description": {
         "pt": "Criador dos céus, da terra e de toda existência",
         "en": "Creator of the heavens, the earth and all existence",
-        "es": "Creador de los cielos, de la tierra y de toda existencia"
+        "es": "Creador de los cielos, de la tierra y de toda existencia",
+        "fr": "Créateur des cieux, de la terre et de toute existence"
       }
     },
     "G102": {
       "name": {
         "pt": "Cristo",
         "en": "Christ",
-        "es": "Cristo"
+        "es": "Cristo",
+        "fr": "Christ"
       },
       "description": {
         "pt": "Filho de Deus e Salvador da humanidade",
         "en": "Son of God and Savior of humanity",
-        "es": "Hijo de Dios y Salvador de la humanidad"
+        "es": "Hijo de Dios y Salvador de la humanidad",
+        "fr": "Fils de Dieu et Sauveur de l'humanité"
       }
     },
     "G103": {
       "name": {
         "pt": "Espírito Santo",
         "en": "Holy Spirit",
-        "es": "Espíritu Santo"
+        "es": "Espíritu Santo",
+        "fr": "Saint-Esprit"
       },
       "description": {
         "pt": "Consolador divino que ilumina e fortalece a fé",
         "en": "Divine Comforter who enlightens and strengthens faith",
-        "es": "Consolador divino que ilumina y fortalece la fe"
+        "es": "Consolador divino que ilumina y fortalece la fe",
+        "fr": "Consolateur divin qui éclaire et fortifie la foi"
       }
     },
     "G201": {
       "name": {
         "pt": "São Miguel",
         "en": "Saint Michael",
-        "es": "San Miguel"
+        "es": "San Miguel",
+        "fr": "Saint Michel"
       },
       "description": {
         "pt": "O guerreiro celestial, defensor contra o mal",
         "en": "The heavenly warrior, defender against evil",
-        "es": "El guerrero celestial, defensor contra el mal"
+        "es": "El guerrero celestial, defensor contra el mal",
+        "fr": "Le guerrier céleste, défenseur contre le mal"
       }
     },
     "G202": {
       "name": {
         "pt": "São Gabriel",
         "en": "Saint Gabriel",
-        "es": "San Gabriel"
+        "es": "San Gabriel",
+        "fr": "Saint Gabriel"
       },
       "description": {
         "pt": "O mensageiro de Deus, responsável pela Anunciação",
         "en": "The messenger of God, bearer of the Annunciation",
-        "es": "El mensajero de Dios, responsable de la Anunciación"
+        "es": "El mensajero de Dios, responsable de la Anunciación",
+        "fr": "Le messager de Dieu, porteur de l'Annonciation"
       }
     },
     "G203": {
       "name": {
         "pt": "São Rafael",
         "en": "Saint Raphael",
-        "es": "San Rafael"
+        "es": "San Rafael",
+        "fr": "Saint Raphaël"
       },
       "description": {
         "pt": "Associado à cura, proteção e orientação",
         "en": "Associated with healing, protection and guidance",
-        "es": "Asociado a la curación, la protección y la guía"
+        "es": "Asociado a la curación, la protección y la guía",
+        "fr": "Associé à la guérison, à la protection et à l'accompagnement"
       }
     },
     "G301": {
       "name": {
         "pt": "Querubim",
         "en": "Cherub",
-        "es": "Querubín"
+        "es": "Querubín",
+        "fr": "Chérubin"
       },
       "description": {
         "pt": "Guardião do Éden",
         "en": "Guardian of Eden",
-        "es": "Guardián del Edén"
+        "es": "Guardián del Edén",
+        "fr": "Gardien de l'Éden"
       }
     },
     "G302": {
       "name": {
         "pt": "Serafim",
         "en": "Seraph",
-        "es": "Serafín"
+        "es": "Serafín",
+        "fr": "Séraphin"
       },
       "description": {
         "pt": "Adoração diante do trono de Deus",
         "en": "Worship before the throne of God",
-        "es": "Adoración ante el trono de Dios"
+        "es": "Adoración ante el trono de Dios",
+        "fr": "Adoration devant le trône de Dieu"
       }
     },
     "G303": {
       "name": {
         "pt": "Anjo Azul",
         "en": "Blue Angel",
-        "es": "Ángel Azul"
+        "es": "Ángel Azul",
+        "fr": "Ange Bleu"
       },
       "description": {
         "pt": "Executor do juízo divino",
         "en": "Executor of divine judgment",
-        "es": "Ejecutor del juicio divino"
+        "es": "Ejecutor del juicio divino",
+        "fr": "Exécuteur du jugement divin"
       }
     },
     "G304": {
       "name": {
         "pt": "Anjo do Senhor",
         "en": "Angel of the Lord",
-        "es": "Ángel del Señor"
+        "es": "Ángel del Señor",
+        "fr": "Ange du Seigneur"
       },
       "description": {
         "pt": "Representante divino",
         "en": "Divine envoy",
-        "es": "Representante divino"
+        "es": "Representante divino",
+        "fr": "Envoyé divin"
       }
     },
     "G305": {
       "name": {
         "pt": "Anjo da Guarda",
         "en": "Guardian Angel",
-        "es": "Ángel de la Guarda"
+        "es": "Ángel de la Guarda",
+        "fr": "Ange Gardien"
       },
       "description": {
         "pt": "Protetor dos fiéis",
         "en": "Protector of the faithful",
-        "es": "Protector de los fieles"
+        "es": "Protector de los fieles",
+        "fr": "Protecteur des fidèles"
       }
     },
     "G401": {
       "name": {
         "pt": "São Pedro",
         "en": "Saint Peter",
-        "es": "San Pedro"
+        "es": "San Pedro",
+        "fr": "Saint Pierre"
       },
       "description": {
         "pt": "Primeiro Papa e apóstolo de Jesus",
         "en": "First Pope and apostle of Jesus",
-        "es": "Primer Papa y apóstol de Jesús"
+        "es": "Primer Papa y apóstol de Jesús",
+        "fr": "Premier pape et apôtre de Jésus"
       }
     },
     "G402": {
       "name": {
         "pt": "São Paulo",
         "en": "Saint Paul",
-        "es": "San Pablo"
+        "es": "San Pablo",
+        "fr": "Saint Paul"
       },
       "description": {
         "pt": "Apóstolo e grande evangelizador",
         "en": "Apostle and great evangelizer",
-        "es": "Apóstol y gran evangelizador"
+        "es": "Apóstol y gran evangelizador",
+        "fr": "Apôtre et grand évangélisateur"
       }
     },
     "G403": {
       "name": {
         "pt": "São Francisco de Assis",
         "en": "Saint Francis of Assisi",
-        "es": "San Francisco de Asís"
+        "es": "San Francisco de Asís",
+        "fr": "Saint François d'Assise"
       },
       "description": {
         "pt": "Pobreza, humildade e amor à natureza",
         "en": "Poverty, humility and love of nature",
-        "es": "Pobreza, humildad y amor a la naturaleza"
+        "es": "Pobreza, humildad y amor a la naturaleza",
+        "fr": "Pauvreté, humilité et amour de la nature"
       }
     },
     "G404": {
       "name": {
         "pt": "São Jorge",
         "en": "Saint George",
-        "es": "San Jorge"
+        "es": "San Jorge",
+        "fr": "Saint Georges"
       },
       "description": {
         "pt": "Guerreiro e mártir",
         "en": "Warrior and martyr",
-        "es": "Guerrero y mártir"
+        "es": "Guerrero y mártir",
+        "fr": "Guerrier et martyr"
       }
     },
     "G405": {
       "name": {
         "pt": "São Bento",
         "en": "Saint Benedict",
-        "es": "San Benito"
+        "es": "San Benito",
+        "fr": "Saint Benoît"
       },
       "description": {
         "pt": "Fundador da Ordem Beneditina",
         "en": "Founder of the Benedictine Order",
-        "es": "Fundador de la Orden Benedictina"
+        "es": "Fundador de la Orden Benedictina",
+        "fr": "Fondateur de l'ordre bénédictin"
       }
     },
     "G406": {
       "name": {
         "pt": "Santo Antônio de Pádua",
         "en": "Saint Anthony of Padua",
-        "es": "San Antonio de Padua"
+        "es": "San Antonio de Padua",
+        "fr": "Saint Antoine de Padoue"
       },
       "description": {
         "pt": "Pregador e doutor da Igreja",
         "en": "Preacher and Doctor of the Church",
-        "es": "Predicador y doctor de la Iglesia"
+        "es": "Predicador y doctor de la Iglesia",
+        "fr": "Prédicateur et docteur de l'Église"
       }
     },
     "G407": {
       "name": {
         "pt": "Santa Teresa de Ávila",
         "en": "Saint Teresa of Ávila",
-        "es": "Santa Teresa de Ávila"
+        "es": "Santa Teresa de Ávila",
+        "fr": "Sainte Thérèse d'Avila"
       },
       "description": {
         "pt": "Mística e doutora da Igreja",
         "en": "Mystic and Doctor of the Church",
-        "es": "Mística y doctora de la Iglesia"
+        "es": "Mística y doctora de la Iglesia",
+        "fr": "Mystique et docteur de l'Église"
       }
     },
     "G408": {
       "name": {
         "pt": "Santa Joana d'Arc",
         "en": "Saint Joan of Arc",
-        "es": "Santa Juana de Arco"
+        "es": "Santa Juana de Arco",
+        "fr": "Sainte Jeanne d'Arc"
       },
       "description": {
         "pt": "Guerreira e mártir",
         "en": "Warrior and martyr",
-        "es": "Guerrera y mártir"
+        "es": "Guerrera y mártir",
+        "fr": "Guerrière et martyre"
       }
     },
     "G409": {
       "name": {
         "pt": "Santa Rita de Cássia",
         "en": "Saint Rita of Cascia",
-        "es": "Santa Rita de Casia"
+        "es": "Santa Rita de Casia",
+        "fr": "Sainte Rita de Cascia"
       },
       "description": {
         "pt": "Conhecida como santa das causas impossíveis",
         "en": "Known as the saint of impossible causes",
-        "es": "Conocida como la santa de las causas imposibles"
+        "es": "Conocida como la santa de las causas imposibles",
+        "fr": "Connue comme la sainte des causes désespérées"
       }
     },
     "G410": {
       "name": {
         "pt": "Santa Sofia",
         "en": "Saint Sophia",
-        "es": "Santa Sofía"
+        "es": "Santa Sofía",
+        "fr": "Sainte Sophie"
       },
       "description": {
         "pt": "Símbolo da sabedoria divina e da fé cristã",
         "en": "Symbol of divine wisdom and Christian faith",
-        "es": "Símbolo de la sabiduría divina y de la fe cristiana"
+        "es": "Símbolo de la sabiduría divina y de la fe cristiana",
+        "fr": "Symbole de la sagesse divine et de la foi chrétienne"
       }
     },
     "E101": {
       "name": {
         "pt": "Satanás",
         "en": "Satan",
-        "es": "Satanás"
+        "es": "Satanás",
+        "fr": "Satan"
       },
       "description": {
         "pt": "O adversário de Deus",
         "en": "The adversary of God",
-        "es": "El adversario de Dios"
+        "es": "El adversario de Dios",
+        "fr": "L'adversaire de Dieu"
       }
     },
     "E102": {
       "name": {
         "pt": "Lúcifer",
         "en": "Lucifer",
-        "es": "Lucifer"
+        "es": "Lucifer",
+        "fr": "Lucifer"
       },
       "description": {
         "pt": "O mal portador da luz",
         "en": "The evil bearer of light",
-        "es": "El mal portador de la luz"
+        "es": "El mal portador de la luz",
+        "fr": "Le porteur de lumière maléfique"
       }
     },
     "E103": {
       "name": {
         "pt": "Anjo Caído",
         "en": "Fallen Angel",
-        "es": "Ángel Caído"
+        "es": "Ángel Caído",
+        "fr": "Ange Déchu"
       },
       "description": {
         "pt": "O renegado",
         "en": "The renegade",
-        "es": "El renegado"
+        "es": "El renegado",
+        "fr": "Le renégat"
       }
     },
     "E201": {
       "name": {
         "pt": "Belial",
         "en": "Belial",
-        "es": "Belial"
+        "es": "Belial",
+        "fr": "Bélial"
       },
       "description": {
         "pt": "Personificação da maldade",
         "en": "Personification of wickedness",
-        "es": "Personificación de la maldad"
+        "es": "Personificación de la maldad",
+        "fr": "Personnification de la méchanceté"
       }
     },
     "E202": {
       "name": {
         "pt": "Belzebu",
         "en": "Beelzebub",
-        "es": "Belcebú"
+        "es": "Belcebú",
+        "fr": "Belzébuth"
       },
       "description": {
         "pt": "Príncipe dos demônios",
         "en": "Prince of demons",
-        "es": "Príncipe de los demonios"
+        "es": "Príncipe de los demonios",
+        "fr": "Prince des démons"
       }
     },
     "E203": {
       "name": {
         "pt": "Baal",
         "en": "Baal",
-        "es": "Baal"
+        "es": "Baal",
+        "fr": "Baal"
       },
       "description": {
         "pt": "Falso deus adorado, símbolo da idolatria",
         "en": "False god once worshipped, symbol of idolatry",
-        "es": "Falso dios adorado, símbolo de la idolatría"
+        "es": "Falso dios adorado, símbolo de la idolatría",
+        "fr": "Faux dieu jadis adoré, symbole de l'idolâtrie"
       }
     },
     "E301": {
       "name": {
         "pt": "Mephisto",
         "en": "Mephisto",
-        "es": "Mefisto"
+        "es": "Mefisto",
+        "fr": "Méphisto"
       },
       "description": {
         "pt": "Astuto que corrompe almas e pactos",
         "en": "Cunning one who corrupts souls and pacts",
-        "es": "Astuto que corrompe almas y pactos"
+        "es": "Astuto que corrompe almas y pactos",
+        "fr": "Esprit rusé qui corrompt les âmes et les pactes"
       }
     },
     "E302": {
       "name": {
         "pt": "Asmodeus",
         "en": "Asmodeus",
-        "es": "Asmodeo"
+        "es": "Asmodeo",
+        "fr": "Asmodée"
       },
       "description": {
         "pt": "Associado à luxúria e destruição",
         "en": "Associated with lust and destruction",
-        "es": "Asociado a la lujuria y la destrucción"
+        "es": "Asociado a la lujuria y la destrucción",
+        "fr": "Associé à la luxure et à la destruction"
       }
     },
     "E303": {
       "name": {
         "pt": "Abaddon",
         "en": "Abaddon",
-        "es": "Abadón"
+        "es": "Abadón",
+        "fr": "Abaddon"
       },
       "description": {
         "pt": "Anjo do abismo, senhor da destruição",
         "en": "Angel of the abyss, lord of destruction",
-        "es": "Ángel del abismo, señor de la destrucción"
+        "es": "Ángel del abismo, señor de la destrucción",
+        "fr": "Ange de l'abîme, seigneur de la destruction"
       }
     },
     "E304": {
       "name": {
         "pt": "Leviatã",
         "en": "Leviathan",
-        "es": "Leviatán"
+        "es": "Leviatán",
+        "fr": "Léviathan"
       },
       "description": {
         "pt": "Monstro marinho colossal que personifica o caos",
         "en": "Colossal sea monster that embodies chaos",
-        "es": "Monstruo marino colosal que personifica el caos"
+        "es": "Monstruo marino colosal que personifica el caos",
+        "fr": "Monstre marin colossal qui incarne le chaos"
       }
     },
     "E305": {
       "name": {
         "pt": "Lilith",
         "en": "Lilith",
-        "es": "Lilith"
+        "es": "Lilith",
+        "fr": "Lilith"
       },
       "description": {
         "pt": "Espírito noturno associado à sedução e às trevas",
         "en": "Night spirit associated with seduction and darkness",
-        "es": "Espíritu nocturno asociado a la seducción y las tinieblas"
+        "es": "Espíritu nocturno asociado a la seducción y las tinieblas",
+        "fr": "Esprit nocturne associé à la séduction et aux ténèbres"
       }
     },
     "E401": {
       "name": {
         "pt": "Diabo",
         "en": "Devil",
-        "es": "Diablo"
+        "es": "Diablo",
+        "fr": "Diable"
       },
       "description": {
         "pt": "Espírito maligno que se opõe ao divino",
         "en": "Evil spirit that opposes the divine",
-        "es": "Espíritu maligno que se opone a lo divino"
+        "es": "Espíritu maligno que se opone a lo divino",
+        "fr": "Esprit malin qui s'oppose au divin"
       }
     },
     "E402": {
       "name": {
         "pt": "Demônio",
         "en": "Demon",
-        "es": "Demonio"
+        "es": "Demonio",
+        "fr": "Démon"
       },
       "description": {
         "pt": "Espírito impuro que corrompe os homens",
         "en": "Unclean spirit that corrupts mankind",
-        "es": "Espíritu impuro que corrompe a los hombres"
+        "es": "Espíritu impuro que corrompe a los hombres",
+        "fr": "Esprit impur qui corrompt les hommes"
       }
     },
     "E403": {
       "name": {
         "pt": "Morte",
         "en": "Death",
-        "es": "Muerte"
+        "es": "Muerte",
+        "fr": "La Mort"
       },
       "description": {
         "pt": "Ceifadora de vidas e símbolo do fim",
         "en": "Reaper of lives and symbol of the end",
-        "es": "Segadora de vidas y símbolo del fin"
+        "es": "Segadora de vidas y símbolo del fin",
+        "fr": "Faucheuse de vies et symbole de la fin"
       }
     },
     "E404": {
       "name": {
         "pt": "Caim",
         "en": "Cain",
-        "es": "Caín"
+        "es": "Caín",
+        "fr": "Caïn"
       },
       "description": {
         "pt": "Primeiro assassino, marcado pela inveja e violência",
         "en": "First murderer, marked by envy and violence",
-        "es": "Primer asesino, marcado por la envidia y la violencia"
+        "es": "Primer asesino, marcado por la envidia y la violencia",
+        "fr": "Premier meurtrier, marqué par l'envie et la violence"
       }
     },
     "E405": {
       "name": {
         "pt": "Judas Iscariotes",
         "en": "Judas Iscariot",
-        "es": "Judas Iscariote"
+        "es": "Judas Iscariote",
+        "fr": "Judas Iscariote"
       },
       "description": {
         "pt": "Discípulo que traiu Jesus por dinheiro",
         "en": "Disciple who betrayed Jesus for money",
-        "es": "Discípulo que traicionó a Jesús por dinero"
+        "es": "Discípulo que traicionó a Jesús por dinero",
+        "fr": "Disciple qui trahit Jésus pour de l'argent"
       }
     },
     "E406": {
       "name": {
         "pt": "Herodes",
         "en": "Herod",
-        "es": "Herodes"
+        "es": "Herodes",
+        "fr": "Hérode"
       },
       "description": {
         "pt": "Rei cruel que ordenou a morte dos inocentes",
         "en": "Cruel king who ordered the death of the innocents",
-        "es": "Rey cruel que ordenó la muerte de los inocentes"
+        "es": "Rey cruel que ordenó la muerte de los inocentes",
+        "fr": "Roi cruel qui ordonna la mort des innocents"
       }
     },
     "E407": {
       "name": {
         "pt": "Golias",
         "en": "Goliath",
-        "es": "Goliat"
+        "es": "Goliat",
+        "fr": "Goliath"
       },
       "description": {
         "pt": "Gigante que desafiou Israel e zombou de Deus",
         "en": "Giant who defied Israel and mocked God",
-        "es": "Gigante que desafió a Israel y se burló de Dios"
+        "es": "Gigante que desafió a Israel y se burló de Dios",
+        "fr": "Géant qui défia Israël et se moqua de Dieu"
       }
     },
     "E408": {
       "name": {
         "pt": "Serpente",
         "en": "Serpent",
-        "es": "Serpiente"
+        "es": "Serpiente",
+        "fr": "Serpent"
       },
       "description": {
         "pt": "Símbolo da traição e da corrupção humana",
         "en": "Symbol of betrayal and human corruption",
-        "es": "Símbolo de la traición y la corrupción humana"
+        "es": "Símbolo de la traición y la corrupción humana",
+        "fr": "Symbole de la trahison et de la corruption humaine"
       }
     },
     "E409": {
       "name": {
         "pt": "Falso Profeta",
         "en": "False Prophet",
-        "es": "Falso Profeta"
+        "es": "Falso Profeta",
+        "fr": "Faux Prophète"
       },
       "description": {
         "pt": "Enganador que conduz os homens à idolatria",
         "en": "Deceiver who leads mankind into idolatry",
-        "es": "Engañador que conduce a los hombres a la idolatría"
+        "es": "Engañador que conduce a los hombres a la idolatría",
+        "fr": "Trompeur qui mène les hommes à l'idolâtrie"
       }
     },
     "E410": {
       "name": {
         "pt": "Caveira",
         "en": "Skull",
-        "es": "Calavera"
+        "es": "Calavera",
+        "fr": "Crâne"
       },
       "description": {
         "pt": "Símbolo da morte e da decadência",
         "en": "Symbol of death and decay",
-        "es": "Símbolo de la muerte y la decadencia"
+        "es": "Símbolo de la muerte y la decadencia",
+        "fr": "Symbole de la mort et de la décadence"
       }
     },
     "N301": {
       "name": {
         "pt": "Rei Davi",
         "en": "King David",
-        "es": "Rey David"
+        "es": "Rey David",
+        "fr": "Roi David"
       },
       "description": {
         "pt": "Rei de Israel que venceu Golias",
         "en": "King of Israel who defeated Goliath",
-        "es": "Rey de Israel que venció a Goliat"
+        "es": "Rey de Israel que venció a Goliat",
+        "fr": "Roi d'Israël qui vainquit Goliath"
       }
     },
     "N302": {
       "name": {
         "pt": "Moisés",
         "en": "Moses",
-        "es": "Moisés"
+        "es": "Moisés",
+        "fr": "Moïse"
       },
       "description": {
         "pt": "Profeta que libertou os hebreus do Egito",
         "en": "Prophet who freed the Hebrews from Egypt",
-        "es": "Profeta que liberó a los hebreos de Egipto"
+        "es": "Profeta que liberó a los hebreos de Egipto",
+        "fr": "Prophète qui libéra les Hébreux d'Égypte"
       }
     },
     "N303": {
       "name": {
         "pt": "Rei Salomão",
         "en": "King Solomon",
-        "es": "Rey Salomón"
+        "es": "Rey Salomón",
+        "fr": "Roi Salomon"
       },
       "description": {
         "pt": "Rei de Israel célebre pela sabedoria",
         "en": "King of Israel renowned for his wisdom",
-        "es": "Rey de Israel célebre por su sabiduría"
+        "es": "Rey de Israel célebre por su sabiduría",
+        "fr": "Roi d'Israël célèbre pour sa sagesse"
       }
     },
     "N304": {
       "name": {
         "pt": "Noé",
         "en": "Noah",
-        "es": "Noé"
+        "es": "Noé",
+        "fr": "Noé"
       },
       "description": {
         "pt": "Construiu a arca e sobreviveu ao Dilúvio",
         "en": "Built the ark and survived the Flood",
-        "es": "Construyó el arca y sobrevivió al Diluvio"
+        "es": "Construyó el arca y sobrevivió al Diluvio",
+        "fr": "Construisit l'arche et survécut au Déluge"
       }
     },
     "N305": {
       "name": {
         "pt": "Rei Constantino",
         "en": "King Constantine",
-        "es": "Rey Constantino"
+        "es": "Rey Constantino",
+        "fr": "Roi Constantin"
       },
       "description": {
         "pt": "Imperador romano que legalizou o cristianismo",
         "en": "Roman emperor who legalized Christianity",
-        "es": "Emperador romano que legalizó el cristianismo"
+        "es": "Emperador romano que legalizó el cristianismo",
+        "fr": "Empereur romain qui légalisa le christianisme"
       }
     },
     "N401": {
       "name": {
         "pt": "Templário",
         "en": "Templar",
-        "es": "Templario"
+        "es": "Templario",
+        "fr": "Templier"
       },
       "description": {
         "pt": "Monge guerreiro, protetor dos peregrinos",
         "en": "Warrior monk, protector of pilgrims",
-        "es": "Monje guerrero, protector de los peregrinos"
+        "es": "Monje guerrero, protector de los peregrinos",
+        "fr": "Moine guerrier, protecteur des pèlerins"
       }
     },
     "N402": {
       "name": {
         "pt": "Duque",
         "en": "Duke",
-        "es": "Duque"
+        "es": "Duque",
+        "fr": "Duc"
       },
       "description": {
         "pt": "Nobre de mais alto título, vassalo do rei",
         "en": "Noble of the highest title, vassal of the king",
-        "es": "Noble del más alto título, vasallo del rey"
+        "es": "Noble del más alto título, vasallo del rey",
+        "fr": "Noble du plus haut titre, vassal du roi"
       }
     },
     "N403": {
       "name": {
         "pt": "Conde",
         "en": "Count",
-        "es": "Conde"
+        "es": "Conde",
+        "fr": "Comte"
       },
       "description": {
         "pt": "Nobre que governa um condado",
         "en": "Noble who rules a county",
-        "es": "Noble que gobierna un condado"
+        "es": "Noble que gobierna un condado",
+        "fr": "Noble qui gouverne un comté"
       }
     },
     "N404": {
       "name": {
         "pt": "Visconde",
         "en": "Viscount",
-        "es": "Vizconde"
+        "es": "Vizconde",
+        "fr": "Vicomte"
       },
       "description": {
         "pt": "Nobre delegado do conde",
         "en": "Noble deputy of the count",
-        "es": "Noble delegado del conde"
+        "es": "Noble delegado del conde",
+        "fr": "Noble délégué du comte"
       }
     },
     "N405": {
       "name": {
         "pt": "Barão",
         "en": "Baron",
-        "es": "Barón"
+        "es": "Barón",
+        "fr": "Baron"
       },
       "description": {
         "pt": "Nobre de menor título, senhor de um feudo",
         "en": "Noble of the lowest title, lord of a fief",
-        "es": "Noble de menor título, señor de un feudo"
+        "es": "Noble de menor título, señor de un feudo",
+        "fr": "Noble du plus petit titre, seigneur d'un fief"
       }
     },
     "N406": {
       "name": {
         "pt": "Cavaleiro",
         "en": "Knight",
-        "es": "Caballero"
+        "es": "Caballero",
+        "fr": "Chevalier"
       },
       "description": {
         "pt": "Guerreiro montado a serviço de um senhor",
         "en": "Mounted warrior in the service of a lord",
-        "es": "Guerrero montado al servicio de un señor"
+        "es": "Guerrero montado al servicio de un señor",
+        "fr": "Guerrier à cheval au service d'un seigneur"
       }
     },
     "N407": {
       "name": {
         "pt": "Servo",
         "en": "Serf",
-        "es": "Siervo"
+        "es": "Siervo",
+        "fr": "Serf"
       },
       "description": {
         "pt": "Trabalhador preso à terra do senhor feudal",
         "en": "Laborer bound to the feudal lord's land",
-        "es": "Trabajador atado a la tierra del señor feudal"
+        "es": "Trabajador atado a la tierra del señor feudal",
+        "fr": "Travailleur attaché à la terre du seigneur féodal"
       }
     },
     "N408": {
       "name": {
         "pt": "Camponesa",
         "en": "Peasant Woman",
-        "es": "Campesina"
+        "es": "Campesina",
+        "fr": "Paysanne"
       },
       "description": {
         "pt": "Mulher do campo que cultiva a terra",
         "en": "Country woman who tills the land",
-        "es": "Mujer del campo que cultiva la tierra"
+        "es": "Mujer del campo que cultiva la tierra",
+        "fr": "Femme de la campagne qui cultive la terre"
       }
     },
     "N409": {
       "name": {
         "pt": "Burguesa",
         "en": "Bourgeois Woman",
-        "es": "Burguesa"
+        "es": "Burguesa",
+        "fr": "Bourgeoise"
       },
       "description": {
         "pt": "Mulher da cidade dedicada ao comércio",
         "en": "Townswoman devoted to trade",
-        "es": "Mujer de la ciudad dedicada al comercio"
+        "es": "Mujer de la ciudad dedicada al comercio",
+        "fr": "Femme de la ville vouée au commerce"
       }
     },
     "N410": {
       "name": {
         "pt": "Artesã",
         "en": "Artisan Woman",
-        "es": "Artesana"
+        "es": "Artesana",
+        "fr": "Artisane"
       },
       "description": {
         "pt": "Mulher que produz bens com as próprias mãos",
         "en": "Woman who crafts goods with her own hands",
-        "es": "Mujer que produce bienes con sus propias manos"
+        "es": "Mujer que produce bienes con sus propias manos",
+        "fr": "Femme qui fabrique des biens de ses propres mains"
       }
     },
     "FE01": {
       "name": {
         "pt": "Dilúvio",
         "en": "The Flood",
-        "es": "Diluvio"
+        "es": "Diluvio",
+        "fr": "Le Déluge"
       },
       "description": {
         "pt": "Águas que cobriram a terra e apagaram toda carne",
         "en": "Waters that covered the earth and wiped out all flesh",
-        "es": "Aguas que cubrieron la tierra y borraron toda carne"
+        "es": "Aguas que cubrieron la tierra y borraron toda carne",
+        "fr": "Eaux qui couvrirent la terre et anéantirent toute chair"
       }
     },
     "FE02": {
       "name": {
         "pt": "Chuva de Fogo",
         "en": "Rain of Fire",
-        "es": "Lluvia de Fuego"
+        "es": "Lluvia de Fuego",
+        "fr": "Pluie de Feu"
       },
       "description": {
         "pt": "Fogo e enxofre que consumiram Sodoma e Gomorra",
         "en": "Fire and brimstone that consumed Sodom and Gomorrah",
-        "es": "Fuego y azufre que consumieron Sodoma y Gomorra"
+        "es": "Fuego y azufre que consumieron Sodoma y Gomorra",
+        "fr": "Feu et soufre qui consumèrent Sodome et Gomorrhe"
       }
     },
     "FE03": {
       "name": {
         "pt": "Dez Pragas",
         "en": "Ten Plagues",
-        "es": "Diez Plagas"
+        "es": "Diez Plagas",
+        "fr": "Dix Plaies"
       },
       "description": {
         "pt": "Flagelos lançados sobre o Egito pela dureza do Faraó",
         "en": "Scourges cast upon Egypt for Pharaoh's hardness of heart",
-        "es": "Flagelos lanzados sobre Egipto por la dureza del Faraón"
+        "es": "Flagelos lanzados sobre Egipto por la dureza del Faraón",
+        "fr": "Fléaux envoyés sur l'Égypte pour l'obstination de Pharaon"
       }
     },
     "FE04": {
       "name": {
         "pt": "Juízo Final",
         "en": "Last Judgment",
-        "es": "Juicio Final"
+        "es": "Juicio Final",
+        "fr": "Jugement Dernier"
       },
       "description": {
         "pt": "Julgamento derradeiro de vivos e mortos no fim dos tempos",
         "en": "Final judgment of the living and the dead at the end of time",
-        "es": "Juicio último de vivos y muertos al fin de los tiempos"
+        "es": "Juicio último de vivos y muertos al fin de los tiempos",
+        "fr": "Jugement ultime des vivants et des morts à la fin des temps"
       }
     },
     "FG01": {
       "name": {
         "pt": "Estrela de Belém",
         "en": "Star of Bethlehem",
-        "es": "Estrella de Belén"
+        "es": "Estrella de Belén",
+        "fr": "Étoile de Bethléem"
       },
       "description": {
         "pt": "Luz que guiou os magos até o Menino Jesus",
         "en": "Light that guided the Magi to the Child Jesus",
-        "es": "Luz que guió a los magos hasta el Niño Jesús"
+        "es": "Luz que guió a los magos hasta el Niño Jesús",
+        "fr": "Lumière qui guida les Mages jusqu'à l'Enfant Jésus"
       }
     },
     "FG02": {
       "name": {
         "pt": "Abertura do Mar Vermelho",
         "en": "Parting of the Red Sea",
-        "es": "Apertura del Mar Rojo"
+        "es": "Apertura del Mar Rojo",
+        "fr": "Passage de la Mer Rouge"
       },
       "description": {
         "pt": "Passagem aberta por Moisés para libertar os hebreus",
         "en": "Passage opened by Moses to free the Hebrews",
-        "es": "Paso abierto por Moisés para liberar a los hebreos"
+        "es": "Paso abierto por Moisés para liberar a los hebreos",
+        "fr": "Passage ouvert par Moïse pour libérer les Hébreux"
       }
     },
     "FG03": {
       "name": {
         "pt": "Sol Parado",
         "en": "Sun Stood Still",
-        "es": "Sol Detenido"
+        "es": "Sol Detenido",
+        "fr": "Soleil Arrêté"
       },
       "description": {
         "pt": "Josué fez o sol parar até vencer a batalha",
         "en": "Joshua made the sun stand still until the battle was won",
-        "es": "Josué detuvo el sol hasta ganar la batalla"
+        "es": "Josué detuvo el sol hasta ganar la batalla",
+        "fr": "Josué arrêta le soleil jusqu'à la victoire"
       }
     },
     "FG04": {
       "name": {
         "pt": "Retorno de Cristo",
         "en": "Return of Christ",
-        "es": "Retorno de Cristo"
+        "es": "Retorno de Cristo",
+        "fr": "Retour du Christ"
       },
       "description": {
         "pt": "Segunda vinda do Salvador em glória",
         "en": "Second coming of the Savior in glory",
-        "es": "Segunda venida del Salvador en gloria"
+        "es": "Segunda venida del Salvador en gloria",
+        "fr": "Seconde venue du Sauveur dans la gloire"
       }
     }
   }

@@ -77,6 +77,14 @@ void DrawSpain(SDL_Renderer* r, const SDL_FRect& f, float sat) {
   Fill(r, SDL_FRect{f.x, f.y + f.h * 0.25f, f.w, f.h * 0.5f}, yellow);
 }
 
+void DrawFrance(SDL_Renderer* r, const SDL_FRect& f, float sat) {
+  const float third = f.w / 3.0f;
+  Fill(r, SDL_FRect{f.x, f.y, third + 0.5f, f.h}, Tone(colors::Get("flagFrBlue"), sat));
+  Fill(r, SDL_FRect{f.x + third, f.y, third + 0.5f, f.h}, Tone(colors::Get("white"), sat));
+  Fill(r, SDL_FRect{f.x + 2.0f * third, f.y, f.w - 2.0f * third, f.h},
+       Tone(colors::Get("flagFrRed"), sat));
+}
+
 void DrawBrazil(SDL_Renderer* r, const SDL_FRect& f, float sat) {
   const SDL_Color green = Tone(colors::Get("flagBrGreen"), sat);
   const SDL_Color yellow = Tone(colors::Get("flagBrYellow"), sat);
@@ -98,6 +106,7 @@ void DrawBrazil(SDL_Renderer* r, const SDL_FRect& f, float sat) {
 Country FromCode(const std::string& code) {
   if (code == "us") return Country::kUnitedStates;
   if (code == "es") return Country::kSpain;
+  if (code == "fr") return Country::kFrance;
   return Country::kBrazil;
 }
 
@@ -112,6 +121,9 @@ void Draw(SDL_Renderer* r, Country country, const SDL_FRect& rect, float saturat
       break;
     case Country::kSpain:
       DrawSpain(r, rect, saturation);
+      break;
+    case Country::kFrance:
+      DrawFrance(r, rect, saturation);
       break;
     case Country::kBrazil:
       DrawBrazil(r, rect, saturation);
