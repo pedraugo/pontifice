@@ -108,6 +108,42 @@
       "combinable": false
     }
   },
+  {
+    "code": "E204",
+    "name": "Samael",
+    "description": "Angel of death and venom of God",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Beasts",
+    "image": "E204",
+    "imageFile": "e204.webp",
+    "imageUrl": "sprites/evil/e204.webp",
+    "attributes": {
+      "attack": 2000,
+      "defense": 1500,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E205",
+    "name": "Dragon",
+    "description": "Great red dragon that wages war on heaven",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 2,
+    "hierarchyName": "Beasts",
+    "image": "E205",
+    "imageFile": "e205.webp",
+    "imageUrl": "sprites/evil/e205.webp",
+    "attributes": {
+      "attack": 1650,
+      "defense": 1200,
+      "odds": 8,
+      "combinable": false
+    }
+  },
 
 
   {
@@ -195,6 +231,24 @@
     "imageUrl": "sprites/evil/e305.webp",
     "attributes": {
       "attack": 550,
+      "defense": 500,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E306",
+    "name": "Valac",
+    "description": "Winged president who rides a two-headed dragon",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 3,
+    "hierarchyName": "Creatures",
+    "image": "E306",
+    "imageFile": "e306.webp",
+    "imageUrl": "sprites/evil/e306.webp",
+    "attributes": {
+      "attack": 600,
       "defense": 500,
       "odds": 15,
       "combinable": false
@@ -376,6 +430,60 @@
     "imageUrl": "sprites/evil/e410.webp",
     "attributes": {
       "attack": 250,
+      "defense": 50,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E411",
+    "name": "Incubus",
+    "description": "Demon who seduces women in their sleep",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E411",
+    "imageFile": "e411.webp",
+    "imageUrl": "sprites/evil/e411.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E412",
+    "name": "Succubus",
+    "description": "Demoness who seduces men in their sleep",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E412",
+    "imageFile": "e412.webp",
+    "imageUrl": "sprites/evil/e412.webp",
+    "attributes": {
+      "attack": 350,
+      "defense": 150,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "E413",
+    "name": "Ghost",
+    "description": "Restless spirit that haunts the living",
+    "category": "E",
+    "categoryName": "evil",
+    "hierarchy": 4,
+    "hierarchyName": "Unclean",
+    "image": "E413",
+    "imageFile": "e413.webp",
+    "imageUrl": "sprites/evil/e413.webp",
+    "attributes": {
+      "attack": 300,
       "defense": 50,
       "odds": 71,
       "combinable": false

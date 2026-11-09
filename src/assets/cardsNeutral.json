@@ -89,6 +89,78 @@
       "combinable": false
     }
   },
+  {
+    "code": "N306",
+    "name": "Adam",
+    "description": "First man, shaped by God from the dust",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N306",
+    "imageFile": "n306.webp",
+    "imageUrl": "sprites/neutral/n306.webp",
+    "attributes": {
+      "attack": 800,
+      "defense": 800,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N307",
+    "name": "Eve",
+    "description": "First woman, mother of all the living",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N307",
+    "imageFile": "n307.webp",
+    "imageUrl": "sprites/neutral/n307.webp",
+    "attributes": {
+      "attack": 800,
+      "defense": 800,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N308",
+    "name": "Abraham",
+    "description": "Patriarch of Israel and father of faith",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N308",
+    "imageFile": "n308.webp",
+    "imageUrl": "sprites/neutral/n308.webp",
+    "attributes": {
+      "attack": 700,
+      "defense": 700,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N309",
+    "name": "Charlemagne",
+    "description": "Emperor who united Christian Europe",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 3,
+    "hierarchyName": "Leaders",
+    "image": "N309",
+    "imageFile": "n309.webp",
+    "imageUrl": "sprites/neutral/n309.webp",
+    "attributes": {
+      "attack": 600,
+      "defense": 600,
+      "odds": 15,
+      "combinable": false
+    }
+  },
 
   {
     "code": "N401",
@@ -266,6 +338,42 @@
     "attributes": {
       "attack": 100,
       "defense": 100,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N411",
+    "name": "Bishop",
+    "description": "Shepherd of the clergy who governs a diocese",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N411",
+    "imageFile": "n411.webp",
+    "imageUrl": "sprites/neutral/n411.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "N412",
+    "name": "Nun",
+    "description": "Woman consecrated to prayer in the convent",
+    "category": "N",
+    "categoryName": "neutral",
+    "hierarchy": 4,
+    "hierarchyName": "Mortals",
+    "image": "N412",
+    "imageFile": "n412.webp",
+    "imageUrl": "sprites/neutral/n412.webp",
+    "attributes": {
+      "attack": 200,
+      "defense": 200,
       "odds": 71,
       "combinable": false
     }

@@ -109,6 +109,42 @@
       "combinable": false
     }
   },
+  {
+    "code": "G204",
+    "name": "Saint Uriel",
+    "description": "Fire of God who guards Eden with a flaming sword",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 2,
+    "hierarchyName": "Archangels",
+    "image": "G204",
+    "imageFile": "g204.webp",
+    "imageUrl": "sprites/good/g204.webp",
+    "attributes": {
+      "attack": 1500,
+      "defense": 1750,
+      "odds": 8,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G205",
+    "name": "Metatron",
+    "description": "Angel of the presence and scribe of God",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 2,
+    "hierarchyName": "Archangels",
+    "image": "G205",
+    "imageFile": "g205.webp",
+    "imageUrl": "sprites/good/g205.webp",
+    "attributes": {
+      "attack": 1400,
+      "defense": 1700,
+      "odds": 8,
+      "combinable": false
+    }
+  },
 
   {
     "code": "G301",
@@ -196,6 +232,24 @@
     "attributes": {
       "attack": 500,
       "defense": 700,
+      "odds": 15,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G306",
+    "name": "Angel of the Trumpet",
+    "description": "Sounds the trumpet that heralds the Last Judgment",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 3,
+    "hierarchyName": "Angels",
+    "image": "G306",
+    "imageFile": "g306.webp",
+    "imageUrl": "sprites/good/g306.webp",
+    "attributes": {
+      "attack": 650,
+      "defense": 850,
       "odds": 15,
       "combinable": false
     }
@@ -377,6 +431,60 @@
     "attributes": {
       "attack": 100,
       "defense": 200,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G411",
+    "name": "Saint Augustine",
+    "description": "Sinner converted into a doctor of the Church",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Saints",
+    "image": "G411",
+    "imageFile": "g411.webp",
+    "imageUrl": "sprites/good/g411.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 400,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G412",
+    "name": "Saint Mary Magdalene",
+    "description": "Repentant disciple, first witness of the Resurrection",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Saints",
+    "image": "G412",
+    "imageFile": "g412.webp",
+    "imageUrl": "sprites/good/g412.webp",
+    "attributes": {
+      "attack": 300,
+      "defense": 500,
+      "odds": 71,
+      "combinable": false
+    }
+  },
+  {
+    "code": "G413",
+    "name": "Saint Joseph",
+    "description": "Guardian of the Holy Family and terror of demons",
+    "category": "G",
+    "categoryName": "good",
+    "hierarchy": 4,
+    "hierarchyName": "Saints",
+    "image": "G413",
+    "imageFile": "g413.webp",
+    "imageUrl": "sprites/good/g413.webp",
+    "attributes": {
+      "attack": 400,
+      "defense": 500,
       "odds": 71,
       "combinable": false
     }

@@ -1092,6 +1092,34 @@
         "fr": "Associé à la guérison, à la protection et à l'accompagnement"
       }
     },
+    "G204": {
+      "name": {
+        "pt": "São Uriel",
+        "en": "Saint Uriel",
+        "es": "San Uriel",
+        "fr": "Saint Uriel"
+      },
+      "description": {
+        "pt": "Fogo de Deus que guarda o Éden com a espada flamejante",
+        "en": "Fire of God who guards Eden with a flaming sword",
+        "es": "Fuego de Dios que guarda el Edén con la espada flamígera",
+        "fr": "Feu de Dieu qui garde l'Éden avec l'épée flamboyante"
+      }
+    },
+    "G205": {
+      "name": {
+        "pt": "Metatron",
+        "en": "Metatron",
+        "es": "Metatrón",
+        "fr": "Métatron"
+      },
+      "description": {
+        "pt": "Anjo da presença e escriba de Deus",
+        "en": "Angel of the presence and scribe of God",
+        "es": "Ángel de la presencia y escriba de Dios",
+        "fr": "Ange de la présence et scribe de Dieu"
+      }
+    },
     "G301": {
       "name": {
         "pt": "Querubim",
@@ -1160,6 +1188,20 @@
         "en": "Protector of the faithful",
         "es": "Protector de los fieles",
         "fr": "Protecteur des fidèles"
+      }
+    },
+    "G306": {
+      "name": {
+        "pt": "Anjo da Trombeta",
+        "en": "Angel of the Trumpet",
+        "es": "Ángel de la Trompeta",
+        "fr": "Ange à la Trompette"
+      },
+      "description": {
+        "pt": "Toca a trombeta que anuncia o Juízo Final",
+        "en": "Sounds the trumpet that heralds the Last Judgment",
+        "es": "Toca la trompeta que anuncia el Juicio Final",
+        "fr": "Sonne la trompette qui annonce le Jugement dernier"
       }
     },
     "G401": {
@@ -1302,6 +1344,48 @@
         "fr": "Symbole de la sagesse divine et de la foi chrétienne"
       }
     },
+    "G411": {
+      "name": {
+        "pt": "Santo Agostinho",
+        "en": "Saint Augustine",
+        "es": "San Agustín",
+        "fr": "Saint Augustin"
+      },
+      "description": {
+        "pt": "Pecador convertido em doutor da Igreja",
+        "en": "Sinner converted into a doctor of the Church",
+        "es": "Pecador convertido en doctor de la Iglesia",
+        "fr": "Pécheur converti devenu docteur de l'Église"
+      }
+    },
+    "G412": {
+      "name": {
+        "pt": "Santa Maria Madalena",
+        "en": "Saint Mary Magdalene",
+        "es": "Santa María Magdalena",
+        "fr": "Sainte Marie-Madeleine"
+      },
+      "description": {
+        "pt": "Discípula arrependida, primeira testemunha da Ressurreição",
+        "en": "Repentant disciple, first witness of the Resurrection",
+        "es": "Discípula arrepentida, primera testigo de la Resurrección",
+        "fr": "Disciple repentie, premier témoin de la Résurrection"
+      }
+    },
+    "G413": {
+      "name": {
+        "pt": "São José",
+        "en": "Saint Joseph",
+        "es": "San José",
+        "fr": "Saint Joseph"
+      },
+      "description": {
+        "pt": "Guardião da Sagrada Família e terror dos demônios",
+        "en": "Guardian of the Holy Family and terror of demons",
+        "es": "Guardián de la Sagrada Familia y terror de los demonios",
+        "fr": "Gardien de la Sainte Famille et terreur des démons"
+      }
+    },
     "E101": {
       "name": {
         "pt": "Satanás",
@@ -1386,6 +1470,34 @@
         "fr": "Faux dieu jadis adoré, symbole de l'idolâtrie"
       }
     },
+    "E204": {
+      "name": {
+        "pt": "Samael",
+        "en": "Samael",
+        "es": "Samael",
+        "fr": "Samaël"
+      },
+      "description": {
+        "pt": "Anjo da morte e veneno de Deus",
+        "en": "Angel of death and venom of God",
+        "es": "Ángel de la muerte y veneno de Dios",
+        "fr": "Ange de la mort et venin de Dieu"
+      }
+    },
+    "E205": {
+      "name": {
+        "pt": "Dragão",
+        "en": "Dragon",
+        "es": "Dragón",
+        "fr": "Dragon"
+      },
+      "description": {
+        "pt": "Grande dragão vermelho que guerreia contra o céu",
+        "en": "Great red dragon that wages war on heaven",
+        "es": "Gran dragón rojo que hace la guerra al cielo",
+        "fr": "Grand dragon rouge qui fait la guerre au ciel"
+      }
+    },
     "E301": {
       "name": {
         "pt": "Mephisto",
@@ -1454,6 +1566,20 @@
         "en": "Night spirit associated with seduction and darkness",
         "es": "Espíritu nocturno asociado a la seducción y las tinieblas",
         "fr": "Esprit nocturne associé à la séduction et aux ténèbres"
+      }
+    },
+    "E306": {
+      "name": {
+        "pt": "Valac",
+        "en": "Valac",
+        "es": "Valac",
+        "fr": "Valac"
+      },
+      "description": {
+        "pt": "Presidente alado que monta um dragão de duas cabeças",
+        "en": "Winged president who rides a two-headed dragon",
+        "es": "Presidente alado que monta un dragón de dos cabezas",
+        "fr": "Président ailé qui chevauche un dragon à deux têtes"
       }
     },
     "E401": {
@@ -1596,6 +1722,48 @@
         "fr": "Symbole de la mort et de la décadence"
       }
     },
+    "E411": {
+      "name": {
+        "pt": "Íncubo",
+        "en": "Incubus",
+        "es": "Íncubo",
+        "fr": "Incube"
+      },
+      "description": {
+        "pt": "Demônio que seduz as mulheres durante o sono",
+        "en": "Demon who seduces women in their sleep",
+        "es": "Demonio que seduce a las mujeres durante el sueño",
+        "fr": "Démon qui séduit les femmes pendant leur sommeil"
+      }
+    },
+    "E412": {
+      "name": {
+        "pt": "Súcubo",
+        "en": "Succubus",
+        "es": "Súcubo",
+        "fr": "Succube"
+      },
+      "description": {
+        "pt": "Demônia que seduz os homens durante o sono",
+        "en": "Demoness who seduces men in their sleep",
+        "es": "Demonia que seduce a los hombres durante el sueño",
+        "fr": "Démone qui séduit les hommes pendant leur sommeil"
+      }
+    },
+    "E413": {
+      "name": {
+        "pt": "Fantasma",
+        "en": "Ghost",
+        "es": "Fantasma",
+        "fr": "Fantôme"
+      },
+      "description": {
+        "pt": "Espírito errante que assombra os vivos",
+        "en": "Restless spirit that haunts the living",
+        "es": "Espíritu errante que atormenta a los vivos",
+        "fr": "Esprit errant qui hante les vivants"
+      }
+    },
     "N301": {
       "name": {
         "pt": "Rei Davi",
@@ -1664,6 +1832,62 @@
         "en": "Roman emperor who legalized Christianity",
         "es": "Emperador romano que legalizó el cristianismo",
         "fr": "Empereur romain qui légalisa le christianisme"
+      }
+    },
+    "N306": {
+      "name": {
+        "pt": "Adão",
+        "en": "Adam",
+        "es": "Adán",
+        "fr": "Adam"
+      },
+      "description": {
+        "pt": "Primeiro homem, moldado por Deus do pó",
+        "en": "First man, shaped by God from the dust",
+        "es": "Primer hombre, modelado por Dios del polvo",
+        "fr": "Premier homme, façonné par Dieu de la poussière"
+      }
+    },
+    "N307": {
+      "name": {
+        "pt": "Eva",
+        "en": "Eve",
+        "es": "Eva",
+        "fr": "Ève"
+      },
+      "description": {
+        "pt": "Primeira mulher, mãe de todos os viventes",
+        "en": "First woman, mother of all the living",
+        "es": "Primera mujer, madre de todos los vivientes",
+        "fr": "Première femme, mère de tous les vivants"
+      }
+    },
+    "N308": {
+      "name": {
+        "pt": "Abraão",
+        "en": "Abraham",
+        "es": "Abraham",
+        "fr": "Abraham"
+      },
+      "description": {
+        "pt": "Patriarca de Israel e pai da fé",
+        "en": "Patriarch of Israel and father of faith",
+        "es": "Patriarca de Israel y padre de la fe",
+        "fr": "Patriarche d'Israël et père de la foi"
+      }
+    },
+    "N309": {
+      "name": {
+        "pt": "Carlos Magno",
+        "en": "Charlemagne",
+        "es": "Carlomagno",
+        "fr": "Charlemagne"
+      },
+      "description": {
+        "pt": "Imperador que uniu a Europa cristã",
+        "en": "Emperor who united Christian Europe",
+        "es": "Emperador que unió la Europa cristiana",
+        "fr": "Empereur qui unifia l'Europe chrétienne"
       }
     },
     "N401": {
@@ -1804,6 +2028,34 @@
         "en": "Woman who crafts goods with her own hands",
         "es": "Mujer que produce bienes con sus propias manos",
         "fr": "Femme qui fabrique des biens de ses propres mains"
+      }
+    },
+    "N411": {
+      "name": {
+        "pt": "Bispo",
+        "en": "Bishop",
+        "es": "Obispo",
+        "fr": "Évêque"
+      },
+      "description": {
+        "pt": "Pastor do clero que governa uma diocese",
+        "en": "Shepherd of the clergy who governs a diocese",
+        "es": "Pastor del clero que gobierna una diócesis",
+        "fr": "Pasteur du clergé qui gouverne un diocèse"
+      }
+    },
+    "N412": {
+      "name": {
+        "pt": "Freira",
+        "en": "Nun",
+        "es": "Monja",
+        "fr": "Religieuse"
+      },
+      "description": {
+        "pt": "Mulher consagrada à oração no convento",
+        "en": "Woman consecrated to prayer in the convent",
+        "es": "Mujer consagrada a la oración en el convento",
+        "fr": "Femme consacrée à la prière au couvent"
       }
     },
     "FE01": {
