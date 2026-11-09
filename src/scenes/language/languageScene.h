@@ -12,7 +12,6 @@ class LanguageScene : public Scene {
   LanguageScene();
 
   void OnEnter(SceneContext& ctx) override;
-  void OnExit(SceneContext& ctx) override;
   void HandleEvent(SceneContext& ctx, const SDL_Event& event) override;
   void Update(SceneContext& ctx, float dt_seconds) override;
   void Render(SceneContext& ctx) override;

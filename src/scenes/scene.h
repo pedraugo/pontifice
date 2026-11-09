@@ -11,7 +11,7 @@
 class Music;
 
 enum class SceneId { kLanguage, kMenu, kLoading, kBattle, kGrimoire };
-// kMain: Play, Language and Exit; kNewSave: name form; kSave: Battle, Level, Grimoire and Exit.
+// Without a save, kMain (Play, Exit) and kNewSave (name form); with one, kSave (Battle, Grimoire, Exit).
 enum class MenuPage { kMain, kNewSave, kSave };
 
 class Scene;
@@ -33,8 +33,6 @@ struct SceneContext {
 
   int difficulty = rules::Get().default_difficulty;
   std::optional<save::Data> save;
-  MenuPage menu_page = MenuPage::kMain;  // page the menu reopens on
-  bool language_from_menu = false;  // Esc in the language scene returns to the menu
   PreloadInfo Preload() const {
     return {gpu_device, logical_width, logical_height, difficulty, save};
   }

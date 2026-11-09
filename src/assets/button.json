@@ -16,6 +16,7 @@
     "small": {"size": 2, "margin": 1, "padding": 0.12},
     "regular": {"size": 3, "margin": 1, "padding": 0.12},
     "large": {"size": 4, "margin": 1, "padding": 0.12},
-    "danger": {"size": 3, "margin": 1, "padding": 0.12}
+    "danger": {"size": 3, "margin": 1, "padding": 0.12},
+    "tooltip": {"gap": 0.5, "padding": 1, "label": "small+body"}
   }
 }

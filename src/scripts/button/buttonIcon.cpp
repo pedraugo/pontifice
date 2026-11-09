@@ -3,8 +3,11 @@
 #include <algorithm>
 
 #include "scripts/colors/colors.h"
+#include "scripts/config/config.h"
 #include "scripts/draw/draw.h"
+#include "scripts/frame/frame.h"
 #include "scripts/text/text.h"
+#include "scripts/ui/ui.h"
 
 ButtonIcon::ButtonIcon(Icon icon) : Button(""), icon_(icon) {}
 
@@ -28,6 +31,44 @@ void ButtonIcon::RenderContent(SDL_Renderer* r) const {
     case Icon::kExit:
       RenderExit(r, rect, ink);
       break;
+    case Icon::kFlag:
+      flag::Draw(r, flag_, rect);
+      break;
+    case Icon::kLevel:
+      RenderLevel(r, rect, ink);
+      break;
+  }
+}
+
+void ButtonIcon::RenderTooltip(SDL_Renderer* r) const {
+  if (!Hovered() || tooltip_.empty()) return;
+  const text::Style style =
+      text::StyleOf(config::String("button", "buttonIcon.tooltip.label", "small+body"));
+  const float gap = button::Cells("buttonIcon.tooltip.gap", 0.5f);
+  const float padding = button::Cells("buttonIcon.tooltip.padding", 1.0f);
+  const SDL_FRect& b = Rect();
+  const float w = ui::SnapUp(text::Width(tooltip_.c_str(), style) + 2.0f * padding);
+  const SDL_FRect panel{b.x + b.w + gap, b.y, w, b.h};
+  frame::Draw(r, panel, frame::Kind::kWindow);
+  text::DrawCentered(r, tooltip_.c_str(), panel.x + panel.w / 2.0f, panel.y + panel.h / 2.0f,
+                     style, colors::Get("silver"));
+}
+
+void ButtonIcon::RenderLevel(SDL_Renderer* r, const SDL_FRect& rect, SDL_Color ink) const {
+  // Four rising bars; Impossible fills them all in red.
+  constexpr int kBars = 4;
+  const float gap = rect.w * 0.08f;
+  const float bar_w = (rect.w * 0.8f - gap * (kBars - 1)) / kBars;
+  const float bottom = rect.y + rect.h * 0.82f;
+  const SDL_Color filled = level_ >= kBars - 1 ? colors::Get("red") : ink;
+  const SDL_Color empty = colors::Get("slate");
+  for (int i = 0; i < kBars; ++i) {
+    const float h = rect.h * (0.2f + 0.16f * static_cast<float>(i));
+    const SDL_FRect bar{rect.x + rect.w * 0.1f + static_cast<float>(i) * (bar_w + gap), bottom - h,
+                        bar_w, h};
+    const SDL_Color c = i <= level_ ? filled : empty;
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderFillRect(r, &bar);
   }
 }
 

@@ -43,6 +43,7 @@ O HUD (Heads-Up Display) é a camada de informação fixa na tela durante a bata
 - **Botão de som**: quadrado com ícone de alto-falante (desenhado com primitivas, sem sprite). Clique liga/desliga a música (volume vai a zero e volta em rampa de 1 s). Desligada, o ícone fica esmaecido, sem ondas e com um X vermelho. O mesmo botão existe no menu.
 - **Botão de dica** (acima do som): `?`; liga/desliga a dica do topo da tela.
 - **Botão de sair** (acima da dica): porta com seta, placa vermelha de perigo. Faz o mesmo que Esc: abre o diálogo de abandono da batalha; com a partida encerrada, volta ao menu.
+- **Tooltip** dos três botões: com o mouse sobre um deles, uma janela à direita, da altura do botão, diz o que ele faz e o estado atual: `Som ligado`/`Som desligado`, `Dicas ligadas`/`Dicas desligadas`, `Abandonar batalha` (ou `Menu` com a partida encerrada). Some com a batalha pausada ou com uma explicação do tutorial aberta.
 
 ## Canto inferior direito: monte e cemitério
 

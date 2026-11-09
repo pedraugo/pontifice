@@ -37,8 +37,6 @@ void LanguageScene::OnEnter(SceneContext& ctx) {
   for (auto& button : buttons_) button->SetFocused(false);
 }
 
-void LanguageScene::OnExit(SceneContext& ctx) { ctx.language_from_menu = false; }
-
 void LanguageScene::LayoutButtons(const SceneContext& ctx) {
   float width = 0.0f;
   for (const auto& button : buttons_) width = std::max(width, button->ContentWidth());
@@ -78,11 +76,7 @@ void LanguageScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
         if (focused_ >= 0) buttons_[focused_]->OnClick(ctx);
         return;
       case SDLK_ESCAPE:
-        if (ctx.language_from_menu) {
-          ctx.next_scene = SceneId::kMenu;
-        } else {
-          ctx.quit = true;
-        }
+        ctx.quit = true;
         return;
       default:
         break;

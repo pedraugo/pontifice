@@ -85,6 +85,44 @@
         "es": "Sí",
         "fr": "Oui"
       }
+    },
+    "tooltip": {
+      "soundOn": {
+        "pt": "Som ligado",
+        "en": "Sound on",
+        "es": "Sonido activado",
+        "fr": "Son activé"
+      },
+      "soundOff": {
+        "pt": "Som desligado",
+        "en": "Sound off",
+        "es": "Sonido desactivado",
+        "fr": "Son désactivé"
+      },
+      "hintsOn": {
+        "pt": "Dicas ligadas",
+        "en": "Hints on",
+        "es": "Pistas activadas",
+        "fr": "Astuces activées"
+      },
+      "hintsOff": {
+        "pt": "Dicas desligadas",
+        "en": "Hints off",
+        "es": "Pistas desactivadas",
+        "fr": "Astuces désactivées"
+      },
+      "language": {
+        "pt": "Idioma: {0}",
+        "en": "Language: {0}",
+        "es": "Idioma: {0}",
+        "fr": "Langue : {0}"
+      },
+      "level": {
+        "pt": "Nível: {0}",
+        "en": "Level: {0}",
+        "es": "Nivel: {0}",
+        "fr": "Niveau : {0}"
+      }
     }
   },
   "loading": {
@@ -114,18 +152,6 @@
       "es": "Salir",
       "fr": "Quitter"
     },
-    "language": {
-      "pt": "Idioma",
-      "en": "Language",
-      "es": "Idioma",
-      "fr": "Langue"
-    },
-    "level": {
-      "pt": "Nível: {0}",
-      "en": "Level: {0}",
-      "es": "Nivel: {0}",
-      "fr": "Niveau : {0}"
-    },
     "credits": {
       "pt": "Criado por pedraugo",
       "en": "Created by pedraugo",
@@ -133,16 +159,16 @@
       "fr": "Créé par pedraugo"
     },
     "battle": {
-      "pt": "Batalha",
+      "pt": "Batalhar",
       "en": "Battle",
-      "es": "Batalla",
-      "fr": "Bataille"
+      "es": "Combatir",
+      "fr": "Combattre"
     },
     "battleIncomplete": {
-      "pt": "Batalha (deck {0}/{1})",
+      "pt": "Batalhar (deck {0}/{1})",
       "en": "Battle (deck {0}/{1})",
-      "es": "Batalla (mazo {0}/{1})",
-      "fr": "Bataille (deck {0}/{1})"
+      "es": "Combatir (deck {0}/{1})",
+      "fr": "Combattre (deck {0}/{1})"
     },
     "namePlaceholder": {
       "pt": "Seu nome",

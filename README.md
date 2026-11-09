@@ -66,7 +66,7 @@ O `run.cmd` é o mesmo nos três sistemas: detecta o sistema, chama o build cert
 ./build/macos-debug/pontifice     # só abre, sem recompilar
 ```
 
-Na primeira vez o jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol, francês ou português) e segue para o menu (`docs/menu.md`). "Jogar" pede seu nome e cria o save em `{home}/pontifice.json`, com o deck inicial; depois disso o jogo abre direto no menu. `Esc` sai.
+Na primeira vez o jogo abre na escolha de idioma (`docs/idioma.md`: inglês, espanhol, francês ou português) e segue para o menu (`docs/menu.md`). "Jogar" pede seu nome e cria o save em `{home}/pontifice.json`, com o deck inicial; depois disso o jogo abre direto na página do save (Batalhar, Grimório, Sair, com nível, idioma e som em ícones no canto inferior esquerdo). `Esc` sai.
 
 **Linux (Vulkan)**: os shaders precisam ser compilados para SPIR-V. Instale `glslc` (pacote `shaderc` ou Vulkan SDK) antes de rodar `./build_lin.sh`; o CMake detecta e compila sozinho. No macOS (Metal) não é necessário.
 

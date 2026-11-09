@@ -22,11 +22,6 @@ namespace {
 float FadeOut() { return layout::Number("menu.fadeOut", 0.5f); }
 float LoadingFadeIn() { return layout::Number("menu.loadingFadeIn", 0.5f); }
 
-std::string DifficultyLabel(int level) {
-  const auto difficulty = static_cast<ai::Difficulty>(std::clamp(level, 0, 3));
-  return i18n::Format("menu.level", {i18n::Get(ai::DifficultyKey(difficulty))});
-}
-
 // Player names: letters, digits, dot and underscore only.
 bool NameChar(Uint32 ch) {
   return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
@@ -59,24 +54,26 @@ void OpenThroughLoading(SceneContext& ctx, SceneId target) {
 }
 
 MenuScene::MenuScene() {
+  const auto keep_label = [this](Buttons& buttons, const char* key) {
+    labels_.emplace_back(buttons.back().get(), key);
+  };
   main_buttons_.push_back(
       std::make_unique<ButtonText>(i18n::Get("menu.play"), [this](SceneContext& ctx) {
-        ShowPage(ctx, ctx.save ? MenuPage::kSave : MenuPage::kNewSave);
+        ShowPage(ctx, MenuPage::kNewSave);
       }));
-  main_buttons_.push_back(
-      std::make_unique<ButtonText>(i18n::Get("menu.language"), [](SceneContext& ctx) {
-        ctx.language_from_menu = true;
-        ctx.next_scene = SceneId::kLanguage;
-      }));
+  keep_label(main_buttons_, "menu.play");
   main_buttons_.push_back(std::make_unique<ButtonText>(
       i18n::Get("menu.exit"), [](SceneContext& ctx) { ctx.quit = true; }));
   main_buttons_.back()->SetDanger(true);
+  keep_label(main_buttons_, "menu.exit");
 
   form_buttons_.push_back(std::make_unique<Button>(
       i18n::Get("general.menu"), [this](SceneContext& ctx) { ShowPage(ctx, MenuPage::kMain); }));
+  keep_label(form_buttons_, "general.menu");
   form_buttons_.push_back(std::make_unique<Button>(
       i18n::Get("menu.save"), [this](SceneContext& ctx) { CreateSave(ctx); }));
   confirm_button_ = form_buttons_.back().get();
+  keep_label(form_buttons_, "menu.save");
   name_input_.SetPlaceholder(i18n::Get("menu.namePlaceholder"));
   name_input_.SetMaxLength(static_cast<int>(ui::Number("menu.nameMaxLength", 16.0f)));
   name_input_.SetStyle(text::Styles({"large"}));
@@ -89,32 +86,76 @@ MenuScene::MenuScene() {
       }));
   battle_button_ = save_buttons_.back().get();
   save_buttons_.push_back(std::make_unique<ButtonText>(
-      DifficultyLabel(rules::Get().default_difficulty), [this](SceneContext& ctx) {
-        ctx.difficulty = static_cast<int>(
-            ai::NextDifficulty(static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3))));
-        difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
-        Layout(ctx);
-        if (ctx.save) {
-          ctx.save->difficulty = ctx.difficulty;
-          save::Write(*ctx.save);
-        }
-      }));
-  difficulty_button_ = save_buttons_.back().get();
-  save_buttons_.push_back(std::make_unique<ButtonText>(
       i18n::Get("menu.grimoire"),
       [](SceneContext& ctx) { OpenThroughLoading(ctx, SceneId::kGrimoire); }));
+  keep_label(save_buttons_, "menu.grimoire");
   save_buttons_.push_back(std::make_unique<ButtonText>(
       i18n::Get("menu.exit"), [](SceneContext& ctx) { ctx.quit = true; }));
   save_buttons_.back()->SetDanger(true);
+  keep_label(save_buttons_, "menu.exit");
 }
 
 void MenuScene::OnEnter(SceneContext& ctx) {
-  difficulty_button_->SetLabel(DifficultyLabel(ctx.difficulty));
+  // Bottom-left stack, from the bottom: sound, language, level (level only with a save).
   const float icon_size = sound_button_.Side();
   const float icon_margin = sound_button_.Margin();
-  sound_button_.SetRect(SDL_FRect{icon_margin, ctx.logical_height - icon_margin - icon_size,
-                                  icon_size, icon_size});
-  ShowPage(ctx, ctx.menu_page == MenuPage::kSave && ctx.save ? MenuPage::kSave : MenuPage::kMain);
+  float y = ctx.logical_height - icon_margin - icon_size;
+  for (ButtonIcon* button : {&sound_button_, &language_button_, &level_button_}) {
+    button->SetRect(SDL_FRect{icon_margin, y, icon_size, icon_size});
+    y -= icon_margin + icon_size;
+  }
+  level_button_.SetLevel(std::clamp(ctx.difficulty, 0, 3));
+  if (const i18n::Language* language = CurrentLanguageEntry()) {
+    language_button_.SetFlag(flag::FromCode(language->flag));
+  }
+  ShowPage(ctx, ctx.save ? MenuPage::kSave : MenuPage::kMain);
+}
+
+const i18n::Language* MenuScene::CurrentLanguageEntry() const {
+  for (const i18n::Language& language : i18n::Languages()) {
+    if (language.code == i18n::CurrentLanguage()) return &language;
+  }
+  return nullptr;
+}
+
+// Next language of translate.json's list, wrapping around; the save keeps it.
+void MenuScene::NextLanguage(SceneContext& ctx) {
+  const std::vector<i18n::Language>& languages = i18n::Languages();
+  if (languages.empty()) return;
+  size_t next = 0;
+  for (size_t i = 0; i < languages.size(); ++i) {
+    if (languages[i].code == i18n::CurrentLanguage()) next = (i + 1) % languages.size();
+  }
+  i18n::SetLanguage(languages[next].code);
+  language_button_.SetFlag(flag::FromCode(languages[next].flag));
+  for (const auto& [button, key] : labels_) button->SetLabel(i18n::Get(key));
+  name_input_.SetPlaceholder(i18n::Get("menu.namePlaceholder"));
+  RefreshBattleButton(ctx);
+  Layout(ctx);
+  if (ctx.save && ctx.save->language != languages[next].code) {
+    ctx.save->language = languages[next].code;
+    save::Write(*ctx.save);
+  }
+}
+
+void MenuScene::NextLevel(SceneContext& ctx) {
+  ctx.difficulty = static_cast<int>(
+      ai::NextDifficulty(static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3))));
+  level_button_.SetLevel(ctx.difficulty);
+  if (ctx.save) {
+    ctx.save->difficulty = ctx.difficulty;
+    save::Write(*ctx.save);
+  }
+}
+
+void MenuScene::RefreshBattleButton(const SceneContext& ctx) {
+  const bool ready = DeckReady(ctx);
+  const int deck_size = ctx.save ? static_cast<int>(ctx.save->deck.size()) : 0;
+  battle_button_->SetLabel(
+      ready ? i18n::Get("menu.battle")
+            : i18n::Format("menu.battleIncomplete", {std::to_string(deck_size),
+                                                      std::to_string(rules::Get().deck_size)}));
+  battle_button_->SetAlpha(ready ? 1.0f : opacity::Get("disabled"));
 }
 
 void MenuScene::OnExit(SceneContext& ctx) {
@@ -123,18 +164,11 @@ void MenuScene::OnExit(SceneContext& ctx) {
 
 void MenuScene::ShowPage(SceneContext& ctx, MenuPage page) {
   page_ = page;
-  ctx.menu_page = page;
   focused_ = -1;
   for (Buttons* buttons : {&main_buttons_, &form_buttons_, &save_buttons_}) {
     for (auto& button : *buttons) button->SetFocused(false);
   }
-  const bool ready = DeckReady(ctx);
-  const int deck_size = ctx.save ? static_cast<int>(ctx.save->deck.size()) : 0;
-  battle_button_->SetLabel(
-      ready ? i18n::Get("menu.battle")
-            : i18n::Format("menu.battleIncomplete", {std::to_string(deck_size),
-                                                      std::to_string(rules::Get().deck_size)}));
-  battle_button_->SetAlpha(ready ? 1.0f : opacity::Get("disabled"));
+  RefreshBattleButton(ctx);
   SDL_Window* window = SDL_GetRenderWindow(ctx.renderer);
   if (page == MenuPage::kNewSave) {
     name_input_.Clear();
@@ -241,10 +275,10 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
         if (!form) return;
         break;
       case SDLK_ESCAPE:
-        if (page_ == MenuPage::kMain) {
-          ctx.quit = true;
-        } else {
+        if (form) {
           ShowPage(ctx, MenuPage::kMain);
+        } else {
+          ctx.quit = true;
         }
         return;
       default:
@@ -255,6 +289,14 @@ void MenuScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
   if (sound_button_.HandleEvent(event)) {
     if (ctx.music != nullptr) ctx.music->ToggleMuted();
+    return;
+  }
+  if (language_button_.HandleEvent(event)) {
+    NextLanguage(ctx);
+    return;
+  }
+  if (page_ == MenuPage::kSave && level_button_.HandleEvent(event)) {
+    NextLevel(ctx);
     return;
   }
   Buttons& buttons = PageButtons();
@@ -295,8 +337,23 @@ void MenuScene::RenderHud(SceneContext& ctx) {
   for (auto& button : PageButtons()) button->Render(r);
   sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
+  language_button_.Render(r);
+  if (page_ == MenuPage::kSave) level_button_.Render(r);
 
   text::DrawCentered(r, i18n::Get("menu.credits").c_str(), center_x,
                      ctx.logical_height - ui::Cells("menu.footerBottom", 3.0f), footer,
                      colors::Get("steelLight"));
+
+  const bool muted = ctx.music != nullptr && ctx.music->Muted();
+  sound_button_.SetTooltip(i18n::Get(muted ? "ui.tooltip.soundOff" : "ui.tooltip.soundOn"));
+  sound_button_.RenderTooltip(r);
+  const i18n::Language* language = CurrentLanguageEntry();
+  language_button_.SetTooltip(
+      i18n::Format("ui.tooltip.language", {language ? language->name : i18n::CurrentLanguage()}));
+  language_button_.RenderTooltip(r);
+  if (page_ == MenuPage::kSave) {
+    const auto level = static_cast<ai::Difficulty>(std::clamp(ctx.difficulty, 0, 3));
+    level_button_.SetTooltip(i18n::Format("ui.tooltip.level", {i18n::Get(ai::DifficultyKey(level))}));
+    level_button_.RenderTooltip(r);
+  }
 }

@@ -45,6 +45,7 @@ class Button {
   virtual void OnClick(SceneContext& ctx);  // scene calls it after a click or by keyboard
 
   bool Contains(float x, float y) const;
+  bool Hovered() const { return hovered_; }
   const SDL_FRect& Rect() const { return rect_; }
 
  protected:

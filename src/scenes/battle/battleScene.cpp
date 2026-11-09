@@ -2272,6 +2272,16 @@ void BattleScene::RenderHud(SceneContext& ctx) {
   exit_button_.Render(r);
   RenderReveal(r, ctx.logical_width, ctx.logical_height);
   if (!paused_ && reveal_.card == nullptr) RenderTooltip(r, ctx.logical_width, ctx.logical_height);
+  if (!paused_ && !TutorialModal()) {
+    const bool muted = ctx.music != nullptr && ctx.music->Muted();
+    sound_button_.SetTooltip(i18n::Get(muted ? "ui.tooltip.soundOff" : "ui.tooltip.soundOn"));
+    hint_button_.SetTooltip(
+        i18n::Get(hints_enabled_ ? "ui.tooltip.hintsOn" : "ui.tooltip.hintsOff"));
+    exit_button_.SetTooltip(i18n::Get(hud_.Over() ? "general.menu" : "battle.abandon.title"));
+    for (const ButtonIcon* button : {&sound_button_, &hint_button_, &exit_button_}) {
+      button->RenderTooltip(r);
+    }
+  }
   tutorial_panel_.Render(r, ctx.logical_width, ctx.logical_height);
   abandon_dialog_.Render(r, ctx.logical_width, ctx.logical_height);
 }

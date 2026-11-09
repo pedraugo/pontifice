@@ -52,7 +52,7 @@ Deck: 38/40                         [Menu]
 - Com uma carta selecionada: **dígitos** (teclado ou numérico) escrevem a quantidade (o primeiro dígito depois de selecionar substitui o valor, os seguintes acrescentam), `Backspace` apaga o último dígito, `↑`/`↓` somam ou tiram 1.
 - A quantidade fica entre 0 e o menor entre as cópias disponíveis e o espaço que sobra até 40. Pode repetir à vontade: um deck só com uma carta vale, se você tiver 40 cópias dela.
 - Cada mudança grava o save na hora (`deck`, um código por cópia).
-- `Deck: n/40` no canto inferior esquerdo, verde quando completo. A Batalha do menu só libera com 40.
+- `Deck: n/40` no canto inferior esquerdo, verde quando completo. O item Batalhar do menu só libera com 40.
 - Cartas ocultas não têm faixa nem seleção.
 
 **Cartas que você não possui**: ocupam o mesmo lugar na grade, mas com a frente oculta (`sprites/cardFrontOpponent.webp` via `cardface::ComposeHidden`, a mesma da mão do oponente na batalha): nome, ATK, DEF e descrição como "?", sem arte e sem hierarquia. Não têm foil (nem as de hierarquia 1) e o duplo clique não abre a inspeção. Ainda crescem e inclinam sob o mouse. Só as cartas possuídas têm foil (hierarquia 1) e podem ser inspecionadas. Sem save (`PONTIFICE_SCENE=grimoire` sem `pontifice.json`) todas ficam ocultas.

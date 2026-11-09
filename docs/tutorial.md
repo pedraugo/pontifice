@@ -5,7 +5,7 @@ A primeira batalha de um save é sempre um tutorial guiado: uma sequência de di
 ## Quando acontece
 
 - O save tem o campo `tutorial` (docs/menu.md, "Save"). Save novo começa com `"tutorial": true`; save sem o campo também vale `true`.
-- Com `tutorial` verdadeiro, **Batalha** no menu abre a batalha em modo tutorial.
+- Com `tutorial` verdadeiro, **Batalhar** no menu abre a batalha em modo tutorial.
 - Quando a partida termina, `tutorial` vira `false` e o save é gravado. As próximas batalhas são normais.
 - Abandonar a batalha (`Esc` > Sim) não conclui o tutorial: a próxima batalha começa o tutorial de novo.
 
