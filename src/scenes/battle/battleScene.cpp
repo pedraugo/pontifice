@@ -396,6 +396,7 @@ void BattleScene::Preload(const PreloadInfo& info) {
   sword_.Init(*gpu_);
   shield_.Init(*gpu_);
   sfx_.Init(base);
+  voices_.Init(base);
   frames_[0] = Image::LoadFile(base + "sprites/cardFrontGood.webp").Downscaled(2);
   frames_[1] = Image::LoadFile(base + "sprites/cardFrontEvil.webp").Downscaled(2);
   frames_[2] = Image::LoadFile(base + "sprites/cardFrontNeutral.webp").Downscaled(2);
@@ -452,7 +453,12 @@ void BattleScene::Preload(const PreloadInfo& info) {
   deck_total_ = static_cast<int>(deck_.Size());
   deck_.Shuffle();
   tutorial_ = info.save && info.save->tutorial;
-  if (tutorial_) ArrangeTutorialHand();
+  if (tutorial_) {
+    ArrangeTutorialHand();
+    for (int i = 0; i < kTutorialCount; ++i) {
+      if (const std::string voice = TutorialVoice(i); !voice.empty()) voices_.Preload(voice);
+    }
+  }
   int level = info.difficulty;
   if (const char* env = SDL_getenv("PONTIFICE_DIFFICULTY")) {
     if (std::strcmp(env, "easy") == 0) level = 0;
@@ -758,7 +764,7 @@ void BattleScene::BeginPlayerTurn() {
 }
 
 void BattleScene::EndTurn() {
-  if (!player_turn_ || Busy() || hud_.Over() || EndTurnLocked()) return;
+  if (!player_turn_ || Busy() || hud_.Over() || EndTurnLocked() || TutorialNarrating()) return;
   player_turn_ = false;
   ++turns_played_[0];
   hand_.CancelDrag();
@@ -1180,6 +1186,15 @@ std::vector<std::string> BattleScene::TutorialOpponentDeck() const {
   return deck;
 }
 
+// Narration of step `index` (0-based) in the current language: tutorialPt01.ogg for step 1 in pt.
+std::string BattleScene::TutorialVoice(int index) const {
+  std::string language = i18n::CurrentLanguage();
+  if (!language.empty()) language[0] = static_cast<char>(SDL_toupper(language[0]));
+  char step[8];
+  SDL_snprintf(step, sizeof(step), "%02d", index + 1);
+  return voices_.File("tutorial", {{"language", language}, {"step", step}});
+}
+
 void BattleScene::AdvanceTutorial() {
   tutorial_panel_.Hide();
   if (tutorial_step_ != TutorialStep::kDone) {
@@ -1238,7 +1253,8 @@ void BattleScene::UpdateTutorial(int width, int height) {
     default:
       break;
   }
-  if (done || hud_.Over()) AdvanceTutorial();
+  if ((done && !TutorialNarrating()) || hud_.Over()) AdvanceTutorial();
+  tutorial_panel_.SetEnabled(!TutorialNarrating());
   if (tutorial_panel_.Modal()) {
     tutorial_panel_.SetSpotlight(TutorialSpotlight(width, height), width, height);
   }
@@ -1272,6 +1288,9 @@ void BattleScene::UpdateTutorial(int width, int height) {
       i18n::Get(base + ".title"), i18n::Format(base + ".text", {i18n::Get("battle.endTurn")}),
       button, modal, width, height, TutorialSpotlight(width, height));
   LOG("Tutorial step %d/%d: %s", index + 1, kTutorialCount, key.c_str());
+  voices_.Interrupt();
+  if (const std::string voice = TutorialVoice(index); !voice.empty()) voices_.Say(voice);
+  tutorial_panel_.SetEnabled(!TutorialNarrating());
 }
 
 math::Vec2 BattleScene::ScreenOf(const math::Vec3& world, int width, int height) const {
@@ -1344,6 +1363,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   tutorial_step_ = tutorial_ ? TutorialStep::kWelcome : TutorialStep::kDone;
   tutorial_inspected_ = false;
   tutorial_panel_.Hide();
+  voices_.Interrupt();
   Hand::Lock lock;
   if (tutorial_) lock = [this](const Hand::Card& card) { return TutorialLocksCard(card.info); };
   hand_.SetLock(std::move(lock));
@@ -1420,6 +1440,7 @@ void BattleScene::OnEnter(SceneContext& ctx) {
   hand_atmosphere_.camera_pos = {0, 0, hand_.GetLayout().camera_z};
   ready_ = true;
   sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
+  voices_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
   UpdateIntro(0.0f);
 }
 
@@ -1684,8 +1705,10 @@ void BattleScene::HandleEvent(SceneContext& ctx, const SDL_Event& event) {
 
 void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   sfx_.Update();
+  voices_.Update();
   if (!ready_ || paused_) return;
   sfx_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
+  voices_.SetMuted(ctx.music != nullptr && ctx.music->Muted());
   // OnEnter runs behind the loading screen; the arena only rises once Update starts.
   if (!open_played_) {
     open_played_ = true;
@@ -2238,7 +2261,10 @@ void BattleScene::RenderHud(SceneContext& ctx) {
   }
   hud_.Render(r, ctx.logical_width, ctx.logical_height);
   if (hud_.Over()) result_menu_->Render(r);
-  if (CanAct() && !EndTurnLocked()) end_turn_->Render(r);
+  if (CanAct() && !EndTurnLocked()) {
+    end_turn_->SetAlpha(TutorialNarrating() ? opacity::Get("disabled") : 1.0f);
+    end_turn_->Render(r);
+  }
   sound_button_.SetActive(ctx.music == nullptr || !ctx.music->Muted());
   sound_button_.Render(r);
   hint_button_.SetActive(hints_enabled_);

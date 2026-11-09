@@ -118,7 +118,7 @@ src/
     layout.json       3D por cena: posições, dimensões e movimento dos modelos, câmeras, transições e tempos
     rules.json        regras da partida: vida, tamanho do monte, mão inicial, limite da mão, cópias por carta e nível inicial do oponente
     opacity.json      opacidades fixas por nome (0..1): véu, placa da interface, slot, dica, carta gasta, sombra do texto da carta, seta de ataque, brilhos, halo da tocha
-    audio.json          áudio: "music" (categorias "menu" (menu/loading) e "battle", cada uma com "volume" (0,10 e 0,20), "random" (batalha) e "sources" de Ogg Vorbis em audios/music/), "sfx" (array de clipes de audios/sfx/ com name, file, gain e volume) e "voices" (vazio por enquanto)
+    audio.json          áudio: "music" (categorias "menu" (menu/loading) e "battle", cada uma com "volume" (0,10 e 0,20), "random" (batalha) e "sources" de Ogg Vorbis em audios/music/), "sfx" (array de clipes de audios/sfx/ com name, file, gain e volume) e "voices" (`volume` e o padrão de arquivo das falas do tutorial, `tutorial`: `audios/voices/tutorial{language}{step}.ogg`)
     cardsGood.json
     cardsEvil.json
     cardsNeutral.json
@@ -126,7 +126,7 @@ src/
   fonts/              fontes TTF do jogo (copiadas para fonts/ junto do binário)
     pirataOne.ttf     fonte de título do jogo: títulos, botões, painéis, rótulos (tem acentos Latin-1)
     newsreader.ttf    fonte de corpo: linha de situação e dica da batalha, descrição da carta (frente) e modo/categoria/hierarquia do tooltip
-  audios/             áudio em Ogg Vorbis: music/menu e music/battle (listadas em assets/audio.json), sfx/ (efeitos, também em audio.json) e voices/ (falas)
+  audios/             áudio em Ogg Vorbis: music/menu e music/battle (listadas em assets/audio.json), sfx/ (efeitos, também em audio.json) e voices/ (falas do tutorial, `tutorial{Idioma}{passo}.ogg`)
   sprites/            texturas das cartas (WebP)
     CardBase*.png     molduras por categoria (Good, Evil, Field)
     CardBackBase.png  verso da carta

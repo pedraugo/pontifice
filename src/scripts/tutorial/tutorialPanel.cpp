@@ -99,8 +99,14 @@ void TutorialPanel::SetSpotlight(SDL_FRect spotlight, int width, int height) {
   spotlight_ = SDL_FRect{left, top, right - left, bottom - top};
 }
 
+void TutorialPanel::SetEnabled(bool enabled) {
+  enabled_ = enabled;
+  button_.SetAlpha(enabled ? 1.0f : opacity::Get("disabled"));
+  button_.SetFocused(enabled);
+}
+
 bool TutorialPanel::HandleEvent(const SDL_Event& event) {
-  if (!Modal()) return false;
+  if (!Modal() || !enabled_) return false;
   if (event.type == SDL_EVENT_KEY_DOWN) {
     switch (event.key.key) {
       case SDLK_RETURN:

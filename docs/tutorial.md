@@ -26,6 +26,16 @@ Cada passo abre uma janela (`frame::Kind::kWindow`) com `Dica N de 16`, um títu
 - **Spotlight**: nas explicações sobre algo da tela, o véu deixa um recorte sem escurecer em volta do elemento, com um contorno dourado pulsando: o painel de vida (passo 2), a mão (passos 3, 5, 6 e 7, com a mão levantada) e o painel de campo (passo 11 sem carta de campo na mão).
 - **Ação**: janela encostada na borda esquerda, sem botão e sem véu. A dica avança sozinha quando você faz o que ela pede.
 
+## Narração
+
+Cada passo tem uma fala gravada, tocada quando o painel do passo abre (`assets/audio.json` `voices.tutorial`: `audios/voices/tutorial{language}{step}.ogg`, ex.: `tutorialPt01.ogg` para o passo 1 em português; o idioma é o código com a primeira letra maiúscula e o passo tem dois dígitos).
+
+- Enquanto a fala toca, o botão **Próximo** (ou **Jogar**) fica com 75% de opacidade e não responde a clique, `Enter` ou `Espaço`; o botão **Passar turno** do passo 12 também.
+- Num passo de ação, fazer o que a dica pede antes do fim da fala não avança: o passo muda quando a fala termina.
+- Passo sem arquivo de fala no idioma escolhido (hoje o 14 em português e todos em inglês, espanhol e francês) não espera nada.
+- Com o som desligado (botão de som da batalha), a fala fica muda e não segura o botão.
+- Volume em `voices.volume` (`audio.json`). As falas do idioma são decodificadas no `Preload` da batalha.
+
 ## Só a ação pedida
 
 Durante o tutorial (até o passo 16), o resto fica travado:
@@ -78,5 +88,6 @@ Durante o tutorial (até o passo 16), o resto fica travado:
 - Arena: `Board::SetFocus` (moldura dourada pulsando) em `src/scripts/board/board.*`.
 - HUD: `Hud::LifePanelRect` e `Hud::FieldPanelRect` para o spotlight.
 - Regras: `rules.json` `tutorialOpponentCards`.
+- Narração: `Voices` (`Init`, `File`, `Preload`, `Say`) em `src/scripts/audios/voices.*`; `BattleScene::TutorialVoice` e `TutorialNarrating`; `TutorialPanel::SetEnabled` desabilita o botão.
 - Medidas: `ui.json` `tutorial` (`width`, `padding`, `margin`, `counterGap`, `titleGap`, `buttonGap`, `spotlightMargin`, `spotlightLinePx`, `spotlightPulseSpeed`).
 - Textos: `battle.tutorial.*` em `assets/translate.json` (`counter`, `next`, `start` e `title`/`text` de cada passo; `fieldInfo` é o passo 11 sem carta de campo na mão).

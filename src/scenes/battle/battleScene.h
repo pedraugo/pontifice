@@ -13,6 +13,7 @@
 #include "scenes/scene.h"
 #include "scripts/ai/ai.h"
 #include "scripts/audios/sfx.h"
+#include "scripts/audios/voices.h"
 #include "scripts/aura/cardAura.h"
 #include "scripts/board/board.h"
 #include "scripts/button/button.h"
@@ -162,6 +163,7 @@ class BattleScene : public Scene {
   Shield shield_;
   Sfx sfx_;
   std::vector<std::pair<float, std::string>> sfx_queue_;  // (seconds left, effect)
+  Voices voices_;
   void PlaySfxLater(float delay, std::string name);
   void AddToHand(Hand& hand, SDL_GPUTexture* front, bool foil, const CardInfo* info);
   // Turns the camera to the other side, with the arena sound if it actually moves.
@@ -214,6 +216,7 @@ class BattleScene : public Scene {
   void ArrangeTutorialHand();
   void UpdateTutorial(int width, int height);
   void AdvanceTutorial();
+  std::string TutorialVoice(int index) const;
   bool TutorialModal() const { return tutorial_panel_.Modal(); }
   // While guided, only the action of the current step is allowed.
   bool TutorialGuided() const { return tutorial_ && tutorial_step_ != TutorialStep::kDone; }
@@ -227,6 +230,10 @@ class BattleScene : public Scene {
   }
   bool EndTurnLocked() const {
     return TutorialGuided() && tutorial_step_ != TutorialStep::kEndTurn;
+  }
+  // The step's narration is still audible: its button and End turn wait for it.
+  bool TutorialNarrating() const {
+    return TutorialGuided() && voices_.Speaking() && !voices_.Muted();
   }
   void UpdateTutorialFocus();
   SDL_FRect TutorialSpotlight(int width, int height) const;

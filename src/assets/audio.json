@@ -39,5 +39,8 @@
     {"name": "comming", "file": "audios/sfx/commingCard.ogg", "gain": 0.45, "volume": 1.0},
     {"name": "putting", "file": "audios/sfx/puttingCard.ogg", "gain": 0.3, "volume": 1.0}
   ],
-  "voices": []
+  "voices": {
+    "volume": 1.0,
+    "tutorial": "audios/voices/tutorial{language}{step}.ogg"
+  }
 }

@@ -22,6 +22,8 @@ class TutorialPanel {
   void Hide() { open_ = false; }
   bool Open() const { return open_; }
   bool Modal() const { return open_ && modal_; }
+  // A disabled button is dimmed and ignores clicks, Enter and Space.
+  void SetEnabled(bool enabled);
 
   bool HandleEvent(const SDL_Event& event);  // true when a modal panel is confirmed
   void Render(SDL_Renderer* r, int width, int height) const;
@@ -35,4 +37,5 @@ class TutorialPanel {
   SDL_FRect spotlight_{};
   bool modal_ = false;
   bool open_ = false;
+  bool enabled_ = true;
 };
