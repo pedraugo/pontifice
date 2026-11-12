@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Generates src/models/arena.glb from src/models/ArenaRaw.glb and src/art/Arena.png.
+"""Generates src/models/arena.glb from src/models/ArenaRaw.glb and art/Arena.png.
 
 The raw model has no UVs or material. The art is a perspective illustration, not an
 atlas, so texturing works like this:
 
-1. The elements come from the flat sprite sheet src/art/ArenaAtlas3.png: light and dark
+1. The elements come from the flat sprite sheet art/ArenaAtlas3.png: light and dark
    tiles, framed wood panel, riveted metal band, planks, cross and fleur-de-lis plate.
    (Searching for swatches in Arena.png remains available as a fallback.)
 2. A 2048x2048 atlas is assembled with three regions: top (5x2 board per side, central
@@ -35,8 +35,8 @@ import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_GLB = os.path.join(ROOT, "src", "models", "ArenaRaw.glb")
-ART_PNG = os.path.join(ROOT, "src", "art", "Arena.png")
-SHEET_PNG = os.path.join(ROOT, "src", "art", "ArenaAtlas3.png")
+ART_PNG = os.path.join(ROOT, "art", "Arena.png")
+SHEET_PNG = os.path.join(ROOT, "art", "ArenaAtlas3.png")
 OUT_GLB = os.path.join(ROOT, "src", "models", "arena.glb")
 OUT_ATLAS = os.path.join(ROOT, "src", "sprites", "arenaAtlas.png")
 

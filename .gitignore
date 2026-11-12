@@ -6,3 +6,5 @@
 .vscode/
 .claude/
 __pycache__/
+/art/
+/docs/

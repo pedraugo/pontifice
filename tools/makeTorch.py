@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates src/models/torch.glb: a medieval torch (reference: src/art/torch.webp).
+"""Generates src/models/torch.glb: a medieval torch (reference: art/torch.webp).
 
 Pointed wooden handle, leather-wrapped grip, metal collar and, at the top, an iron cage
 (vertical bars and two riveted hoops) with coals inside; above it, the flame.
