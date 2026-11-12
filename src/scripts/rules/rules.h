@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "scripts/cards/cards.h"
 
 namespace rules {
@@ -33,8 +35,9 @@ struct Field {
   static Field From(const CardInfo& card);
 };
 
-int EffectiveAttack(const CardInfo& card, const Field& field);
-int EffectiveDefense(const CardInfo& card, const Field& field);
+// `modifier` comes from instant field cards that hit this card on the board.
+int EffectiveAttack(const CardInfo& card, const Field& field, int modifier = 0);
+int EffectiveDefense(const CardInfo& card, const Field& field, int modifier = 0);
 
 // Damage is the life each side's owner loses.
 struct Outcome {
@@ -47,5 +50,25 @@ struct Outcome {
 Outcome Resolve(int attacker_attack, bool defender_defense_mode, int defender_attack,
                 int defender_defense);
 Outcome ResolveDirect(int attacker_attack);
+
+// A card on the side an instant field card hits; mirrors Board::Card.
+struct BoardCard {
+  bool defense = false;
+  int attack_mod = 0;
+  int defense_mod = 0;
+};
+
+// What an instant field card does besides changing the hit cards in place.
+struct InstantOutcome {
+  bool clear_field = false;
+  int damage = 0;  // life the hit side loses
+  std::vector<int> changed;  // indices of the hit cards that changed
+};
+
+// `field_theirs`: the active field was played by the side being hit.
+bool HasTarget(const CardInfo& card, bool field_theirs, const std::vector<BoardCard>& theirs);
+// Without a target nothing happens.
+InstantOutcome ApplyInstant(const CardInfo& card, bool field_theirs,
+                            std::vector<BoardCard>& theirs);
 
 }

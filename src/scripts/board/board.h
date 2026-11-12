@@ -59,6 +59,8 @@ class Board {
     int summoned_turn = 0;  // cannot change position on this turn
     bool attacked = false;
     bool defense = false;
+    int attack_mod = 0;  // instant field cards; added to the effective value
+    int defense_mod = 0;
     float defense_t = 0.0f;  // animated turn: 0 = attack, 1 = defense
     float place = 1.0f;  // 0 = in the air, 1 = resting on the tile
     float discard = 0.0f;

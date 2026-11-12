@@ -82,6 +82,7 @@ class BattleScene : public Scene {
   void BeginPlayerTurn();
   void EndTurn();
   void RunOpponentTurn();
+  void OpponentFieldStep();
   void OpponentAttackStep();
   void FinishOpponentTurn();
   bool AttacksAllowed(Side side) const;
@@ -89,11 +90,19 @@ class BattleScene : public Scene {
   bool CanAct() const;
   bool CanSummon() const;
   bool DraggedIsField() const;
+  const CardInfo* DraggedInfo() const;
   const char* HoverColor() const;
   void Summon(int slot);
+  // Instant cards go to PlayInstant; the others replace the lasting field effect.
   void PlayField(Side owner, const CardInfo& card);
+  bool HasTarget(Side owner, const CardInfo& card) const;
+  void PlayInstant(Side owner, const CardInfo& card);
+  void CheckBattleOver();
 
   Board& BoardOf(Side side) { return side == Side::kPlayer ? board_ : opponent_board_; }
+  const Board& BoardOf(Side side) const {
+    return side == Side::kPlayer ? board_ : opponent_board_;
+  }
   void PerformAttack(Side attacker, int slot, int target_slot);
   void ResolveAttack(Side attacker, int slot, int target_slot);
   void Destroy(Side owner, int slot);

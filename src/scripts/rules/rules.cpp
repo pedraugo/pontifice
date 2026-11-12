@@ -45,13 +45,13 @@ int Modifier(const CardInfo& card, const Field& field) {
 
 }
 
-int EffectiveAttack(const CardInfo& card, const Field& field) {
-  const int value = card.attack + Modifier(card, field);
+int EffectiveAttack(const CardInfo& card, const Field& field, int modifier) {
+  const int value = card.attack + Modifier(card, field) + modifier;
   return value < 0 ? 0 : value;
 }
 
-int EffectiveDefense(const CardInfo& card, const Field& field) {
-  const int value = card.defense + Modifier(card, field);
+int EffectiveDefense(const CardInfo& card, const Field& field, int modifier) {
+  const int value = card.defense + Modifier(card, field) + modifier;
   return value < 0 ? 0 : value;
 }
 
@@ -83,6 +83,58 @@ Outcome Resolve(int attacker_attack, bool defender_defense_mode, int defender_at
 Outcome ResolveDirect(int attacker_attack) {
   Outcome out;
   out.defender_damage = attacker_attack;
+  return out;
+}
+
+bool HasTarget(const CardInfo& card, bool field_theirs, const std::vector<BoardCard>& theirs) {
+  if (!card.IsInstant()) return false;
+  switch (card.effect) {
+    case FieldEffect::kClearField:
+      return field_theirs;
+    case FieldEffect::kAttackMode:
+      return std::any_of(theirs.begin(), theirs.end(),
+                         [](const BoardCard& c) { return c.defense; });
+    case FieldEffect::kDamage:
+      return card.value > 0;
+    case FieldEffect::kWeakenDefense:
+    case FieldEffect::kWeakenAttack:
+      return !theirs.empty();
+    default:
+      return false;
+  }
+}
+
+InstantOutcome ApplyInstant(const CardInfo& card, bool field_theirs,
+                            std::vector<BoardCard>& theirs) {
+  InstantOutcome out;
+  if (!HasTarget(card, field_theirs, theirs)) return out;
+  const int count = static_cast<int>(theirs.size());
+  switch (card.effect) {
+    case FieldEffect::kClearField:
+      out.clear_field = true;
+      break;
+    case FieldEffect::kAttackMode:
+      for (int i = 0; i < count; ++i) {
+        if (!theirs[i].defense) continue;
+        theirs[i].defense = false;
+        out.changed.push_back(i);
+      }
+      break;
+    case FieldEffect::kDamage:
+      out.damage = card.value;
+      break;
+    case FieldEffect::kWeakenDefense:
+    case FieldEffect::kWeakenAttack:
+      for (int i = 0; i < count; ++i) {
+        int& mod = card.effect == FieldEffect::kWeakenAttack ? theirs[i].attack_mod
+                                                             : theirs[i].defense_mod;
+        mod -= card.value;
+        out.changed.push_back(i);
+      }
+      break;
+    default:
+      break;
+  }
   return out;
 }
 

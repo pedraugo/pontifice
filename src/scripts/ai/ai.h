@@ -22,6 +22,8 @@ struct FieldCard {
   bool defense = false;
   bool can_attack = false;  // in attack mode and has not attacked this turn
   bool summoned_this_turn = false;
+  int attack_mod = 0;
+  int defense_mod = 0;
 };
 
 // Snapshot from the computer's point of view: mine = computer cards, theirs = player cards.
@@ -30,6 +32,7 @@ struct View {
   std::vector<FieldCard> mine;
   std::vector<FieldCard> theirs;
   rules::Field field;
+  bool field_mine = false;  // the active field was played by the computer
   int my_life = 0;
   int their_life = 0;
   bool can_summon = true;
@@ -41,6 +44,7 @@ struct Summon {
   int hand_index = -1;
   bool defense = false;
 };
+// Hand index of the best field card (lasting or instant) worth playing now; -1 = none.
 int ChooseFieldCard(const View& view);
 std::optional<Summon> ChooseSummon(const View& view);
 int ChooseSlot(const std::vector<int>& free_slots, int cols);

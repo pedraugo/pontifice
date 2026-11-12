@@ -53,10 +53,16 @@ namespace {
 
 int Atk(const CardInfo* c, const rules::Field& f) { return rules::EffectiveAttack(*c, f); }
 int Def(const CardInfo* c, const rules::Field& f) { return rules::EffectiveDefense(*c, f); }
+int Atk(const FieldCard& c, const rules::Field& f) {
+  return rules::EffectiveAttack(*c.info, f, c.attack_mod);
+}
+int Def(const FieldCard& c, const rules::Field& f) {
+  return rules::EffectiveDefense(*c.info, f, c.defense_mod);
+}
 
 int TheirGuard(const FieldCard& c, const View& v) {
   if (c.info == nullptr) return 0;
-  return c.defense ? Def(c.info, v.field) : Atk(c.info, v.field);
+  return c.defense ? Def(c, v.field) : Atk(c, v.field);
 }
 
 int TheirMinGuard(const View& v) {
@@ -65,9 +71,8 @@ int TheirMinGuard(const View& v) {
   return v.theirs.empty() ? 0 : best;
 }
 
-}
-
-int ChooseFieldCard(const View& view) {
+// Cards a field favoring `favored` helps on my side and hurts on theirs, minus the reverse.
+int FieldGain(const View& view, char favored) {
   int mine_g = 0, mine_e = 0, theirs_g = 0, theirs_e = 0;
   for (const FieldCard& c : view.mine) {
     if (c.info == nullptr) continue;
@@ -84,17 +89,74 @@ int ChooseFieldCard(const View& view) {
     theirs_g += c.info->category == 'G';
     theirs_e += c.info->category == 'E';
   }
+  return favored == 'G' ? mine_g - mine_e + theirs_e - theirs_g
+                        : mine_e - mine_g + theirs_g - theirs_e;
+}
+
+int AuraScore(const View& view, const CardInfo& card) {
+  const char favored = card.favored == "evil" ? 'E' : 'G';
+  if (view.field.active && view.field.favored == favored) return 0;
+  return FieldGain(view, favored) * 100;
+}
+
+int MyBestAttack(const View& view) {
+  int best = 0;
+  for (const FieldCard& c : view.mine) {
+    if (c.info != nullptr && c.can_attack) best = std::max(best, Atk(c, view.field));
+  }
+  return best;
+}
+
+int InstantScore(const View& view, const CardInfo& card) {
+  switch (card.effect) {
+    case FieldEffect::kClearField: {
+      if (!view.field.active || view.field_mine) return 0;
+      const int gain = FieldGain(view, view.field.favored);
+      return gain < 0 ? -gain * 100 : 0;
+    }
+    case FieldEffect::kAttackMode: {
+      if (!view.can_attack) return 0;
+      const int best = MyBestAttack(view);
+      int exposed = 0;
+      for (const FieldCard& c : view.theirs) {
+        if (c.info != nullptr && c.defense && Atk(c, view.field) < best) ++exposed;
+      }
+      return exposed * 100;
+    }
+    case FieldEffect::kDamage:
+      if (card.value <= 0) return 0;
+      return view.their_life <= card.value ? 1 << 20 : card.value / 10;
+    case FieldEffect::kWeakenAttack: {
+      int lost = 0;
+      for (const FieldCard& c : view.theirs) {
+        if (c.info != nullptr) lost += std::min(card.value, Atk(c, view.field));
+      }
+      return lost / 10;
+    }
+    case FieldEffect::kWeakenDefense: {
+      if (!view.can_attack) return 0;
+      int lost = 0;
+      for (const FieldCard& c : view.theirs) {
+        if (c.info != nullptr && c.defense) lost += std::min(card.value, Def(c, view.field));
+      }
+      return lost / 10;
+    }
+    default:
+      return 0;
+  }
+}
+
+}
+
+int ChooseFieldCard(const View& view) {
   int best = -1;
-  int best_gain = 0;
+  int best_score = 0;
   for (size_t i = 0; i < view.hand.size(); ++i) {
     const CardInfo* c = view.hand[i];
     if (c == nullptr || !c->IsField()) continue;
-    const char favored = c->favored == "evil" ? 'E' : 'G';
-    if (view.field.active && view.field.favored == favored) continue;
-    const int gain = (favored == 'G' ? mine_g - mine_e + theirs_e - theirs_g
-                                     : mine_e - mine_g + theirs_g - theirs_e);
-    if (gain > best_gain) {
-      best_gain = gain;
+    const int score = c->IsInstant() ? InstantScore(view, *c) : AuraScore(view, *c);
+    if (score > best_score) {
+      best_score = score;
       best = static_cast<int>(i);
     }
   }
@@ -125,7 +187,7 @@ std::optional<Summon> ChooseSummon(const View& view) {
   if (full) {
     int worst = 1 << 30;
     for (const FieldCard& c : view.mine) {
-      if (c.info != nullptr) worst = std::min(worst, Atk(c.info, view.field));
+      if (c.info != nullptr) worst = std::min(worst, Atk(c, view.field));
     }
     if (best_atk <= worst) return std::nullopt;
   }
@@ -155,14 +217,14 @@ std::vector<int> ChoosePositionChanges(const View& view) {
   int their_best_atk = 0;
   for (const FieldCard& c : view.theirs) {
     if (c.info != nullptr && !c.defense) {
-      their_best_atk = std::max(their_best_atk, Atk(c.info, view.field));
+      their_best_atk = std::max(their_best_atk, Atk(c, view.field));
     }
   }
   const int min_guard = TheirMinGuard(view);
   for (const FieldCard& c : view.mine) {
     if (c.info == nullptr || c.summoned_this_turn) continue;
-    const int a = Atk(c.info, view.field);
-    const int d = Def(c.info, view.field);
+    const int a = Atk(c, view.field);
+    const int d = Def(c, view.field);
     if (c.defense) {
       if (view.theirs.empty() || a > min_guard) out.push_back(c.slot);
     } else if (!view.theirs.empty() && a <= min_guard && their_best_atk > a && d > a) {
@@ -178,7 +240,7 @@ std::optional<Attack> ChooseAttack(const View& view) {
   int best_score = 0;
   for (const FieldCard& me : view.mine) {
     if (me.info == nullptr || !me.can_attack || me.defense) continue;
-    const int a = Atk(me.info, view.field);
+    const int a = Atk(me, view.field);
     if (view.theirs.empty()) {
       if (a > best_score) {
         best_score = a;

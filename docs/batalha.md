@@ -78,6 +78,23 @@ Cartas destruídas vão para o cemitério imediatamente após o cálculo.
 - Cartas **Neutras** não são afetadas por cartas de campo.
 - O buff e o nerf são aplicados antes de qualquer cálculo de dano.
 
+### Cartas de campo instantâneas
+
+Algumas cartas de campo não deixam efeito no painel: agem uma vez sobre o oponente no momento em que são jogadas e vão para o cemitério. Não substituem o efeito de campo em vigor (exceto a que o anula) e não gastam a invocação do turno.
+
+| Carta | Passagem | Efeito |
+|---|---|---|
+| Tempestade Acalmada (`FN01`) | Marcos 4:39 | Anula o efeito de campo em vigor, se foi o oponente quem o jogou. |
+| Desafio de Golias (`FN02`) | 1 Samuel 17:8-10 | Todas as cartas do oponente em defesa passam para ataque. |
+| Funda de Davi (`FN03`) | 1 Samuel 17:49 | O oponente perde 100 pontos de vida. |
+| Muralhas de Jericó (`FN04`) | Josué 6:20 | Cada carta do oponente em campo perde 300 de DEF. |
+| Espadas em Arados (`FN05`) | Isaías 2:4 | Cada carta do oponente em campo perde 300 de ATK. |
+
+- A perda de ATK e DEF vale só para as cartas que estão em campo na hora, até saírem dele, e se soma ao buff/nerf do campo e a outras perdas. O valor nunca fica abaixo de 0.
+- Cartas viradas para ataque podem voltar para defesa no turno do dono, pela regra normal de troca de posição.
+- A Funda de Davi pode encerrar a batalha se a vida do oponente chegar a 0.
+- Sem alvo (nenhum campo do oponente, nenhuma carta em defesa, lado vazio), a carta não pode ser jogada: soltar devolve a carta à mão.
+
 ## Defesa
 
 Quando a carta atacada está em modo de defesa, um escudo dourado e prateado com uma cruz surge em pé sobre ela, virado para o atacante. No golpe da espada ele recua, brilha e solta uma onda de choque. Se a carta aguenta, o escudo fica um instante e some; se ela é destruída, o escudo fica vermelho e cai girando.

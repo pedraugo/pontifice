@@ -38,3 +38,5 @@ As cartas de campos são cartas que ativam modos de campo diferente, favorencend
 - Quando prejudicada pela categoria as cartas ganham nerf;
 
 Só pode ter uma carta campo por ves na arena de batalha, sempre sendo a ultima colocada, e depois de colocada duram até o final da batalha.
+
+Há também cartas de campo **instantâneas**, que agem uma vez sobre o oponente ao serem jogadas (anular o campo dele, virar as cartas de defesa para ataque, tirar vida, ATK ou DEF). Veja [Batalha](batalha.md), "Cartas de campo instantâneas".

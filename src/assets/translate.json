@@ -343,6 +343,18 @@
         "es": "Suelta en la arena: esta carta de campo reemplaza a la actual",
         "fr": "Déposez dans l'arène : cette carte de terrain remplace l'actuelle"
       },
+      "playInstant": {
+        "pt": "Solte na arena: o efeito atinge o oponente na hora",
+        "en": "Drop on the arena: the effect hits the opponent at once",
+        "es": "Suelta en la arena: el efecto golpea al oponente al instante",
+        "fr": "Déposez dans l'arène : l'effet frappe l'adversaire aussitôt"
+      },
+      "instantNoTarget": {
+        "pt": "Esta carta não teria efeito agora",
+        "en": "This card would have no effect right now",
+        "es": "Esta carta no tendría efecto ahora",
+        "fr": "Cette carte n'aurait aucun effet maintenant"
+      },
       "summon": {
         "pt": "Solte num slot do seu lado para invocar a carta em ataque",
         "en": "Drop on a slot on your side to summon the card in attack",
@@ -897,6 +909,44 @@
       "en": "Favors: {0}",
       "es": "Favorece: {0}",
       "fr": "Favorise : {0}"
+    },
+    "life": {
+      "pt": "VIDA",
+      "en": "LIFE",
+      "es": "VIDA",
+      "fr": "VIE"
+    },
+    "effect": {
+      "clearField": {
+        "pt": "Anula a carta de campo do oponente",
+        "en": "Cancels the opponent's field card",
+        "es": "Anula la carta de campo del oponente",
+        "fr": "Annule la carte de terrain de l'adversaire"
+      },
+      "attackMode": {
+        "pt": "Cartas do oponente em defesa vão para ataque",
+        "en": "Opponent cards in defense switch to attack",
+        "es": "Las cartas del oponente en defensa pasan a ataque",
+        "fr": "Les cartes adverses en défense passent en attaque"
+      },
+      "damage": {
+        "pt": "O oponente perde {0} de vida",
+        "en": "The opponent loses {0} life",
+        "es": "El oponente pierde {0} de vida",
+        "fr": "L'adversaire perd {0} points de vie"
+      },
+      "weakenDefense": {
+        "pt": "Cartas do oponente em campo perdem {0} de DEF",
+        "en": "Opponent cards on the field lose {0} DEF",
+        "es": "Las cartas del oponente en el campo pierden {0} de DEF",
+        "fr": "Les cartes adverses sur le terrain perdent {0} DEF"
+      },
+      "weakenAttack": {
+        "pt": "Cartas do oponente em campo perdem {0} de ATK",
+        "en": "Opponent cards on the field lose {0} ATK",
+        "es": "Las cartas del oponente en el campo pierden {0} de ATQ",
+        "fr": "Les cartes adverses sur le terrain perdent {0} ATK"
+      }
     }
   },
   "category": {
@@ -2168,6 +2218,76 @@
         "en": "Second coming of the Savior in glory",
         "es": "Segunda venida del Salvador en gloria",
         "fr": "Seconde venue du Sauveur dans la gloire"
+      }
+    },
+    "FN01": {
+      "name": {
+        "pt": "Tempestade Acalmada",
+        "en": "Calming of the Storm",
+        "es": "Tempestad Calmada",
+        "fr": "Tempête Apaisée"
+      },
+      "description": {
+        "pt": "Jesus repreendeu o vento e o mar se aquietou",
+        "en": "Jesus rebuked the wind and the sea grew still",
+        "es": "Jesús reprendió al viento y el mar se calmó",
+        "fr": "Jésus menaça le vent et la mer se calma"
+      }
+    },
+    "FN02": {
+      "name": {
+        "pt": "Desafio de Golias",
+        "en": "Goliath's Challenge",
+        "es": "Desafío de Goliat",
+        "fr": "Défi de Goliath"
+      },
+      "description": {
+        "pt": "Escolhei um homem que desça e lute comigo",
+        "en": "Choose a man and let him come down to fight me",
+        "es": "Escoged un hombre que baje y luche conmigo",
+        "fr": "Choisissez un homme et qu'il descende me combattre"
+      }
+    },
+    "FN03": {
+      "name": {
+        "pt": "Funda de Davi",
+        "en": "David's Sling",
+        "es": "Honda de David",
+        "fr": "Fronde de David"
+      },
+      "description": {
+        "pt": "Uma só pedra da funda derrubou o gigante",
+        "en": "A single stone from the sling struck down the giant",
+        "es": "Una sola piedra de la honda derribó al gigante",
+        "fr": "Une seule pierre de la fronde abattit le géant"
+      }
+    },
+    "FN04": {
+      "name": {
+        "pt": "Muralhas de Jericó",
+        "en": "Walls of Jericho",
+        "es": "Murallas de Jericó",
+        "fr": "Murailles de Jéricho"
+      },
+      "description": {
+        "pt": "Ao som das trombetas as muralhas ruíram",
+        "en": "At the trumpet blast the walls fell down flat",
+        "es": "Al son de las trompetas las murallas se derrumbaron",
+        "fr": "Au son des trompettes les murailles s'écroulèrent"
+      }
+    },
+    "FN05": {
+      "name": {
+        "pt": "Espadas em Arados",
+        "en": "Swords into Plowshares",
+        "es": "Espadas en Arados",
+        "fr": "Épées en Socs"
+      },
+      "description": {
+        "pt": "As nações transformarão suas espadas em arados",
+        "en": "Nations shall beat their swords into plowshares",
+        "es": "Las naciones convertirán sus espadas en arados",
+        "fr": "Les nations forgeront de leurs épées des socs"
       }
     }
   }

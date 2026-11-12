@@ -134,5 +134,83 @@
       "buff": 300,
       "nerf": 300
     }
+  },
+  {
+    "code": "FN01",
+    "name": "Calming of the Storm",
+    "description": "Jesus rebuked the wind and the sea grew still",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "FN01",
+    "imageFile": "",
+    "imageUrl": "",
+    "attributes": {
+      "odds": 5,
+      "effect": "clearField"
+    }
+  },
+  {
+    "code": "FN02",
+    "name": "Goliath's Challenge",
+    "description": "Choose a man and let him come down to fight me",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "FN02",
+    "imageFile": "",
+    "imageUrl": "",
+    "attributes": {
+      "odds": 5,
+      "effect": "attackMode"
+    }
+  },
+  {
+    "code": "FN03",
+    "name": "David's Sling",
+    "description": "A single stone from the sling struck down the giant",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "FN03",
+    "imageFile": "",
+    "imageUrl": "",
+    "attributes": {
+      "odds": 5,
+      "effect": "damage",
+      "value": 100
+    }
+  },
+  {
+    "code": "FN04",
+    "name": "Walls of Jericho",
+    "description": "At the trumpet blast the walls fell down flat",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "FN04",
+    "imageFile": "",
+    "imageUrl": "",
+    "attributes": {
+      "odds": 5,
+      "effect": "weakenDefense",
+      "value": 300
+    }
+  },
+  {
+    "code": "FN05",
+    "name": "Swords into Plowshares",
+    "description": "Nations shall beat their swords into plowshares",
+    "category": "F",
+    "categoryName": "field",
+    "hierarchy": 0,
+    "image": "FN05",
+    "imageFile": "",
+    "imageUrl": "",
+    "attributes": {
+      "odds": 5,
+      "effect": "weakenAttack",
+      "value": 300
+    }
   }
 ]

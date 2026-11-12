@@ -257,6 +257,14 @@ target_include_directories(saveTest PRIVATE src)
 target_link_libraries(saveTest PRIVATE SDL3::SDL3)
 pontifice_compile_options(saveTest)
 add_test(NAME saveTest COMMAND saveTest)
+add_executable(instantTest tests/instantTest.cpp src/scripts/rules/rules.cpp
+               src/scripts/ai/ai.cpp src/scripts/cards/cards.cpp src/scripts/deck/deck.cpp
+               src/scripts/i18n/i18n.cpp src/scripts/json/json.cpp src/scripts/log/log.cpp)
+target_include_directories(instantTest PRIVATE src)
+target_compile_definitions(instantTest PRIVATE PONTIFICE_SOURCE_DIR="${CMAKE_SOURCE_DIR}/src/")
+target_link_libraries(instantTest PRIVATE SDL3::SDL3)
+pontifice_compile_options(instantTest)
+add_test(NAME instantTest COMMAND instantTest)
 
 # Game data next to the binary on every build; icons/ only needs icon.png at runtime.
 set(_data_dirs assets fonts sprites models audios)

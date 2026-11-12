@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+// kAura is the lasting buff/nerf field; the others act once on the opponent when played.
+enum class FieldEffect { kAura, kClearField, kAttackMode, kDamage, kWeakenDefense, kWeakenAttack };
+
 struct CardInfo {
   std::string code;  // "G101", "E203", "N301", "FE01"
   std::string name;
@@ -23,8 +26,11 @@ struct CardInfo {
   std::string favored;
   int buff = 0;
   int nerf = 0;
+  FieldEffect effect = FieldEffect::kAura;
+  int value = 0;  // life or points the effect removes
 
   bool IsField() const { return category == 'F'; }
+  bool IsInstant() const { return IsField() && effect != FieldEffect::kAura; }
   std::string CategoryLabel() const;
   const char* FrameSprite() const;
 };
@@ -34,6 +40,9 @@ namespace cards {
 std::vector<CardInfo> LoadAll(const std::string& base);
 
 const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code);
+
+// JSON and translation key of an effect ("clearField"); empty for kAura.
+const char* EffectName(FieldEffect effect);
 
 // Weighted draw; copy limits from rules::Get(); weight 0 never enters.
 using Weight = std::function<int(const CardInfo&)>;

@@ -164,6 +164,7 @@ cmake/
 tests/                testes automatizados (ctest --test-dir build)
   deckTest.cpp       monte: embaralhar preserva cartas, é determinístico por semente, compra tira do topo
   rulesTest.cpp      regras de dano, carta de campo, decisões da IA e hierarquias por nível
+  instantTest.cpp    cartas de campo instantâneas: cada efeito com e sem alvo, combate depois dele, escolhas da IA e o catálogo real (FN01 a FN05)
 ```
 
 ## Dados das cartas
@@ -185,6 +186,8 @@ Cada arquivo em `src/assets` é um array JSON. Campos comuns a toda carta:
 `attributes` de carta de batalha: `attack`, `defense`, `odds`, `combinable`.
 
 `attributes` de carta de campo: `odds`, `category` (`good` ou `evil`, lado favorecido), `buff`, `nerf`.
+
+`attributes` de carta de campo instantânea: `odds`, `effect` (`clearField`, `attackMode`, `damage`, `weakenDefense` ou `weakenAttack`, em `CardInfo::effect`) e `value` (vida ou pontos que o efeito tira). O efeito é regra pura (`rules::HasTarget` e `rules::ApplyInstant`, sobre `rules::BoardCard`) e o `BattleScene::PlayInstant` só aplica o resultado no tabuleiro, no campo e na vida; a perda de ATK/DEF fica em `Board::Card::attack_mod`/`defense_mod` e entra no `rules::EffectiveAttack/Defense` como `modifier`. A IA escolhe entre carta de campo e instantânea em `ai::ChooseFieldCard` e joga todas que valem a pena antes da invocação. Sem ilustração, `imageFile` e `imageUrl` ficam vazios e a frente mostra a janela branca da moldura.
 
 Os JSON são carregados uma vez na inicialização e mantidos em memória como structs. As ilustrações (`imageUrl`) são lidas no carregamento da batalha e entram na frente composta de cada carta.
 

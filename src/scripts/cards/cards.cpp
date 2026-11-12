@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <map>
+#include <utility>
 
 #include "scripts/deck/deck.h"
 #include "scripts/i18n/i18n.h"
@@ -18,6 +19,21 @@ int Int(const json::Value* v, int fallback = 0) {
 }
 
 std::string Str(const json::Value* v) { return v != nullptr && v->IsString() ? v->string : ""; }
+
+constexpr std::pair<FieldEffect, const char*> kEffects[] = {
+    {FieldEffect::kClearField, "clearField"},
+    {FieldEffect::kAttackMode, "attackMode"},
+    {FieldEffect::kDamage, "damage"},
+    {FieldEffect::kWeakenDefense, "weakenDefense"},
+    {FieldEffect::kWeakenAttack, "weakenAttack"},
+};
+
+FieldEffect ParseEffect(const std::string& name) {
+  for (const auto& [effect, key] : kEffects) {
+    if (name == key) return effect;
+  }
+  return FieldEffect::kAura;
+}
 
 void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
   json::Value root;
@@ -42,6 +58,8 @@ void LoadFile(const std::string& path, std::vector<CardInfo>& out) {
     card.favored = Str(item.Path("attributes.category"));
     card.buff = Int(item.Path("attributes.buff"));
     card.nerf = Int(item.Path("attributes.nerf"));
+    card.effect = ParseEffect(Str(item.Path("attributes.effect")));
+    card.value = Int(item.Path("attributes.value"));
     if (card.code.empty()) continue;
     // Missing translation key keeps the JSON text.
     card.name = i18n::GetOr("card." + card.code + ".name", card.name);
@@ -100,6 +118,13 @@ const CardInfo* Find(const std::vector<CardInfo>& all, const std::string& code) 
     if (card.code == code) return &card;
   }
   return nullptr;
+}
+
+const char* EffectName(FieldEffect effect) {
+  for (const auto& [e, key] : kEffects) {
+    if (e == effect) return key;
+  }
+  return "";
 }
 
 std::vector<std::string> BuildDeck(const std::vector<CardInfo>& all, int size,

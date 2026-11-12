@@ -196,6 +196,11 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
     if (stats_left != nullptr && stats_right != nullptr) {
       left = *stats_left;
       right = *stats_right;
+    } else if (card.IsInstant()) {
+      const std::string amount = " -" + std::to_string(card.value);
+      if (card.effect == FieldEffect::kDamage) left = i18n::Get("cardface.life") + amount;
+      if (card.effect == FieldEffect::kWeakenAttack) left = i18n::Get("cardface.atk") + amount;
+      if (card.effect == FieldEffect::kWeakenDefense) left = i18n::Get("cardface.def") + amount;
     } else if (card.IsField()) {
       left = i18n::Get("cardface.buff") + " +" + std::to_string(card.buff);
       right = i18n::Get("cardface.nerf") + " -" + std::to_string(card.nerf);
@@ -215,6 +220,10 @@ Image ComposeWith(const Image& frame, const CardInfo& card, const Image* art,
       const std::string favored =
           i18n::Get(card.favored == "evil" ? "category.plural.evil" : "category.plural.good");
       body += "\n" + i18n::Format("cardface.favors", {favored});
+    }
+    if (card.IsInstant()) {
+      body += "\n" + i18n::Format(std::string("cardface.effect.") + cards::EffectName(card.effect),
+                                  {std::to_string(card.value)});
     }
     const std::vector<std::string> lines = Wrap(body, px, (kRight - kLeft) * sx, text::Face::kBody);
     const float block_h = static_cast<float>(lines.size()) * line_h;

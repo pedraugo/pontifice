@@ -167,6 +167,24 @@ int SfxTier(int value) {
   return 5;
 }
 
+int AttackOf(const Board::Card& c, const rules::Field& f) {
+  return rules::EffectiveAttack(*c.info, f, c.attack_mod);
+}
+
+int DefenseOf(const Board::Card& c, const rules::Field& f) {
+  return rules::EffectiveDefense(*c.info, f, c.defense_mod);
+}
+
+// Same order as Board::Occupied().
+std::vector<rules::BoardCard> Snapshot(const Board& board) {
+  std::vector<rules::BoardCard> out;
+  for (int slot : board.Occupied()) {
+    const Board::Card* c = board.At(slot);
+    out.push_back(rules::BoardCard{c->defense, c->attack_mod, c->defense_mod});
+  }
+  return out;
+}
+
 
 void DrawGlowRing(SDL_Renderer* r, const SDL_FRect& inner, float margin, const SDL_FColor c[4]) {
   const SDL_FPoint in[4] = {{inner.x, inner.y},
@@ -565,7 +583,7 @@ void BattleScene::ToggleSampleFieldCard() {
     return;
   }
   for (const CardInfo& card : cards_) {
-    if (card.IsField()) {
+    if (card.IsField() && !card.IsInstant()) {
       PlayField(Side::kPlayer, card);
       return;
     }
@@ -811,19 +829,7 @@ void BattleScene::RunOpponentTurn() {
       delay += S().position_sfx_gap;
     }
   });
-  Schedule(S().opponent_pause, [this] {
-    const int index = ai::ChooseFieldCard(BuildOpponentView());
-    if (index < 0) return;
-    const CardInfo* card = opponent_hand_[static_cast<size_t>(index)];
-    math::Mat4 from;
-    const bool had_view = static_cast<size_t>(index) < opponent_hand_view_.Size();
-    OpponentHandRemove(static_cast<size_t>(index), &from);
-    StartReveal(*card, i18n::Get("battle.reveal.field"), "", had_view ? &from : nullptr);
-    ScheduleNext(RevealDuration(), [this, card] {
-      reveal_ = Reveal{};
-      PlayField(Side::kOpponent, *card);
-    });
-  });
+  Schedule(S().opponent_pause, [this] { OpponentFieldStep(); });
   Schedule(S().opponent_pause, [this] {
     const std::optional<ai::Summon> summon = ai::ChooseSummon(BuildOpponentView());
     if (!summon || summon->hand_index < 0 ||
@@ -849,6 +855,23 @@ void BattleScene::RunOpponentTurn() {
   } else {
     Schedule(S().opponent_pause + S().attack_delay, [this] { OpponentAttackStep(); });
   }
+}
+
+// Plays every field card worth it, one reveal at a time, before the summon step.
+void BattleScene::OpponentFieldStep() {
+  if (hud_.Over()) return;
+  const int index = ai::ChooseFieldCard(BuildOpponentView());
+  if (index < 0) return;
+  const CardInfo* card = opponent_hand_[static_cast<size_t>(index)];
+  math::Mat4 from;
+  const bool had_view = static_cast<size_t>(index) < opponent_hand_view_.Size();
+  OpponentHandRemove(static_cast<size_t>(index), &from);
+  StartReveal(*card, i18n::Get("battle.reveal.field"), "", had_view ? &from : nullptr);
+  ScheduleNext(RevealDuration(), [this, card] {
+    reveal_ = Reveal{};
+    PlayField(Side::kOpponent, *card);
+    ScheduleNext(S().opponent_pause, [this] { OpponentFieldStep(); });
+  });
 }
 
 void BattleScene::OpponentAttackStep() {
@@ -886,15 +909,17 @@ ai::View BattleScene::BuildOpponentView() const {
   view.hand = opponent_hand_;
   for (int slot : opponent_board_.Occupied()) {
     const Board::Card* c = opponent_board_.At(slot);
-    view.mine.push_back(ai::FieldCard{slot, c->info, c->defense,
-                                      !c->defense && !c->attacked, c->summoned_turn == turn_});
+    view.mine.push_back(ai::FieldCard{slot, c->info, c->defense, !c->defense && !c->attacked,
+                                      c->summoned_turn == turn_, c->attack_mod, c->defense_mod});
   }
   for (int slot : board_.Occupied()) {
     const Board::Card* c = board_.At(slot);
-    view.theirs.push_back(
-        ai::FieldCard{slot, c->info, c->defense, false, c->summoned_turn == turn_});
+    view.theirs.push_back(ai::FieldCard{slot, c->info, c->defense, false,
+                                        c->summoned_turn == turn_, c->attack_mod,
+                                        c->defense_mod});
   }
   view.field = field_;
+  view.field_mine = field_.active && field_owner_ == Side::kOpponent;
   view.my_life = hud_.OpponentLife();
   view.their_life = hud_.PlayerLife();
   view.can_summon = true;
@@ -940,6 +965,8 @@ bool BattleScene::CanAct() const {
 
 bool BattleScene::CanSummon() const {
   if (!CanAct() || hand_.Dragging() < 0) return false;
+  const CardInfo* info = DraggedInfo();
+  if (info != nullptr && info->IsInstant()) return HasTarget(Side::kPlayer, *info);
   return DraggedIsField() || !summoned_;
 }
 
@@ -947,10 +974,13 @@ const char* BattleScene::HoverColor() const {
   return field_.active || DraggedIsField() ? "pink" : "yellow";
 }
 
-bool BattleScene::DraggedIsField() const {
+const CardInfo* BattleScene::DraggedInfo() const {
   const int index = hand_.Dragging();
-  if (index < 0) return false;
-  const CardInfo* info = hand_.CardAt(static_cast<size_t>(index)).info;
+  return index < 0 ? nullptr : hand_.CardAt(static_cast<size_t>(index)).info;
+}
+
+bool BattleScene::DraggedIsField() const {
+  const CardInfo* info = DraggedInfo();
   return info != nullptr && info->IsField();
 }
 
@@ -958,6 +988,10 @@ void BattleScene::PlayField(Side owner, const CardInfo& card) {
   if (owner == Side::kPlayer) hud_.SetGraveyard(hud_.Graveyard() + 1);
   if (owner == Side::kOpponent) ++stats_.graveyard[1];
   ++stats_.played[Index(owner)];
+  if (card.IsInstant()) {
+    PlayInstant(owner, card);
+    return;
+  }
   field_ = rules::Field::From(card);
   field_owner_ = owner;
   FieldCardInfo info;
@@ -971,6 +1005,51 @@ void BattleScene::PlayField(Side owner, const CardInfo& card) {
   hud_.SetFieldCard(info);
   LOG("%s activated the field card %s", owner == Side::kPlayer ? "You" : "Opponent",
           card.name.c_str());
+}
+
+bool BattleScene::HasTarget(Side owner, const CardInfo& card) const {
+  const Side hit = Other(owner);
+  return rules::HasTarget(card, field_.active && field_owner_ == hit, Snapshot(BoardOf(hit)));
+}
+
+void BattleScene::PlayInstant(Side owner, const CardInfo& card) {
+  const Side hit = Other(owner);
+  Board& target = BoardOf(hit);
+  const std::vector<int> slots = target.Occupied();
+  std::vector<rules::BoardCard> cards = Snapshot(target);
+  const rules::InstantOutcome out =
+      rules::ApplyInstant(card, field_.active && field_owner_ == hit, cards);
+  for (int i : out.changed) {
+    Board::Card* c = target.At(slots[static_cast<size_t>(i)]);
+    const rules::BoardCard& changed = cards[static_cast<size_t>(i)];
+    c->defense = changed.defense;
+    c->attack_mod = changed.attack_mod;
+    c->defense_mod = changed.defense_mod;
+    target.Flash(slots[static_cast<size_t>(i)]);
+  }
+  if (card.effect == FieldEffect::kAttackMode && !out.changed.empty()) {
+    sfx_.Play("defenseToAttack");
+  }
+  if (out.clear_field) {
+    field_ = rules::Field{};
+    hud_.ClearFieldCard();
+  }
+  if (out.damage > 0) {
+    ApplyDamage(hit, out.damage);
+    stats_.damage[Index(owner)] += out.damage;
+  }
+  LOG("%s played the instant field card %s (%s %d)", owner == Side::kPlayer ? "You" : "Opponent",
+      card.name.c_str(), cards::EffectName(card.effect), card.value);
+  CheckBattleOver();
+}
+
+void BattleScene::CheckBattleOver() {
+  if (!hud_.Over()) return;
+  steps_.clear();
+  reveal_ = Reveal{};
+  player_turn_ = false;
+  hand_.SetAway(true);
+  LOG("End: %s", hud_.PlayerLife() > 0 ? "victory" : "defeat");
 }
 
 void BattleScene::Summon(int slot) {
@@ -1017,7 +1096,7 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   Board& theirs = BoardOf(Other(attacker));
   const Board::Card* card = mine.At(slot);
   if (card == nullptr || card->info == nullptr) return;
-  const int attack = rules::EffectiveAttack(*card->info, field_);
+  const int attack = AttackOf(*card, field_);
   rules::Outcome outcome;
   char a_name[3], d_name[3];
   const math::Vec3 hit = target_slot >= 0
@@ -1033,12 +1112,11 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   } else {
     Board::Card* target = theirs.At(target_slot);
     if (target == nullptr || target->info == nullptr) return;
-    outcome = rules::Resolve(attack, target->defense,
-                             rules::EffectiveAttack(*target->info, field_),
-                             rules::EffectiveDefense(*target->info, field_));
+    outcome = rules::Resolve(attack, target->defense, AttackOf(*target, field_),
+                             DefenseOf(*target, field_));
     if (target->defense) {
       shield_.Play(hit, mine.CardPosition(slot), sword_.HitDelay(), outcome.defender_destroyed);
-      const int defense = rules::EffectiveDefense(*target->info, field_);
+      const int defense = DefenseOf(*target, field_);
       PlaySfxLater(sword_.HitDelay(), "shield" + std::to_string(SfxTier(defense)));
     }
     LOG("%s: %s (%s, %d) attacks %s (%s, %s)", attacker == Side::kPlayer ? "You" : "Opponent",
@@ -1057,13 +1135,7 @@ void BattleScene::ResolveAttack(Side attacker, int slot, int target_slot) {
   stats_.damage[d] += outcome.attacker_damage;
   stats_.biggest_hit[a] = std::max(stats_.biggest_hit[a], outcome.defender_damage);
   stats_.biggest_hit[d] = std::max(stats_.biggest_hit[d], outcome.attacker_damage);
-  if (hud_.Over()) {
-    steps_.clear();
-    reveal_ = Reveal{};
-    player_turn_ = false;
-    hand_.SetAway(true);
-    LOG("End: %s", hud_.PlayerLife() > 0 ? "victory" : "defeat");
-  }
+  CheckBattleOver();
 }
 
 void BattleScene::Destroy(Side owner, int slot) {
@@ -1089,25 +1161,26 @@ void BattleScene::ArrangeTutorialHand() {
   const size_t hand = std::min(static_cast<size_t>(rules::Get().initial_hand), cards.size());
   // Top of the deck is the back, so the opening hand is the last `hand` cards.
   const auto top = cards.end() - static_cast<long>(hand);
-  auto is_field = [this](const std::string& code) {
+  enum Kind { kBattle, kLasting, kInstant };
+  auto kind = [this](const std::string& code) {
     const CardInfo* info = cards::Find(cards_, code);
-    return info != nullptr && info->IsField();
+    if (info == nullptr || !info->IsField()) return kBattle;
+    return info->IsInstant() ? kInstant : kLasting;
   };
-  auto bring = [&](bool field) {
-    const auto below = std::find_if(cards.begin(), top, [&](const std::string& c) {
-      return is_field(c) == field;
-    });
-    const auto in_hand = std::find_if(top, cards.end(), [&](const std::string& c) {
-      return is_field(c) != field;
-    });
-    if (below == top || in_hand == cards.end()) return false;
-    std::iter_swap(below, in_hand);
+  auto of = [&](Kind k) { return [&, k](const std::string& c) { return kind(c) == k; }; };
+  auto in_hand = [&](Kind k) { return std::count_if(top, cards.end(), of(k)); };
+  // Swaps the first card of kind `want` below the hand with a hand card of kind `drop`.
+  auto bring = [&](Kind want, Kind drop) {
+    const auto below = std::find_if(cards.begin(), top, of(want));
+    const auto held = std::find_if(top, cards.end(), of(drop));
+    if (below == top || held == cards.end()) return false;
+    std::iter_swap(below, held);
     return true;
   };
-  auto fields_in_hand = [&] { return std::count_if(top, cards.end(), is_field); };
-  // One field card for the field step, battle cards for the rest.
-  if (fields_in_hand() == 0) bring(true);
-  while (fields_in_hand() > 1 && bring(false)) {}
+  // One lasting field card for the field step, battle cards for the rest.
+  while (in_hand(kInstant) > 0 && bring(kBattle, kInstant)) {}
+  if (in_hand(kLasting) == 0) bring(kLasting, kBattle);
+  while (in_hand(kLasting) > 1 && bring(kBattle, kLasting)) {}
   deck_ = deck::Deck(std::move(cards));
 }
 
@@ -1118,7 +1191,7 @@ bool BattleScene::TutorialLocksCard(const CardInfo* info) const {
     case TutorialStep::kSummon:
       return field;
     case TutorialStep::kField:
-      return !field;
+      return !field || info->IsInstant();
     case TutorialStep::kDefense:
     case TutorialStep::kAttackMode:
     case TutorialStep::kEndTurn:
@@ -1219,7 +1292,7 @@ void BattleScene::UpdateTutorial(int width, int height) {
   int fields_in_hand = 0;
   for (size_t i = 0; i < hand_.Size(); ++i) {
     const CardInfo* info = hand_.CardAt(i).info;
-    fields_in_hand += info != nullptr && info->IsField() ? 1 : 0;
+    fields_in_hand += info != nullptr && info->IsField() && !info->IsInstant() ? 1 : 0;
   }
   // Steps without a button end when the player does what they ask.
   bool done = false;
@@ -1774,12 +1847,11 @@ void BattleScene::Update(SceneContext& ctx, float dt_seconds) {
   // Mouse off screen: the opponent hand ignores it.
   opponent_hand_view_.Update(dt_seconds, math::Vec2{-1.0f, -1.0f}, hand_view_proj_,
                              ctx.logical_width, ctx.logical_height);
-  const bool field_selected = DraggedIsField();
+  const CardInfo* dragged = DraggedInfo();
+  const bool field_selected = dragged != nullptr && dragged->IsField() && !dragged->IsInstant();
   if (field_selected || field_.active) {
     bool evil = field_.favored == 'E';
-    if (field_selected) {
-      evil = hand_.CardAt(static_cast<size_t>(hand_.Dragging())).info->favored == "evil";
-    }
+    if (field_selected) evil = dragged->favored == "evil";
     field_mist_color_ = colors::GetF(evil ? "purple" : "blue");
     field_fog_color_ = colors::GetF(evil ? "purpleDark" : "blueMarine");
   }
@@ -1971,8 +2043,8 @@ void BattleScene::RenderTooltip(SDL_Renderer* r, int width, int height) const {
   const Board::Card* card = board.At(tooltip_slot_);
   if (card == nullptr || card->info == nullptr) return;
   const CardInfo& info = *card->info;
-  const int attack = rules::EffectiveAttack(info, field_);
-  const int defense = rules::EffectiveDefense(info, field_);
+  const int attack = AttackOf(*card, field_);
+  const int defense = DefenseOf(*card, field_);
 
   struct Line {
     std::string text;
@@ -2068,7 +2140,7 @@ std::string BattleScene::Hint(int width, int height) const {
   if (attack_from_ >= 0 && attack_drag_) {
     const Board::Card* attacker = board_.At(attack_from_);
     if (attacker == nullptr || attacker->info == nullptr) return {};
-    const int attack = rules::EffectiveAttack(*attacker->info, field_);
+    const int attack = AttackOf(*attacker, field_);
     if (opponent_board_.Count() == 0) {
       return i18n::Format("battle.hint.directAttack", {std::to_string(attack)});
     }
@@ -2078,8 +2150,8 @@ std::string BattleScene::Hint(int width, int height) const {
       return i18n::Get("battle.hint.attackCard");
     }
     const rules::Outcome o =
-        rules::Resolve(attack, defender->defense, rules::EffectiveAttack(*defender->info, field_),
-                       rules::EffectiveDefense(*defender->info, field_));
+        rules::Resolve(attack, defender->defense, AttackOf(*defender, field_),
+                       DefenseOf(*defender, field_));
     if (o.attacker_destroyed && o.defender_destroyed) {
       return i18n::Get("battle.hint.preview.tie");
     }
@@ -2097,6 +2169,10 @@ std::string BattleScene::Hint(int width, int height) const {
   }
 
   if (hand_.Dragging() >= 0) {
+    if (const CardInfo* info = DraggedInfo(); info != nullptr && info->IsInstant()) {
+      return i18n::Get(HasTarget(Side::kPlayer, *info) ? "battle.hint.playInstant"
+                                                       : "battle.hint.instantNoTarget");
+    }
     if (DraggedIsField()) {
       return i18n::Get(field_.active ? "battle.hint.replaceField" : "battle.hint.playField");
     }
